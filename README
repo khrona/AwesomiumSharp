@@ -1,6 +1,0 @@
-AwesomiumSharp is a .NET Wrapper for Awesomium, Web-Browser Framework
-
-To use this wrapper, you will need to download the Awesomium SDK and place
-the contents of this folder inside sdk_folder/wrappers/AwesomiumSharp
-
-For more information: http://www.awesomium.com
