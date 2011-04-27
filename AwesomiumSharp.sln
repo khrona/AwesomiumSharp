@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasicSample", "BasicSample\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwesomiumMono", "AwesomiumMono\AwesomiumMono.csproj", "{85D4B964-855A-4075-BBA8-0B8B68E290FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFormsSample", "WinFormsSample\WinFormsSample.csproj", "{233E6FAF-9130-45A8-A199-2DFFDC76EABD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,16 @@ Global
 		{85D4B964-855A-4075-BBA8-0B8B68E290FD}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{85D4B964-855A-4075-BBA8-0B8B68E290FD}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{85D4B964-855A-4075-BBA8-0B8B68E290FD}.Release|x86.ActiveCfg = Release|Any CPU
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Debug|x86.ActiveCfg = Debug|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Debug|x86.Build.0 = Debug|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Release|Any CPU.ActiveCfg = Release|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Release|Mixed Platforms.Build.0 = Release|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Release|x86.ActiveCfg = Release|x86
+		{233E6FAF-9130-45A8-A199-2DFFDC76EABD}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
