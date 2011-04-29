@@ -174,9 +174,9 @@ namespace AwesomiumSharp
     public class WebCore
     {
 #if DEBUG_AWESOMIUM
-        internal const string DLLName = "Awesomium_d.dll";
+        internal const string DLLName = "Awesomium_d";
 #else
-        internal const string DLLName = "Awesomium.dll";
+        internal const string DLLName = "Awesomium";
 #endif
 
         internal static List<Object> activeWebViews;
