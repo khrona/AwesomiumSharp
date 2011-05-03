@@ -829,19 +829,20 @@ namespace AwesomiumSharp
             awe_webview_reset_zoom(instance);
         }
 
+        [return: MarshalAs(UnmanagedType.I1)]
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_resize(IntPtr webview,
+        private static extern bool awe_webview_resize(IntPtr webview,
                                        int width,
                                        int height,
                                        bool wait_for_repaint,
                                        int repaint_timeout_ms);
 
-        public void Resize(int width,
+        public bool Resize(int width,
                            int height,
                            bool waitForRepaint = true,
                            int repaintTimeoutMs = 300)
         {
-            awe_webview_resize(instance, width, height, waitForRepaint, repaintTimeoutMs);
+            return awe_webview_resize(instance, width, height, waitForRepaint, repaintTimeoutMs);
         }
 
         [return: MarshalAs(UnmanagedType.I1)]
