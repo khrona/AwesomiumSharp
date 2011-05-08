@@ -274,7 +274,7 @@ namespace AwesomiumSharp
 
         public class RequestFileChooserEventArgs : EventArgs
         {
-            public RequestFileChooserEventArgs(WebView webView, bool selectMultipleFiles, IntPtr title, IntPtr defaultPaths)
+            public RequestFileChooserEventArgs(WebView webView, bool selectMultipleFiles, string title, string defaultPaths)
             {
                 this.webView = webView;
                 this.selectMultipleFiles = selectMultipleFiles;
@@ -284,8 +284,8 @@ namespace AwesomiumSharp
 
             public WebView webView;
             public bool selectMultipleFiles;
-            public IntPtr title;
-            public IntPtr defaultPaths;
+            public string title;
+            public string defaultPaths;
         };
 
         public delegate void RequestFileChooserEventArgsHandler(object sender, RequestFileChooserEventArgs e);
@@ -314,22 +314,35 @@ namespace AwesomiumSharp
         public delegate void GetScrollDataEventArgsHandler(object sender, GetScrollDataEventArgs e);
         public event GetScrollDataEventArgsHandler OnGetScrollData;
 
-        public class ResourceRequestEventArgs : EventArgs
+        public class JSConsoleMessageEventArgs : EventArgs
         {
-            public ResourceRequestEventArgs(WebView webView, string url, string referrer, string httpMethod, byte[] postData)
+            public JSConsoleMessageEventArgs(WebView webView, string message, int lineNumber, string source)
             {
                 this.webView = webView;
-                this.url = url;
-                this.referrer = referrer;
-                this.httpMethod = httpMethod;
-                this.postData = postData;
+                this.message = message;
+                this.lineNumber = lineNumber;
+                this.source = source;
             }
 
             public WebView webView;
-            public string url;
-            public string referrer;
-            public string httpMethod;
-            public byte[] postData;
+            public string message;
+            public int lineNumber;
+            public string source;
+        };
+
+        public delegate void JSConsoleMessageEventArgsHandler(object sender, JSConsoleMessageEventArgs e);
+        public event JSConsoleMessageEventArgsHandler OnJSConsoleMessage;
+
+        public class ResourceRequestEventArgs : EventArgs
+        {
+            public ResourceRequestEventArgs(WebView webView, ResourceRequest request)
+            {
+                this.webView = webView;
+                this.request = request;
+            }
+
+            public WebView webView;
+            public ResourceRequest request;
         }
 
         public delegate ResourceResponse ResourceRequestEventArgsHandler(object sender, ResourceRequestEventArgs e);
@@ -381,6 +394,7 @@ namespace AwesomiumSharp
         private CallbackRequestMoveCallback requestMoveCallback;
         private CallbackWebviewCrashedCallback webviewCrashedCallback;
         private CallbackGetScrollDataCallback getScrollDataCallback;
+        private CallbackJSConsoleMessageCallback jsConsoleMessageCallback;
 
         private CallbackResourceRequestCallback resourceRequestCallback;
         private CallbackResourceResponseCallback resourceResponseCallback;
@@ -443,12 +457,14 @@ namespace AwesomiumSharp
             getScrollDataCallback = internalGetScrollData;
             awe_webview_set_callback_get_scroll_data(webview, getScrollDataCallback);
 
+            jsConsoleMessageCallback = internalJSConsoleMessage;
+            awe_webview_set_callback_js_console_message(webview, jsConsoleMessageCallback);
 
             resourceRequestCallback = internalResourceRequestCallback;
             awe_webview_set_callback_resource_request(webview, resourceRequestCallback);
 
-           // resourceResponseCallback = internalResourceResponseCallback;
-           // awe_webview_set_callback_resource_response(webview, resourceResponseCallback);
+            resourceResponseCallback = internalResourceResponseCallback;
+            awe_webview_set_callback_resource_response(webview, resourceResponseCallback);
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
@@ -567,6 +583,13 @@ namespace AwesomiumSharp
                                                    IntPtr javascript,
                                                    IntPtr frame_name);
 
+        /// <summary>
+        /// Executes a string of Javascript in the context of the current page
+        /// asynchronously.
+        /// </summary>
+        /// <param name="javascript">The string of Javascript to execute</param>
+        /// <param name="frameName">Optional; the name of the frame to execute in,
+        /// leave this blank to execute in the main frame.</param>
         public void ExecuteJavascript(string javascript,
                                       string frameName = "")
         {
@@ -583,6 +606,20 @@ namespace AwesomiumSharp
                                                         IntPtr frame_name,
                                                         int timeout_ms);
 
+        /// <summary>
+        /// Executes a string of Javascript in the context of the current page
+        /// synchronously with a result.
+        /// </summary>
+        /// <param name="javascript">The string of Javascript to execute</param>
+        /// <param name="frameName">Optional; the name of the frame to execute in,
+        /// leave this blank to execute in the main frame.</param>
+        /// <param name="timeoutMs">Optional; the maximum time to wait for the result
+        /// to be computed. Leave this 0 to wait forever (may hang if Javascript is 
+        /// invalid!)</param>
+        /// <returns>Returns the result as a JSValue. Please note that the returned
+        /// result is only a shallow, read-only copy of the original object. This
+        /// method does not return system-defined Javascript objects (such as "window",
+        /// "document", or any DOM elements).</returns>
         public JSValue ExecuteJavascriptWithResult(string javascript,
                                                   string frameName = "",
                                                   int timeoutMs = 0)
@@ -1227,7 +1264,8 @@ namespace AwesomiumSharp
 
         private void internalRequestFileChooser(IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_paths)
         {
-            RequestFileChooserEventArgs e = new RequestFileChooserEventArgs(this, select_multiple_files, title, default_paths);
+            RequestFileChooserEventArgs e = new RequestFileChooserEventArgs(this, select_multiple_files, 
+                StringHelper.ConvertAweString(title), StringHelper.ConvertAweString(default_paths));
 
             if (OnRequestFileChooser != null)
                 OnRequestFileChooser(this, e);
@@ -1247,27 +1285,32 @@ namespace AwesomiumSharp
                 OnGetScrollData(this, e);
         }
 
+        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+        public delegate void CallbackJSConsoleMessageCallback(IntPtr caller, IntPtr message, int lineNumber, IntPtr source);
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_set_callback_js_console_message(IntPtr webview, CallbackJSConsoleMessageCallback callback);
+
+        private void internalJSConsoleMessage(IntPtr caller, IntPtr message, int lineNumber, IntPtr source)
+        {
+            JSConsoleMessageEventArgs e = new JSConsoleMessageEventArgs(this, StringHelper.ConvertAweString(message), lineNumber, 
+                StringHelper.ConvertAweString(source));
+
+            if (OnJSConsoleMessage != null)
+                OnJSConsoleMessage(this, e);
+        }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr url, IntPtr referrer, IntPtr http_method, 
-                                                                IntPtr post_data, uint post_data_length);
+        public delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr request);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_resource_request(IntPtr webview, CallbackResourceRequestCallback callback);
 
-        private IntPtr internalResourceRequestCallback(IntPtr caller, IntPtr url, IntPtr referrer, IntPtr http_method,
-                                                                IntPtr post_data, uint post_data_length)
+        private IntPtr internalResourceRequestCallback(IntPtr caller, IntPtr request)
         {
-            byte[] postDataBytes = null;
+            ResourceRequest requestWrap = new ResourceRequest(request);
 
-            if (post_data_length > 0)
-            {
-                postDataBytes = new byte[post_data_length];
-                Marshal.Copy(post_data, postDataBytes, 0, (int)post_data_length);
-            }
-
-            ResourceRequestEventArgs e = new ResourceRequestEventArgs(this, StringHelper.ConvertAweString(url), StringHelper.ConvertAweString(referrer),
-                            StringHelper.ConvertAweString(http_method), postDataBytes);
+            ResourceRequestEventArgs e = new ResourceRequestEventArgs(this, requestWrap);
 
             if (OnResourceRequest != null)
             {
@@ -1298,10 +1341,238 @@ namespace AwesomiumSharp
         }
     }
 
+    public class ResourceRequest
+    {
+        private IntPtr instance;
+
+        internal ResourceRequest(IntPtr instance)
+        {
+            this.instance = instance;
+        }
+
+        internal IntPtr getInstance()
+        {
+            return instance;
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_get_url(IntPtr request);
+
+        public string getURL()
+        {
+            return StringHelper.ConvertAweString(awe_resource_request_get_url(instance), true);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_get_method(IntPtr request);
+
+        /// <summary>
+        /// Get the method for the request (usually either "GET" or "POST")
+        /// </summary>
+        /// <returns></returns>
+        public string getMethod()
+        {
+            return StringHelper.ConvertAweString(awe_resource_request_get_method(instance), true);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_set_method(IntPtr request,
+												IntPtr method);
+
+        /// <summary>
+        /// Sets the method for the request (usually either "GET" or "POST")
+        /// </summary>
+        /// <returns></returns>
+        public void setMethod(string method)
+        {
+            StringHelper methodStr = new StringHelper(method);
+
+            awe_resource_request_set_method(instance, methodStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_get_referrer(IntPtr request);
+
+        public string getReferrer()
+        {
+            return StringHelper.ConvertAweString(awe_resource_request_get_referrer(instance), true);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_set_referrer(IntPtr request,
+												  IntPtr referrer);
+
+        public void setReferrer(string referrer)
+        {
+            StringHelper referrerStr = new StringHelper(referrer);
+
+            awe_resource_request_set_referrer(instance, referrerStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_get_extra_headers(IntPtr request);
+
+        public string getExtraHeaders()
+        {
+            return StringHelper.ConvertAweString(awe_resource_request_get_extra_headers(instance), true);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_set_extra_headers(IntPtr request,
+												IntPtr headers);
+
+        /// <summary>
+        /// Override the extra headers for the request. Each header is delimited by /r/n (CRLF)
+        /// Headers should NOT end in /r/n (CRLF).
+        /// </summary>
+        /// <param name="headers"></param>
+        public void setExtraHeaders(string headers)
+        {
+            StringHelper headersStr = new StringHelper(headers);
+
+            awe_resource_request_set_extra_headers(instance, headersStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_append_extra_header(IntPtr request,
+														 IntPtr name,
+														 IntPtr value);
+
+        /// <summary>
+        /// Appends a new header to this request
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        public void appendExtraHeader(string name, string value)
+        {
+            StringHelper nameStr = new StringHelper(name);
+            StringHelper valueStr = new StringHelper(value);
+
+            awe_resource_request_append_extra_header(instance, nameStr.value(), valueStr.value());
+        }
+	
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern uint awe_resource_request_get_num_upload_elements(IntPtr request);
+
+        /// Get the number of upload elements (essentially, batches of POST data).	
+        public uint getNumUploadElements()
+        {
+            return awe_resource_request_get_num_upload_elements(instance);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_get_upload_element(IntPtr request,
+																			 uint idx);
+
+        /// <summary>
+        /// Get a certain upload element (returned instance is owned by this class)	
+        /// </summary>
+        /// <param name="idx"></param>
+        /// <returns></returns>
+        public UploadElement getUploadElement(uint idx)
+        {
+            return new UploadElement(awe_resource_request_get_upload_element(instance, idx));
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_clear_upload_elements(IntPtr request);
+
+        public void clearUploadElements()
+        {
+            awe_resource_request_clear_upload_elements(instance);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_append_upload_file_path(IntPtr request,
+															 IntPtr file_path);
+
+        /// <summary>
+        ///  Append a file for POST data (adds a new UploadElement)	
+        /// </summary>
+        /// <param name="filePath"></param>
+        public void appendUploadFilePath(string filePath)
+        {
+            StringHelper filePathStr = new StringHelper(filePath);
+
+            awe_resource_request_append_upload_file_path(instance, filePathStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_resource_request_append_upload_bytes(IntPtr request,
+														 IntPtr bytes);
+
+        /// <summary>
+        /// Append a string of bytes for POST data (adds a new UploadElement)	
+        /// </summary>
+        /// <param name="bytes"></param>
+        public void appendUploadBytes(string bytes)
+        {
+            StringHelper bytesStr = new StringHelper(bytes);
+
+            awe_resource_request_append_upload_bytes(instance, bytesStr.value());
+        }
+    }
+
+    /// <summary>
+    /// This class represents a single batch of "upload data" to be sent with
+    /// a ResourceRequest. Also commonly known as "POST" data.
+    /// </summary>
+    public class UploadElement
+    {
+        private IntPtr instance;
+
+        internal UploadElement(IntPtr instance)
+        {
+            this.instance = instance;
+        }
+
+        [return: MarshalAs(UnmanagedType.I1)]
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool awe_upload_element_is_file_path(IntPtr ele);
+
+        public bool isFilePath()
+        {
+            return awe_upload_element_is_file_path(instance);
+        }
+
+        [return: MarshalAs(UnmanagedType.I1)]
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool awe_upload_element_is_bytes(IntPtr ele);
+
+        public bool isBytes()
+        {
+            return awe_upload_element_is_bytes(instance);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_upload_element_get_bytes(IntPtr ele);
+
+        public string getBytes()
+        {
+            return StringHelper.ConvertAweString(awe_upload_element_get_bytes(instance), true);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_upload_element_get_file_path(IntPtr ele);
+
+        public string getFilePath()
+        {
+            return StringHelper.ConvertAweString(awe_upload_element_get_file_path(instance), true);
+        }
+    }
+
+    /// <summary>
+    /// This class allows you to override the response for a certain ResourceRequest.
+    /// </summary>
     public class ResourceResponse
     {
         private IntPtr instance;
 
+        /// <summary>
+        /// Create a ResourceResponse from a byte array
+        /// </summary>
+        /// <param name="data">The data to be initialized from (a copy is made)</param>
+        /// <param name="mimeType">The mime-type of the data (for ex. "text/html")</param>
         public ResourceResponse(byte[] data, string mimeType)
         {
             StringHelper mimeTypeStr = new StringHelper(mimeType);
@@ -1314,6 +1585,10 @@ namespace AwesomiumSharp
             Marshal.FreeHGlobal(dataPtr);
         }
 
+        /// <summary>
+        /// Create a ResourceResponse from a file on disk
+        /// </summary>
+        /// <param name="filePath"></param>
         public ResourceResponse(string filePath)
         {
             StringHelper filePathStr = new StringHelper(filePath);

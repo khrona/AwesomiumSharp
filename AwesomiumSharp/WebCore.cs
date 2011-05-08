@@ -160,10 +160,13 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_string_get_utf16(IntPtr str);
 
-        public static string ConvertAweString(IntPtr aweStr)
+        public static string ConvertAweString(IntPtr aweStr, bool shouldDestroy = false)
         {
             byte[] stringBytes = new byte[awe_string_get_length(aweStr) * 2];
             Marshal.Copy(awe_string_get_utf16(aweStr), stringBytes, 0, (int)awe_string_get_length(aweStr) * 2);
+
+            if (shouldDestroy)
+                awe_string_destroy(aweStr);
 
             UnicodeEncoding unicodeEncoding = new UnicodeEncoding();
 

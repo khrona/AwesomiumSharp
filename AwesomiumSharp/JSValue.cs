@@ -150,7 +150,7 @@ namespace AwesomiumSharp
 
         new public string ToString()
         {
-            return StringHelper.ConvertAweString(awe_jsvalue_to_string(instance));
+            return StringHelper.ConvertAweString(awe_jsvalue_to_string(instance), true);
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
