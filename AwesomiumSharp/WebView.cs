@@ -17,6 +17,8 @@ namespace AwesomiumSharp
         internal IntPtr instance;
         private bool disposed = false;
 
+        internal Dictionary<string, JSCallback> jsObjectCallbackMap;
+
         public class BeginLoadingEventArgs : EventArgs
         {
             public BeginLoadingEventArgs(WebView webView, string url, string frameName, int statusCode, string mimeType)
@@ -72,8 +74,8 @@ namespace AwesomiumSharp
             public JSValue[] args;
         };
 
-        public delegate void JSCallbackEventArgsHandler(object sender, JSCallbackEventArgs e);
-        public event JSCallbackEventArgsHandler OnJSCallback;
+        internal delegate void JSCallbackEventArgsHandler(object sender, JSCallbackEventArgs e);
+        internal event JSCallbackEventArgsHandler OnJSCallback;
 
         public class ChangeCursorEventArgs : EventArgs
         {
@@ -465,6 +467,9 @@ namespace AwesomiumSharp
 
             resourceResponseCallback = internalResourceResponseCallback;
             awe_webview_set_callback_resource_response(webview, resourceResponseCallback);
+
+            jsObjectCallbackMap = new Dictionary<string, JSCallback>();
+            this.OnJSCallback += handleJSCallback;
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
@@ -699,13 +704,33 @@ namespace AwesomiumSharp
         private static extern void awe_webview_set_object_callback(IntPtr webview,
                                                      IntPtr object_name,
                                                      IntPtr callback_name);
+
+        public delegate void JSCallback(object sender, JSCallbackEventArgs e);
+
         public void SetObjectCallback(string objectName,
-                                      string callbackName)
+                                      string callbackName,
+                                      JSCallback callback)
         {
             StringHelper objectNameStr = new StringHelper(objectName);
             StringHelper callbackNameStr = new StringHelper(callbackName);
 
             awe_webview_set_object_callback(instance, objectNameStr.value(), callbackNameStr.value());
+
+            string key = objectName + "." + callbackName;
+
+            if (jsObjectCallbackMap.ContainsKey(key))
+                jsObjectCallbackMap.Remove(key);
+
+            if(callback != null)
+                jsObjectCallbackMap.Add(key, callback);
+        }
+
+        internal void handleJSCallback(object sender, JSCallbackEventArgs e)
+        {
+            string key = e.objectName + "." + e.callbackName;
+
+            if (jsObjectCallbackMap.ContainsKey(key))
+                jsObjectCallbackMap[key](sender, e);
         }
 
         [return: MarshalAs(UnmanagedType.I1)]
