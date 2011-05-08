@@ -48,7 +48,7 @@
             this.ClientSize = new System.Drawing.Size(532, 533);
             this.Controls.Add(this.webViewBitmap);
             this.Name = "WebForm";
-            this.Text = "Form1";
+            this.Text = "WinFormsSample";
             ((System.ComponentModel.ISupportInitialize)(this.webViewBitmap)).EndInit();
             this.ResumeLayout(false);
 
