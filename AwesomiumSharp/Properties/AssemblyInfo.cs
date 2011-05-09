@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("AwesomiumSharp v1.6 RC3")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("AwesomiumSharp v1.6.0")]
+[assembly: AssemblyDescription(".NET Wrapper for Awesomium")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Khrona LLC")]
 [assembly: AssemblyProduct("AwesomiumSharp")]
 [assembly: AssemblyCopyright("Copyright © Khrona LLC 2011")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyTrademark("Awesomium is a trademark of Khrona LLC")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.6.0.6")]
+[assembly: AssemblyFileVersion("1.6.0.6")]

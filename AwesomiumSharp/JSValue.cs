@@ -12,6 +12,10 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// JSValue represents a Javascript value. It can be initialized from and
+    /// converted to several type: boolean, integer, double, string, object, and array.
+    /// </summary>
     public class JSValue : IDisposable
     {
         private IntPtr instance;
@@ -32,6 +36,9 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_jsvalue_create_null_value();
 
+        /// <summary>
+        /// Create a null value
+        /// </summary>
         public JSValue()
         {
             instance = awe_jsvalue_create_null_value();
@@ -74,6 +81,10 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_jsvalue_create_object_value(IntPtr value);
 
+        /// <summary>
+        /// Create a value initialized as an Object
+        /// </summary>
+        /// <param name="value"></param>
         public JSValue(JSObject value)
         {
             instance = awe_jsvalue_create_object_value(value.instance);
@@ -96,6 +107,10 @@ namespace AwesomiumSharp
         private static extern IntPtr awe_jsarray_get_element(IntPtr jsarray,
                                                        uint index);
 
+        /// <summary>
+        /// Create a value initialized as an Array
+        /// </summary>
+        /// <param name="value"></param>
         public JSValue(JSValue[] value)
         {
             IntPtr jsarray = JSArrayHelper.createArray(value);
@@ -181,6 +196,10 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_jsvalue_get_array(IntPtr jsvalue);
 
+        /// <summary>
+        /// Gets this value as an Array, this will assert if not an Array type
+        /// </summary>
+        /// <returns></returns>
         public JSValue[] GetArray()
         {
             return JSArrayHelper.getArray(awe_jsvalue_get_array(instance));
@@ -189,6 +208,10 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_jsvalue_get_object(IntPtr jsvalue);
 
+        /// <summary>
+        /// Gets this value as an Object, this will assert if not an Object type
+        /// </summary>
+        /// <returns></returns>
         public JSObject GetObject()
         {
             return new JSObject(awe_jsvalue_get_object(instance));
@@ -256,6 +279,10 @@ namespace AwesomiumSharp
                                                        uint index);
     }
 
+    /// <summary>
+    /// JSObject represents an Object type in Javascript (similar to a Dictionary in C#).
+    /// You can get and set properties (key/value pairs).
+    /// </summary>
     public class JSObject
     {
         internal IntPtr instance;

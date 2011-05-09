@@ -12,6 +12,11 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// The WebView is sort of like a tab in Chrome: you can load web-pages into it, interact with it, 
+    /// and render it to a buffer (we give you the raw pixels, its your duty to display it).
+    /// You can create a WebView using WebCore.CreateWebview
+    /// </summary>
     public class WebView
     {
         internal IntPtr instance;
@@ -38,6 +43,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void BeginLoadingEventHandler(object sender, BeginLoadingEventArgs e);
+        /// <summary>
+        /// This event occurs when a WebView begins loading a new page (first bits of data received from server).
+        /// </summary>
         public event BeginLoadingEventHandler OnBeginLoading;
 
         public class BeginNavigationEventArgs : EventArgs
@@ -56,6 +64,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void BeginNavigationEventArgsHandler(object sender, BeginNavigationEventArgs e);
+        /// <summary>
+        /// This event occurs when a WebView begins navigating to a new URL.
+        /// </summary>
         public event BeginNavigationEventArgsHandler OnBeginNavigation;
 
         public class JSCallbackEventArgs : EventArgs
@@ -90,6 +101,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void ChangeCursorEventArgsHandler(object sender, ChangeCursorEventArgs e);
+        /// <summary>
+        /// This event occurs when the mouse cursor type changes.
+        /// </summary>
         public event ChangeCursorEventArgsHandler OnChangeCursor;
 
         public class ChangeKeyboardFocusEventArgs : EventArgs
@@ -105,6 +119,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void ChangeKeyboardFocusEventArgsHandler(object sender, ChangeKeyboardFocusEventArgs e);
+        /// <summary>
+        /// This event occurs when keyboard focus changes (usually as a result of a textbox being focused).
+        /// </summary>
         public event ChangeKeyboardFocusEventArgsHandler OnChangeKeyboardFocus;
 
         public class ChangeTargetUrlEventArgs : EventArgs
@@ -120,6 +137,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void ChangeTargetUrlEventArgsHandler(object sender, ChangeTargetUrlEventArgs e);
+        /// <summary>
+        /// This event occurs when the target URL changes (usually the result of hovering over a link).
+        /// </summary>
         public event ChangeTargetUrlEventArgsHandler OnChangeTargetUrl;
 
         public class ChangeTooltipEventArgs : EventArgs
@@ -135,6 +155,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void ChangeTooltipEventArgsHandler(object sender, ChangeTooltipEventArgs e);
+        /// <summary>
+        /// This event occurs when the tooltip text changes.
+        /// </summary>
         public event ChangeTooltipEventArgsHandler OnChangeTooltip;
 
         public class DomReadyEventArgs : EventArgs
@@ -148,6 +171,10 @@ namespace AwesomiumSharp
         };
 
         public delegate void DomReadyEventArgsHandler(object sender, DomReadyEventArgs e);
+        /// <summary>
+        /// This event occurs once the document has been parsed for a page but before all resources (images, etc.)
+        /// have been loaded. This is your first chance to execute Javascript on a page (useful for initialization purposes).
+        /// </summary>
         public event DomReadyEventArgsHandler OnDomReady;
 
         public class FinishLoadingEventArgs : EventArgs
@@ -161,6 +188,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void FinishLoadingEventArgsHandler(object sender, FinishLoadingEventArgs e);
+        /// <summary>
+        /// This event occurs once a page (and all of its sub-frames) has completely finished loading.
+        /// </summary>
         public event FinishLoadingEventArgsHandler OnFinishLoading;
 
         public class GetPageContentsEventArgs : EventArgs
@@ -178,6 +208,10 @@ namespace AwesomiumSharp
         };
 
         public delegate void GetPageContentsEventArgsHandler(object sender, GetPageContentsEventArgs e);
+        /// <summary>
+        /// This event occurs once the page contents (as text) have been retrieved (usually after the end
+        /// of each page load). This plain text is useful for indexing/search purposes.
+        /// </summary>
         public event GetPageContentsEventArgsHandler OnGetPageContents;
 
         public class OpenExternalLinkEventArgs : EventArgs
@@ -195,6 +229,12 @@ namespace AwesomiumSharp
         };
 
         public delegate void OpenExternalLinkEventArgsHandler(object sender, OpenExternalLinkEventArgs e);
+        /// <summary>
+        /// This event occurs when an external link is attempted to be opened. An external link
+        /// is any link that normally opens in a new window (for example, links with target="_blank", calls
+        /// to window.open(), and URL open events from Flash plugins). You are responsible for
+        /// creating a new WebView to handle these URLs yourself.
+        /// </summary>
         public event OpenExternalLinkEventArgsHandler OnOpenExternalLink;
 
         public class PluginCrashedEventArgs : EventArgs
@@ -210,6 +250,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void PluginCrashedEventArgsHandler(object sender, PluginCrashedEventArgs e);
+        /// <summary>
+        /// This event occurs whenever a plugin crashes on a page (usually Flash).
+        /// </summary>
         public event PluginCrashedEventArgsHandler OnPluginCrashed;
 
         public class ReceiveTitleEventArgs : EventArgs
@@ -227,6 +270,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void ReceiveTitleEventArgsHandler(object sender, ReceiveTitleEventArgs e);
+        /// <summary>
+        /// This event occurs once we receive the page title.
+        /// </summary>
         public event ReceiveTitleEventArgsHandler OnReceiveTitle;
 
         public class RequestMoveEventArgs : EventArgs
@@ -244,6 +290,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void RequestMoveEventArgsHandler(object sender, RequestMoveEventArgs e);
+        /// <summary>
+        /// This event occurs whenever the window is requested to be moved (via Javascript).
+        /// </summary>
         public event RequestMoveEventArgsHandler OnRequestMove;
 
         public class RequestDownloadEventArgs : EventArgs
@@ -259,6 +308,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void RequestDownloadEventArgsHandler(object sender, RequestDownloadEventArgs e);
+        /// <summary>
+        /// This event occurs whenever a URL is requested to be downloaded (you must handle this yourself).
+        /// </summary>
         public event RequestDownloadEventArgsHandler OnRequestDownload;
 
         public class WebViewCrashedEventArgs : EventArgs
@@ -272,6 +324,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void WebViewCrashedEventArgsHandler(object sender, WebViewCrashedEventArgs e);
+        /// <summary>
+        /// This event occurs when the renderer (which is isolated in a separate process) crashes unexpectedly.
+        /// </summary>
         public event WebViewCrashedEventArgsHandler OnWebViewCrashed;
 
         public class RequestFileChooserEventArgs : EventArgs
@@ -291,6 +346,12 @@ namespace AwesomiumSharp
         };
 
         public delegate void RequestFileChooserEventArgsHandler(object sender, RequestFileChooserEventArgs e);
+        /// <summary>
+        /// This event occurs whenever a page requests a file chooser dialog to be displayed (usually due
+        /// to an upload form being clicked by a user). You will need to display your own dialog (it does
+        /// not have to be modal, this request is non-blocking). Once a file has been chosen by the user,
+        /// you should call WebView.chooseFile
+        /// </summary>
         public event RequestFileChooserEventArgsHandler OnRequestFileChooser;
 
         public class GetScrollDataEventArgs : EventArgs
@@ -314,6 +375,9 @@ namespace AwesomiumSharp
         };
 
         public delegate void GetScrollDataEventArgsHandler(object sender, GetScrollDataEventArgs e);
+        /// <summary>
+        /// This event occurs as a response to WebView.RequestScrollData
+        /// </summary>
         public event GetScrollDataEventArgsHandler OnGetScrollData;
 
         public class JSConsoleMessageEventArgs : EventArgs
@@ -333,6 +397,10 @@ namespace AwesomiumSharp
         };
 
         public delegate void JSConsoleMessageEventArgsHandler(object sender, JSConsoleMessageEventArgs e);
+        /// <summary>
+        /// This event occurs whenever a new message is added to the Javascript Console (usually
+        /// the result of a Javascript error).
+        /// </summary>
         public event JSConsoleMessageEventArgsHandler OnJSConsoleMessage;
 
         public class ResourceRequestEventArgs : EventArgs
@@ -348,6 +416,11 @@ namespace AwesomiumSharp
         }
 
         public delegate ResourceResponse ResourceRequestEventArgsHandler(object sender, ResourceRequestEventArgs e);
+        /// <summary>
+        /// This event occurs whenever there is a request for a certain resource (URL). You can either modify the request
+        /// before it is sent or immediately return your own custom response. This is useful for implementing your own
+        /// custom resource-loading back-end or for tracking of resource loads.
+        /// </summary>
         public event ResourceRequestEventArgsHandler OnResourceRequest;
 
         public class ResourceResponseEventArgs : EventArgs
@@ -376,6 +449,10 @@ namespace AwesomiumSharp
         }
 
         public delegate void ResourceResponseEventArgsHandler(object sender, ResourceResponseEventArgs e);
+        /// <summary>
+        /// This event occurs whenever a response has been received from a server. This is useful for statistics
+        /// and resource tracking purposes.
+        /// </summary>
         public event ResourceResponseEventArgsHandler OnResourceResponse;
 
         private CallbackBeginLoadingCallback beginLoadingCallback;
@@ -666,6 +743,14 @@ namespace AwesomiumSharp
         private static extern void awe_webview_create_object(IntPtr webview,
                                               IntPtr object_name);
 
+        /// <summary>
+        /// Creates a new global Javascript object that will persist throughout
+        /// the lifetime of this WebView. This is useful for exposing your application's
+        /// data and events to Javascript. This object is managed directly by Awesomium
+        /// so you can modify its properties and bind callback functions via
+        /// WebView.SetObjectProperty and WebView.SetObjectCallback, respectively.
+        /// </summary>
+        /// <param name="objectName"></param>
         public void CreateObject(string objectName)
         {
             StringHelper objectNameStr = new StringHelper(objectName);
@@ -690,6 +775,21 @@ namespace AwesomiumSharp
                                                      IntPtr property_name,
                                                      IntPtr val);
 
+        /// <summary>
+        /// Sets a property of a Javascript object previously created by WebView.CreateObject.
+        /// An example of usage:
+        /// <pre>
+        /// webView.CreateObject("MyObject");
+        /// webView.SetObjectProperty("MyObject", "color", "blue");
+        /// 
+        /// // You can now access this object's property via Javascript on any 
+        /// // page loaded into this WebView:
+        /// var myColor = MyObject.color; // value would be "blue"
+        /// </pre>
+        /// </summary>
+        /// <param name="objectName"></param>
+        /// <param name="propertyName"></param>
+        /// <param name="val"></param>
         public void SetObjectProperty(string objectName,
                                       string propertyName,
                                       JSValue val)
@@ -707,6 +807,28 @@ namespace AwesomiumSharp
 
         public delegate void JSCallback(object sender, JSCallbackEventArgs e);
 
+        /// <summary>
+        /// Binds a callback function to a Javascript object previously created by WebView.CreateObject.
+        /// An example of usage:
+        /// <pre>
+        /// public void OnSelectItem(object sender, JSCallbackEventArgs e)
+        /// {
+        ///     System.Console.WriteLine("Player selected item: " + e.args[0].ToString());
+        /// }
+        /// 
+        /// public void initWebView()
+        /// {
+        ///     webView.CreateObject("MyObject");
+        ///     webView.SetObjectCallback("MyObject", "selectItem", OnSelectItem);
+        /// }
+        /// 
+        /// // You can now call the function "OnSelectItem" from Javascript:
+        /// MyObject.selectItem("shotgun");
+        /// </pre>
+        /// </summary>
+        /// <param name="objectName"></param>
+        /// <param name="callbackName"></param>
+        /// <param name="callback"></param>
         public void SetObjectCallback(string objectName,
                                       string callbackName,
                                       JSCallback callback)
@@ -746,6 +868,10 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool awe_webview_is_dirty(IntPtr webview);
 
+        /// <summary>
+        /// Whether or not this WebView needs to be rendered again.
+        /// </summary>
+        /// <returns></returns>
         public bool IsDirty()
         {
             return awe_webview_is_dirty(instance);
@@ -762,6 +888,12 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr awe_webview_render(IntPtr webview);
 
+        /// <summary>
+        /// Renders this WebView into an offscreen pixel buffer and clears the dirty state.
+        /// For maximum efficiency, you should only call this when the WebView is dirty (WebView.IsDirty).
+        /// </summary>
+        /// <returns>An instance of the RenderBuffer that this WebView was rendered to. This
+        /// value may change between renders and may return null if the WebView has crashed.</returns>
         public RenderBuffer Render()
         {
             return new RenderBuffer(awe_webview_render(instance));
@@ -1053,7 +1185,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackBeginNavigationCallback(IntPtr caller, IntPtr url, IntPtr frame_name);
+        internal delegate void CallbackBeginNavigationCallback(IntPtr caller, IntPtr url, IntPtr frame_name);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_begin_navigation(IntPtr webview, CallbackBeginNavigationCallback callback);
@@ -1068,7 +1200,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackBeginLoadingCallback(IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type);
+        internal delegate void CallbackBeginLoadingCallback(IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_begin_loading(IntPtr webview, CallbackBeginLoadingCallback callback);
@@ -1082,7 +1214,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackFinishLoadingCallback(IntPtr caller);
+        internal delegate void CallbackFinishLoadingCallback(IntPtr caller);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_finish_loading(
@@ -1097,7 +1229,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackJsCallback(IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments);
+        internal delegate void CallbackJsCallback(IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_js_callback(IntPtr webview, CallbackJsCallback callback);
@@ -1114,7 +1246,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackReceiveTitleCallback(IntPtr caller, IntPtr title, IntPtr frame_name);
+        internal delegate void CallbackReceiveTitleCallback(IntPtr caller, IntPtr title, IntPtr frame_name);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_receive_title(IntPtr webview, CallbackReceiveTitleCallback callback);
@@ -1128,7 +1260,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackChangeTooltipCallback(IntPtr caller, IntPtr tooltip);
+        internal delegate void CallbackChangeTooltipCallback(IntPtr caller, IntPtr tooltip);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_change_tooltip(IntPtr webview, CallbackChangeTooltipCallback callback);
@@ -1142,7 +1274,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackChangeCursorCallback(IntPtr caller, int cursor);
+        internal delegate void CallbackChangeCursorCallback(IntPtr caller, int cursor);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_change_cursor(IntPtr webview, CallbackChangeCursorCallback callback);
@@ -1156,7 +1288,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackChangeKeyboardFocusCallback(IntPtr caller, bool is_focused);
+        internal delegate void CallbackChangeKeyboardFocusCallback(IntPtr caller, bool is_focused);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_change_keyboard_focus(IntPtr webview, CallbackChangeKeyboardFocusCallback callback);
@@ -1170,7 +1302,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackChangeTargetURLCallback(IntPtr caller, IntPtr url);
+        internal delegate void CallbackChangeTargetURLCallback(IntPtr caller, IntPtr url);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_change_target_url(IntPtr webview, CallbackChangeTargetURLCallback callback);
@@ -1184,7 +1316,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackOpenExternalLinkCallback(IntPtr caller, IntPtr url, IntPtr source);
+        internal delegate void CallbackOpenExternalLinkCallback(IntPtr caller, IntPtr url, IntPtr source);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_open_external_link(IntPtr webview, CallbackOpenExternalLinkCallback callback);
@@ -1198,7 +1330,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackRequestDownloadCallback(IntPtr caller, IntPtr download);
+        internal delegate void CallbackRequestDownloadCallback(IntPtr caller, IntPtr download);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_request_download(IntPtr webview, CallbackRequestDownloadCallback callback);
@@ -1212,7 +1344,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackWebviewCrashedCallback(IntPtr caller);
+        internal delegate void CallbackWebviewCrashedCallback(IntPtr caller);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_web_view_crashed(IntPtr webview, CallbackWebviewCrashedCallback callback);
@@ -1226,7 +1358,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackPluginCrashedCallback(IntPtr caller, IntPtr plugin_name);
+        internal delegate void CallbackPluginCrashedCallback(IntPtr caller, IntPtr plugin_name);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_plugin_crashed(IntPtr webview, CallbackPluginCrashedCallback callback);
@@ -1240,7 +1372,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackRequestMoveCallback(IntPtr caller, int x, int y);
+        internal delegate void CallbackRequestMoveCallback(IntPtr caller, int x, int y);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_request_move(IntPtr webview, CallbackRequestMoveCallback callback);
@@ -1254,7 +1386,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackGetPageContentsCallback(IntPtr caller, IntPtr url, IntPtr contents);
+        internal delegate void CallbackGetPageContentsCallback(IntPtr caller, IntPtr url, IntPtr contents);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_get_page_contents(IntPtr webview, CallbackGetPageContentsCallback callback);
@@ -1268,7 +1400,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackDomReadyCallback(IntPtr caller);
+        internal delegate void CallbackDomReadyCallback(IntPtr caller);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_dom_ready(IntPtr webview, CallbackDomReadyCallback callback);
@@ -1282,7 +1414,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackRequestFileChooserCallback(IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_path);
+        internal delegate void CallbackRequestFileChooserCallback(IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_path);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_request_file_chooser(IntPtr webview, CallbackRequestFileChooserCallback callback);
@@ -1297,7 +1429,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackGetScrollDataCallback(IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY);
+        internal delegate void CallbackGetScrollDataCallback(IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_get_scroll_data(IntPtr webview, CallbackGetScrollDataCallback callback);
@@ -1311,7 +1443,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackJSConsoleMessageCallback(IntPtr caller, IntPtr message, int lineNumber, IntPtr source);
+        internal delegate void CallbackJSConsoleMessageCallback(IntPtr caller, IntPtr message, int lineNumber, IntPtr source);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_js_console_message(IntPtr webview, CallbackJSConsoleMessageCallback callback);
@@ -1326,7 +1458,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr request);
+        internal delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr request);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_resource_request(IntPtr webview, CallbackResourceRequestCallback callback);
@@ -1349,7 +1481,7 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        public delegate void CallbackResourceResponseCallback(IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
+        internal delegate void CallbackResourceResponseCallback(IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
             long responseTimeMs, long expectedContentSize, IntPtr mimeType);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]

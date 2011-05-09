@@ -14,6 +14,12 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// RenderBuffer represents a 32-bit BGRA pixel buffer. You can save it
+    /// directly to an image or copy it to some other graphics surface for 
+    /// display in your application. An instance of this class is returned by
+    /// WebView.Render
+    /// </summary>
     public class RenderBuffer
     {
         private IntPtr renderbuffer;

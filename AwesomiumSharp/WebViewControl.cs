@@ -12,6 +12,11 @@ using AwesomiumSharp;
 
 namespace AwesomiumSharp
 {
+    /// <summary>
+    /// Standalone WebView control that you can use to embed Awesomium directly
+    /// in your WPF application without any additional work. Handles creation/destruction
+    /// of WebCore and WebView for you.
+    /// </summary>
     public class WebViewControl : Border
     {
 #region Fields
