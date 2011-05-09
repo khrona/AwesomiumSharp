@@ -15,7 +15,8 @@ namespace AwesomiumSharp
     /// <summary>
     /// Standalone WebView control that you can use to embed Awesomium directly
     /// in your WPF application without any additional work. Handles creation/destruction
-    /// of WebCore and WebView for you.
+    /// of WebCore and WebView for you. Set the "Source" property of your control
+    /// to change the URL that is loaded into the WebView.
     /// </summary>
     public class WebViewControl : Border
     {
