@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Text;
 using System.Runtime.InteropServices;
 #if !USING_MONO
@@ -1105,19 +1106,36 @@ namespace AwesomiumSharp
         private static extern void awe_webview_set_header_definition(IntPtr webview,
                                                  IntPtr name,
                                                  uint num_fields,
-                                                 IntPtr field_names,
-                                                 IntPtr field_values);
+                                                 IntPtr[] field_names,
+                                                 IntPtr[] field_values);
 
         public void SetHeaderDefinition(string name,
-                                        uint numFields,
-                                        string fieldNames,
-                                        string fieldValues)
+                                        NameValueCollection fields)
         {
             StringHelper nameStr = new StringHelper(name);
-            StringHelper fieldNamesStr = new StringHelper(fieldNames);
-            StringHelper fieldValuesStr = new StringHelper(fieldValues);
 
-            awe_webview_set_header_definition(instance, nameStr.value(), numFields, fieldNamesStr.value(), fieldValuesStr.value());
+            int count = fields.Count;
+            IntPtr[] keys = new IntPtr[count];
+            IntPtr[] values = new IntPtr[count];
+
+            for (int i = 0; i < count; i++ )
+            {
+                byte[] utf16string;
+
+                utf16string = Encoding.Unicode.GetBytes(fields.GetKey(i));
+                keys[i] = StringHelper.awe_string_create_from_utf16(utf16string, (uint)fields.GetKey(i).Length);
+
+                utf16string = Encoding.Unicode.GetBytes(fields.Get(i));
+                values[i] = StringHelper.awe_string_create_from_utf16(utf16string, (uint)fields.Get(i).Length);
+            }
+
+            awe_webview_set_header_definition(instance, nameStr.value(), (uint)count, keys, values);
+
+            for (uint i = 0; i < count; i++)
+            {
+                StringHelper.awe_string_destroy(keys[i]);
+                StringHelper.awe_string_destroy(values[i]);
+            }
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]

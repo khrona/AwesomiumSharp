@@ -146,10 +146,10 @@ namespace AwesomiumSharp
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_string_empty();
+        internal static extern IntPtr awe_string_empty();
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_string_create_from_utf16(byte[] str, uint len);
+        internal static extern IntPtr awe_string_create_from_utf16(byte[] str, uint len);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void awe_string_destroy(IntPtr str);
