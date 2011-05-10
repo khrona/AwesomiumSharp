@@ -946,11 +946,12 @@ namespace AwesomiumSharp
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_inject_mouse_wheel(IntPtr webview,
-                                                   int scroll_amount);
+                                                   int scroll_amount_vert,
+                                                   int scroll_amount_horz);
 
-        public void InjectMouseWheel(int scrollAmount)
+        public void InjectMouseWheel(int scrollAmountVert, int scrollAmountHorz = 0)
         {
-            awe_webview_inject_mouse_wheel(instance, scrollAmount);
+            awe_webview_inject_mouse_wheel(instance, scrollAmountVert, scrollAmountHorz);
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
