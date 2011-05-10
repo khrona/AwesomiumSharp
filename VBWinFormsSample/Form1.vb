@@ -6,7 +6,7 @@ Imports Microsoft.VisualBasic
 Public Class Form1
     Dim webView As WebView
 
-    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs)
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
         Dim config As WebCore.Config = New WebCore.Config()
         config.enablePlugins = True
 
@@ -42,15 +42,15 @@ Public Class Form1
         End If
     End Sub
 
-    Public Sub webViewBitmap_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles webViewBitmap.MouseDown
+    Public Sub webViewBitmap_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseDown, webViewBitmap.MouseDown
         webView.InjectMouseDown(MouseButton.Left)
     End Sub
 
-    Public Sub webViewBitmap_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles webViewBitmap.MouseMove
+    Public Sub webViewBitmap_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseMove, webViewBitmap.MouseMove
         webView.InjectMouseMove(e.X, e.Y)
     End Sub
 
-    Public Sub webViewBitmap_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles webViewBitmap.MouseUp
+    Public Sub webViewBitmap_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseUp, webViewBitmap.MouseUp
         webView.InjectMouseUp(MouseButton.Left)
     End Sub
 
