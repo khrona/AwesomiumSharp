@@ -1515,6 +1515,18 @@ namespace AwesomiumSharp
             if (OnResourceResponse != null)
                 OnResourceResponse(this, e);
         }
+
+        internal void PrepareForShutdown()
+        {
+            if (instance != IntPtr.Zero)
+            {
+                resourceRequestCallback = null;
+                awe_webview_set_callback_resource_request(instance, null);
+
+                resourceResponseCallback = null;
+                awe_webview_set_callback_resource_response(instance, null);
+            }
+        }
     }
 
     public class ResourceRequest

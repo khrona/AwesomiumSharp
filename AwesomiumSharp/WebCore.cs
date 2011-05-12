@@ -268,7 +268,10 @@ namespace AwesomiumSharp
         public static void Shutdown()
         {
             foreach (WebView i in activeWebViews)
+            {
+                i.PrepareForShutdown();
                 i.instance = IntPtr.Zero;
+            }
 
             awe_webcore_shutdown();
 
