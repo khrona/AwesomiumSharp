@@ -16,6 +16,8 @@ namespace WinFormsSample
     {
         WebView webView;
         Timer timer;
+        Bitmap frameBuffer = null;
+        bool needsResize = false;
 
         public WebForm()
         {
@@ -42,7 +44,7 @@ namespace WinFormsSample
             webView.Focus();
 
             timer = new Timer();
-            timer.Interval = 30;
+            timer.Interval = 20;
             timer.Tick += new EventHandler(timer_Tick);
             timer.Start();
         }
@@ -66,6 +68,15 @@ namespace WinFormsSample
 
         void timer_Tick(object sender, EventArgs e)
         {
+            if (needsResize)
+            {
+                if (!webView.IsResizing())
+                {
+                    webView.Resize(webViewBitmap.Width, webViewBitmap.Height);
+                    needsResize = false;
+                }
+            }
+
             WebCore.Update();
             if (webView.IsDirty())
                 Render();
@@ -75,35 +86,46 @@ namespace WinFormsSample
         {
             RenderBuffer rBuffer = webView.Render();
 
-            int[] data = new int[webViewBitmap.Width * webViewBitmap.Height];
-            Marshal.Copy(rBuffer.GetBuffer(), data, 0, webViewBitmap.Width * webViewBitmap.Height);
+            if (frameBuffer == null)
+            {
+                frameBuffer = new Bitmap(rBuffer.GetWidth(), rBuffer.GetHeight(), PixelFormat.Format32bppArgb);
+            }
+            else if (frameBuffer.Width != rBuffer.GetWidth() || frameBuffer.Height != rBuffer.GetHeight())
+            {
+                frameBuffer.Dispose();
+                frameBuffer = new Bitmap(rBuffer.GetWidth(), rBuffer.GetHeight(), PixelFormat.Format32bppArgb);
+            }
 
-            Bitmap bmp = new Bitmap(webViewBitmap.Width, webViewBitmap.Height, PixelFormat.Format32bppArgb);
-            BitmapData bits = bmp.LockBits(new Rectangle(0, 0, webViewBitmap.Width, webViewBitmap.Height),
-                              ImageLockMode.ReadWrite, bmp.PixelFormat);
+            BitmapData bits = frameBuffer.LockBits(new Rectangle(0, 0, rBuffer.GetWidth(), rBuffer.GetHeight()),
+                                ImageLockMode.ReadWrite, frameBuffer.PixelFormat);
+
+
             unsafe
             {
-                for (int y = 0; y < webViewBitmap.Height; y++)
+                UInt64* ptrBase = (UInt64*)((byte*)bits.Scan0);
+                UInt64* datBase = (UInt64*)rBuffer.GetBuffer();
+                UInt32 lOffset = 0;
+                UInt32 lEnd = (UInt32)webViewBitmap.Height * (UInt32)(webViewBitmap.Width / 8);
+
+                // copy 64 bits at a time, 4 times (since we divided by 8)
+                for (lOffset = 0; lOffset < lEnd; lOffset++)
                 {
-                    int* row = (int*)((byte*)bits.Scan0 + (y * bits.Stride));
-                    for (int x = 0; x < webViewBitmap.Width; x++)
-                    {
-                        row[x] = data[y * webViewBitmap.Width + x];
-                    }
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
                 }
             }
-            bmp.UnlockBits(bits);
 
-            webViewBitmap.Image = bmp;
+            frameBuffer.UnlockBits(bits);
+
+            webViewBitmap.Image = frameBuffer;
         }
 
         void WebForm_Resize(object sender, EventArgs e)
         {
             if (webViewBitmap.Width != 0 && webViewBitmap.Height != 0)
-            {
-                webView.Resize(webViewBitmap.Width, webViewBitmap.Height);
-                WebCore.Update();
-            }
+                needsResize = true;
         }
 
         void WebForm_KeyPress(object sender, KeyPressEventArgs e)
