@@ -156,6 +156,11 @@ namespace TabbedBrowserSample
                 TabView selectedTab = getSelectedTab();
                 if (selectedTab != null)
                 {
+                    if (message == WM_KEYUP && (int)wParam == 9)
+                    {
+                        selectedTab.handleKeyboardEvent((int)WM_KEYDOWN, (int)wParam, (int)lParam);
+                    }
+
                     selectedTab.handleKeyboardEvent((int)msg, (int)wParam, (int)lParam);
                     handled = true;
                 }
