@@ -404,6 +404,55 @@ namespace AwesomiumSharp
         /// </summary>
         public event JSConsoleMessageEventArgsHandler OnJSConsoleMessage;
 
+        public class GetFindResultsEventArgs : EventArgs
+        {
+            public GetFindResultsEventArgs(WebView webView, int requestID, int numMatches, Rect selection,
+                int curMatch, bool finalUpdate)
+            {
+                this.webView = webView;
+                this.requestID = requestID;
+                this.numMatches = numMatches;
+                this.selection = selection;
+                this.curMatch = curMatch;
+                this.finalUpdate = finalUpdate;
+            }
+
+            public WebView webView;
+            public int requestID;
+            public int numMatches;
+            public Rect selection;
+            public int curMatch;
+            public bool finalUpdate;
+        };
+
+        public delegate void GetFindResultsEventArgsHandler(object sender, GetFindResultsEventArgs e);
+        /// <summary>
+        /// This event occurs whenever we receive results back from an in-page find operation (WebView.Find).
+        /// </summary>
+        public event GetFindResultsEventArgsHandler OnGetFindResults;
+
+        public class UpdateIMEEventArgs : EventArgs
+        {
+            public UpdateIMEEventArgs(WebView webView, IMEState state, Rect caretRect)
+            {
+                this.webView = webView;
+                this.state = state;
+                this.caretRect = caretRect;
+            }
+
+            public WebView webView;
+            public IMEState state;
+            public Rect caretRect;
+        };
+
+        public delegate void UpdateIMEEventArgsHandler(object sender, UpdateIMEEventArgs e);
+        /// <summary>
+        /// This event occurs whenever the user does something that changes the 
+        /// position or visiblity of the IME Widget. This event is only active when 
+        /// IME is activated (please see WebView.ActivateIME).
+        /// </summary>
+        public event UpdateIMEEventArgsHandler OnUpdateIME;
+
         public class ResourceRequestEventArgs : EventArgs
         {
             public ResourceRequestEventArgs(WebView webView, ResourceRequest request)
@@ -475,6 +524,8 @@ namespace AwesomiumSharp
         private CallbackWebviewCrashedCallback webviewCrashedCallback;
         private CallbackGetScrollDataCallback getScrollDataCallback;
         private CallbackJSConsoleMessageCallback jsConsoleMessageCallback;
+        private CallbackGetFindResultsCallback getFindResultsCallback;
+        private CallbackUpdateIMECallback updateIMECallback;
 
         private CallbackResourceRequestCallback resourceRequestCallback;
         private CallbackResourceResponseCallback resourceResponseCallback;
@@ -539,6 +590,12 @@ namespace AwesomiumSharp
 
             jsConsoleMessageCallback = internalJSConsoleMessage;
             awe_webview_set_callback_js_console_message(webview, jsConsoleMessageCallback);
+
+            getFindResultsCallback = internalGetFindResults;
+            awe_webview_set_callback_get_find_results(webview, getFindResultsCallback);
+
+            updateIMECallback = internalUpdateIME;
+            awe_webview_set_callback_update_ime(webview, updateIMECallback);
 
             resourceRequestCallback = internalResourceRequestCallback;
             awe_webview_set_callback_resource_request(webview, resourceRequestCallback);
@@ -1203,6 +1260,86 @@ namespace AwesomiumSharp
             awe_webview_request_scroll_data(instance, frameNameStr.value());
         }
 
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_find(IntPtr webview,
+                                                    int request_id,
+                                                    IntPtr search_string,
+                                                    bool forward, 
+                                                    bool case_sensitive, 
+                                                    bool find_next);
+
+        public void Find(int requestID, string searchStr, bool forward,
+            bool caseSensitive, bool findNext)
+        {
+            StringHelper searchCStr = new StringHelper(searchStr);
+
+            awe_webview_find(instance, requestID, searchCStr.value(), forward, caseSensitive, findNext);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_stop_find(IntPtr webview,
+                                                     bool clear_selection);
+
+        public void StopFind(bool clearSelection)
+        {
+            awe_webview_stop_find(instance, clearSelection);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_translate_page(IntPtr webview,
+                                                              IntPtr source_language,
+                                                              IntPtr target_language);
+
+        public void TranslatePage(string sourceLanguage, string targetLanguage)
+        {
+            StringHelper sourceLanguageStr = new StringHelper(sourceLanguage);
+            StringHelper targetLanguageStr = new StringHelper(targetLanguage);
+
+            awe_webview_translate_page(instance, sourceLanguageStr.value(), targetLanguageStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_activate_ime(IntPtr webview,
+                                                            bool activate);
+
+        public void ActivateIME(bool activate)
+        {
+            awe_webview_activate_ime(instance, activate);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_set_ime_composition(IntPtr webview,
+                                                                IntPtr input_string,
+                                                                int cursor_pos,
+                                                                int target_start,
+                                                                int target_end);
+
+        public void SetIMEComposition(string inputStr, int cursorPos, int targetStart, int targetEnd)
+        {
+            StringHelper inputCStr = new StringHelper(inputStr);
+
+            awe_webview_set_ime_composition(instance, inputCStr.value(), cursorPos, targetStart, targetEnd);
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_confirm_ime_composition(IntPtr webview,
+                                                                 IntPtr input_string);
+
+        public void ConfirmIMEComposition(string inputStr)
+        {
+            StringHelper inputCStr = new StringHelper(inputStr);
+
+            awe_webview_confirm_ime_composition(instance, inputCStr.value());
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_cancel_ime_composition(IntPtr webview);
+
+        public void CancelIMEComposition()
+        {
+            awe_webview_cancel_ime_composition(instance);
+        }
+
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
         internal delegate void CallbackBeginNavigationCallback(IntPtr caller, IntPtr url, IntPtr frame_name);
 
@@ -1477,6 +1614,34 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+        internal delegate void CallbackGetFindResultsCallback(IntPtr caller, int request_id, int num_matches, Rect selection, int cur_match, bool finalUpdate);
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_set_callback_get_find_results(IntPtr webview, CallbackGetFindResultsCallback callback);
+
+        private void internalGetFindResults(IntPtr caller, int request_id, int num_matches, Rect selection, int cur_match, bool finalUpdate)
+        {
+            GetFindResultsEventArgs e = new GetFindResultsEventArgs(this, request_id, num_matches, selection, cur_match, finalUpdate);
+
+            if (OnGetFindResults != null)
+                OnGetFindResults(this, e);
+        }
+
+        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
+        internal delegate void CallbackUpdateIMECallback(IntPtr caller, int state, Rect caret_rect);
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_webview_set_callback_update_ime(IntPtr webview, CallbackUpdateIMECallback callback);
+
+        private void internalUpdateIME(IntPtr caller, int state, Rect caret_rect)
+        {
+            UpdateIMEEventArgs e = new UpdateIMEEventArgs(this, (IMEState)state, caret_rect);
+
+            if (OnUpdateIME != null)
+                OnUpdateIME(this, e);
+        }
+
+        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
         internal delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr request);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
@@ -1541,6 +1706,14 @@ namespace AwesomiumSharp
         internal IntPtr getInstance()
         {
             return instance;
+        }
+
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr awe_resource_request_cancel(IntPtr request);
+
+        public void cancel()
+        {
+            awe_resource_request_cancel(instance);
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]

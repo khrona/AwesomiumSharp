@@ -103,6 +103,13 @@ namespace AwesomiumSharp
         Custom
     };
 
+    public enum IMEState
+    {
+        Disable = 0,
+        MoveWindow = 1,
+        CompleteComposition = 2
+    };
+
     [StructLayout(LayoutKind.Sequential)]
     public struct WebKeyboardEvent
     {
@@ -203,12 +210,16 @@ namespace AwesomiumSharp
             public string pluginPath = "";
             public string logPath = "";
             public LogLevel logLevel = LogLevel.Normal;
+            public bool enableAutoDetectEncoding = true;
+            public string acceptLanguageOverride = "";
+            public string defaultCharsetOverride = "";
             public string userAgentOverride = "";
             public string proxyServer = "";
             public string proxyConfigScript = "";
             public bool saveCacheAndCookies = false;
             public int maxCacheSize = 0;
             public bool disableSameOriginPolicy = false;
+            public bool disableWinMessagePump = false;
             public string customCSS = "";
         };
 
@@ -219,12 +230,16 @@ namespace AwesomiumSharp
                                        IntPtr plugin_path,
                                        IntPtr log_path,
                                        LogLevel log_level,
+                                       bool enable_auto_detect_encoding,
+                                       IntPtr accept_language_override,
+                                       IntPtr default_charset_override,
                                        IntPtr user_agent_override,
                                        IntPtr proxy_server,
                                        IntPtr proxy_config_script,
                                        bool save_cache_and_cookies,
                                        int max_cache_size,
                                        bool disable_same_origin_policy,
+                                       bool disable_win_message_pump,
                                        IntPtr custom_css);
 
         /// <summary>
@@ -237,6 +252,8 @@ namespace AwesomiumSharp
             StringHelper userDataPathStr = new StringHelper(config.userDataPath);
             StringHelper pluginPathStr = new StringHelper(config.pluginPath);
             StringHelper logPathStr = new StringHelper(config.logPath);
+            StringHelper acceptLanguageStr = new StringHelper(config.acceptLanguageOverride);
+            StringHelper defaultCharsetStr = new StringHelper(config.defaultCharsetOverride);
             StringHelper userAgentOverrideStr = new StringHelper(config.userAgentOverride);
             StringHelper proxyServerStr = new StringHelper(config.proxyServer);
             StringHelper proxyConfigScriptStr = new StringHelper(config.proxyConfigScript);
@@ -248,12 +265,16 @@ namespace AwesomiumSharp
                                      pluginPathStr.value(),
                                      logPathStr.value(),
                                      config.logLevel,
+                                     config.enableAutoDetectEncoding,
+                                     acceptLanguageStr.value(),
+                                     defaultCharsetStr.value(),
                                      userAgentOverrideStr.value(),
                                      proxyServerStr.value(),
                                      proxyConfigScriptStr.value(),
                                      config.saveCacheAndCookies,
                                      config.maxCacheSize,
                                      config.disableSameOriginPolicy,
+                                     config.disableWinMessagePump,
                                      customCSSStr.value());
 
             activeWebViews = new List<Object>();
@@ -293,7 +314,7 @@ namespace AwesomiumSharp
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_webcore_create_webview(int width, int height);
+        private static extern IntPtr awe_webcore_create_webview(int width, int height, bool viewSource);
 
         /// <summary>
         /// Create a WebView (think of it like a tab in Chrome, you can load web-pages
@@ -302,9 +323,9 @@ namespace AwesomiumSharp
         /// <param name="width">the initial width (pixels)</param>
         /// <param name="height">the initial height (pixels)</param>
         /// <returns></returns>
-        public static WebView CreateWebview(int width, int height)
+        public static WebView CreateWebview(int width, int height, bool viewSource = false)
         {
-            IntPtr webviewPtr = awe_webcore_create_webview(width, height);
+            IntPtr webviewPtr = awe_webcore_create_webview(width, height, viewSource);
             WebView result = new WebView(webviewPtr);
             activeWebViews.Add(result);
 
