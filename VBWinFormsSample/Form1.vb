@@ -5,6 +5,7 @@ Imports Microsoft.VisualBasic
 
 Public Class Form1
     Dim webView As WebView
+    Dim bitmap As Bitmap
 
     Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
         Dim config As WebCore.Config = New WebCore.Config()
@@ -16,23 +17,27 @@ Public Class Form1
         webView.Focus()
     End Sub
 
-    Dim bmp As Bitmap
     Private Sub render()
         Dim rBuffer As RenderBuffer = webView.Render()
 
         Dim data(webViewBitmap.Width * webViewBitmap.Height) As Integer
         Marshal.Copy(rBuffer.GetBuffer(), data, 0, webViewBitmap.Width * webViewBitmap.Height)
 
-        bmp = New Bitmap(webViewBitmap.Width, webViewBitmap.Height, PixelFormat.Format32bppArgb)
+        If bitmap Is Nothing Then
+            bitmap = New Bitmap(webViewBitmap.Width, webViewBitmap.Height, PixelFormat.Format32bppArgb)
+        ElseIf Not bitmap.Width.Equals(webViewBitmap.Width) Or Not bitmap.Height.Equals(webViewBitmap.Height) Then
+            bitmap.Dispose()
+            bitmap = New Bitmap(webViewBitmap.Width, webViewBitmap.Height, PixelFormat.Format32bppArgb)
+        End If
 
-        Dim bits As BitmapData = bmp.LockBits(New Rectangle(0, 0, webViewBitmap.Width, webViewBitmap.Height), ImageLockMode.ReadWrite, bmp.PixelFormat)
+        Dim bits As BitmapData = bitmap.LockBits(New Rectangle(0, 0, webViewBitmap.Width, webViewBitmap.Height), ImageLockMode.ReadWrite, bitmap.PixelFormat)
 
         Dim ptr As IntPtr = bits.Scan0.ToInt32()
         rBuffer.CopyTo(ptr, bits.Stride, 4, False)
 
-        bmp.UnlockBits(bits)
+        bitmap.UnlockBits(bits)
 
-        webViewBitmap.Image = bmp
+        webViewBitmap.Image = bitmap
     End Sub
 
     Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
