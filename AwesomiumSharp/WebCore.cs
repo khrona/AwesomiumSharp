@@ -124,12 +124,13 @@ namespace AwesomiumSharp
         public bool isSystemKey;
     };
 
-    public struct Rect
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AweRect
     {
-        int x;
-        int y;
-        int width;
-        int height;
+        public int x;
+        public int y;
+        public int width;
+        public int height;
     };
 
     internal class StringHelper

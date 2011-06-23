@@ -406,7 +406,7 @@ namespace AwesomiumSharp
 
         public class GetFindResultsEventArgs : EventArgs
         {
-            public GetFindResultsEventArgs(WebView webView, int requestID, int numMatches, Rect selection,
+            public GetFindResultsEventArgs(WebView webView, int requestID, int numMatches, AweRect selection,
                 int curMatch, bool finalUpdate)
             {
                 this.webView = webView;
@@ -420,7 +420,7 @@ namespace AwesomiumSharp
             public WebView webView;
             public int requestID;
             public int numMatches;
-            public Rect selection;
+            public AweRect selection;
             public int curMatch;
             public bool finalUpdate;
         };
@@ -433,7 +433,7 @@ namespace AwesomiumSharp
 
         public class UpdateIMEEventArgs : EventArgs
         {
-            public UpdateIMEEventArgs(WebView webView, IMEState state, Rect caretRect)
+            public UpdateIMEEventArgs(WebView webView, IMEState state, AweRect caretRect)
             {
                 this.webView = webView;
                 this.state = state;
@@ -442,7 +442,7 @@ namespace AwesomiumSharp
 
             public WebView webView;
             public IMEState state;
-            public Rect caretRect;
+            public AweRect caretRect;
         };
 
         public delegate void UpdateIMEEventArgsHandler(object sender, UpdateIMEEventArgs e);
@@ -936,11 +936,19 @@ namespace AwesomiumSharp
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern Rect awe_webview_get_dirty_bounds(IntPtr webview);
+        private static extern AweRect awe_webview_get_dirty_bounds(IntPtr webview);
 
-        public Rect GetDirtyBounds()
+        public AweRect GetDirtyBounds()
         {
-            return awe_webview_get_dirty_bounds(instance);
+            AweRect bounds = awe_webview_get_dirty_bounds(instance);
+
+            AweRect result = new AweRect();
+            result.x = bounds.x;
+            result.y = bounds.y;
+            result.width = bounds.width;
+            result.height = bounds.height;
+
+            return result;
         }
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
@@ -1614,12 +1622,12 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackGetFindResultsCallback(IntPtr caller, int request_id, int num_matches, Rect selection, int cur_match, bool finalUpdate);
+        internal delegate void CallbackGetFindResultsCallback(IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_get_find_results(IntPtr webview, CallbackGetFindResultsCallback callback);
 
-        private void internalGetFindResults(IntPtr caller, int request_id, int num_matches, Rect selection, int cur_match, bool finalUpdate)
+        private void internalGetFindResults(IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate)
         {
             GetFindResultsEventArgs e = new GetFindResultsEventArgs(this, request_id, num_matches, selection, cur_match, finalUpdate);
 
@@ -1628,12 +1636,12 @@ namespace AwesomiumSharp
         }
 
         [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackUpdateIMECallback(IntPtr caller, int state, Rect caret_rect);
+        internal delegate void CallbackUpdateIMECallback(IntPtr caller, int state, AweRect caret_rect);
 
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_set_callback_update_ime(IntPtr webview, CallbackUpdateIMECallback callback);
 
-        private void internalUpdateIME(IntPtr caller, int state, Rect caret_rect)
+        private void internalUpdateIME(IntPtr caller, int state, AweRect caret_rect)
         {
             UpdateIMEEventArgs e = new UpdateIMEEventArgs(this, (IMEState)state, caret_rect);
 
