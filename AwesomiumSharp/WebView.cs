@@ -968,6 +968,11 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_pause_rendering(IntPtr webview);
 
+        /// <summary>
+        /// All rendering is actually done asynchronously in a separate process
+        /// and so the page is usually continuously rendering even if you never call
+        /// WebView.Render. Call this to temporarily pause rendering.
+        /// </summary>
         public void PauseRendering()
         {
             awe_webview_pause_rendering(instance);
@@ -976,6 +981,9 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_resume_rendering(IntPtr webview);
 
+        /// <summary>
+        /// Resume rendering after a call to WebView.PauseRendering
+        /// </summary>
         public void ResumeRendering()
         {
             awe_webview_resume_rendering(instance);
@@ -1098,6 +1106,18 @@ namespace AwesomiumSharp
                                        bool wait_for_repaint,
                                        int repaint_timeout_ms);
 
+        /// <summary>
+        /// Resizes this WebView to certain dimensions. This operation can fail
+        /// if another resize is already pending (see WebView.isResizing) or if
+        /// the repaint timeout was exceeded.
+        /// </summary>
+        /// <param name="width">The width in pixels to resize to</param>
+        /// <param name="height">The height in pixels to resize to</param>
+        /// <param name="waitForRepaint">Whether or not to wait for the WebView
+        /// to finish repainting to avoid flicker (default is true).</param>
+        /// <param name="repaintTimeoutMs">The max amount of time to wait for
+        /// a repaint, in milliseconds</param>
+        /// <returns>Returns true if the resize was successful.</returns>
         public bool Resize(int width,
                            int height,
                            bool waitForRepaint = true,
@@ -1110,6 +1130,11 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool awe_webview_is_resizing(IntPtr webview);
 
+        /// <summary>
+        /// Checks whether or not there is a resize operation pending.
+        /// </summary>
+        /// <returns>Returns true if we are waiting for the WebView process to
+        /// return acknowledgement of a pending resize operation.</returns>
         public bool IsResizing()
         {
             return awe_webview_is_resizing(instance);
@@ -1126,6 +1151,11 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_focus(IntPtr webview);
 
+        /// <summary>
+        /// Notifies the current page that it has gained focus. You will need to
+        /// call this to gain textbox focus, among other things. (If you fail to
+        /// ever see a blinking caret when typing text, this is why.)
+        /// </summary>
         public void Focus()
         {
             awe_webview_focus(instance);
@@ -1135,6 +1165,11 @@ namespace AwesomiumSharp
         private static extern void awe_webview_set_transparent(IntPtr webview,
                                                 bool is_transparent);
 
+        /// <summary>
+        /// Sets whether or not pages should be rendered with transparency
+        /// preserved (for ex, for pages with style="background-color:transparent")
+        /// </summary>
+        /// <param name="isTransparent"></param>
         public void SetTransparent(bool isTransparent)
         {
             awe_webview_set_transparent(instance, isTransparent);
@@ -1252,6 +1287,10 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_print(IntPtr webview);
 
+        /// <summary>
+        /// Print the current page. To suppress the printer selection dialog
+        /// and print immediately using OS defaults, see WebCore.setSuppressPrinterDialog
+        /// </summary>
         public void Print()
         {
             awe_webview_print(instance);
@@ -1276,6 +1315,27 @@ namespace AwesomiumSharp
                                                     bool case_sensitive, 
                                                     bool find_next);
 
+
+        /// <summary>
+        /// Start finding a certain string on the current web-page. All matches
+        /// of the string will be highlighted on the page and you can jump
+        /// to different instances of the string by using the 'findNext' 
+        /// parameter. To get actual stats about a certain query, please
+        /// see WebView.OnGetFindResults
+        /// </summary>
+        /// <param name="requestID">A unique numeric ID for each search. You will
+        ///                     need to generate one yourself for each unique
+		///                     search-- please note that you should use the
+		///                     same requestID if you wish to iterate through
+		///                     all the search results using the 'findNext'
+        ///                     parameter.</param>
+        /// <param name="searchStr">The string to search for</param>
+        /// <param name="forward">Whether or not we should search forward, down the page</param>
+        /// <param name="caseSensitive">Whether or not this search is case-sensitive.</param>
+        /// <param name="findNext">Whether or not we should jump to the next
+		///                     instance of a search string (you should use
+		///                     the same requestID as a previously-successful
+        ///                     search).</param>
         public void Find(int requestID, string searchStr, bool forward,
             bool caseSensitive, bool findNext)
         {
@@ -1287,7 +1347,11 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webview_stop_find(IntPtr webview,
                                                      bool clear_selection);
-
+        /// <summary>
+        /// Stop finding. This will un-highlight all matches of a previous call to WebView.Find
+        /// </summary>
+        /// <param name="clearSelection">Whether or not we should also deselect the 
+        /// currently-selected string instance</param>
         public void StopFind(bool clearSelection)
         {
             awe_webview_stop_find(instance, clearSelection);
@@ -1297,7 +1361,12 @@ namespace AwesomiumSharp
         private static extern void awe_webview_translate_page(IntPtr webview,
                                                               IntPtr source_language,
                                                               IntPtr target_language);
-
+        /// <summary>
+        /// Attempt automatic translation of the current page via Google
+        /// Translate. All language codes are ISO 639-2.
+        /// </summary>
+        /// <param name="sourceLanguage">The language to translate from (for ex. "en" for English)</param>
+        /// <param name="targetLanguage">The language to translate to (for ex. "fr" for French)</param>
         public void TranslatePage(string sourceLanguage, string targetLanguage)
         {
             StringHelper sourceLanguageStr = new StringHelper(sourceLanguage);
@@ -1310,6 +1379,13 @@ namespace AwesomiumSharp
         private static extern void awe_webview_activate_ime(IntPtr webview,
                                                             bool activate);
 
+        /// <summary>
+        /// Call this method to the let the WebView know you will be passing
+        /// text input via IME and will need to be notified of any IME-related
+        /// events (such as caret position, user unfocusing textbox, etc.).
+        /// Please see WebView.OnUpdateIME
+        /// </summary>
+        /// <param name="activate"></param>
         public void ActivateIME(bool activate)
         {
             awe_webview_activate_ime(instance, activate);
@@ -1322,6 +1398,13 @@ namespace AwesomiumSharp
                                                                 int target_start,
                                                                 int target_end);
 
+        /// <summary>
+        /// Create or Update the current IME text composition.
+        /// </summary>
+        /// <param name="inputStr">The string generated by your IME</param>
+        /// <param name="cursorPos">The current cursor position in your IME composition.</param>
+        /// <param name="targetStart">The position of the beginning of the selection.</param>
+        /// <param name="targetEnd">The position of the end of the selection.</param>
         public void SetIMEComposition(string inputStr, int cursorPos, int targetStart, int targetEnd)
         {
             StringHelper inputCStr = new StringHelper(inputStr);

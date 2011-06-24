@@ -114,7 +114,7 @@ namespace AwesomiumSharp
     public struct WebKeyboardEvent
     {
         public WebKeyType type;
-        public WebKeyModifiers modifiers;
+        public int modifiers;
         public int virtualKeyCode;
         public int nativeKeyCode;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
@@ -323,7 +323,9 @@ namespace AwesomiumSharp
         /// </summary>
         /// <param name="width">the initial width (pixels)</param>
         /// <param name="height">the initial height (pixels)</param>
-        /// <returns></returns>
+        /// <param name="viewSource">Enable View-Source mode on this WebView to view the
+        /// HTML source of any web-page (must be loaded via WebView.LoadURL)</param>
+        /// <returns>Returns a new WebView instance</returns>
         public static WebView CreateWebview(int width, int height, bool viewSource = false)
         {
             IntPtr webviewPtr = awe_webcore_create_webview(width, height, viewSource);
@@ -433,6 +435,13 @@ namespace AwesomiumSharp
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
         private static extern void awe_webcore_set_suppress_printer_dialog(bool suppress);
 
+        /// <summary>
+        /// Set whether or not the printer dialog should be suppressed or not.
+        /// Set this to true to hide printer dialogs and print immediately
+        /// using the OS's default printer when WebView.Print is called.
+        /// The default is false is you never call this.
+        /// </summary>
+        /// <param name="suppress"></param>
         public static void SetSuppressPrinterDialog(bool suppress)
         {
             awe_webcore_set_suppress_printer_dialog(suppress);
