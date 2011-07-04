@@ -1,21 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using AwesomiumSharp;
-using System.Windows.Threading;
-using System.Runtime.InteropServices;
+using System.Windows;
+using System.Collections;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Collections;
+using System.Windows.Threading;
 
 namespace TabbedBrowserSample
 {
@@ -33,7 +22,7 @@ namespace TabbedBrowserSample
 
             // Setup Update Timer
             updateTimer = new DispatcherTimer();
-            updateTimer.Tick += new EventHandler(update);
+            updateTimer.Tick += update;
             updateTimer.Interval = new TimeSpan(0, 0, 0, 0, 15);
             updateTimer.Start();
 
@@ -42,8 +31,7 @@ namespace TabbedBrowserSample
             tabControl.SelectionChanged += tabControlChanged;
 
             // Setup Webcore with plugins enabled
-            WebCore.Config config = new WebCore.Config();
-            config.enablePlugins = true;
+            WebCoreConfig config = new WebCoreConfig { EnablePlugins = true };
             WebCore.Initialize(config);
 
             tabViewList = new ArrayList();

@@ -1,4 +1,48 @@
-﻿using System;
+﻿/*******************************************************************************/
+/*************************** EDITING NOTES *************************************/
+/*******************************************************************************
+ *    Project : AwesomiumSharp
+ *    File    : WebView.cs
+ *    Version : 1.0.0.0 
+ *    Date    : 07/03/2011
+ *    Editor  : Perikles C. Stephanidis (AmaDeuS)
+ *    Contact : perikles@stephanidis.net
+ *-------------------------------------------------------------------------------
+ *
+ *    Notes   :
+ *
+ *    This class is a wrapper to the Awesomium C API. The major 
+ *    differences and edits made are:
+ *    
+ *    - Many changes with respect to standard .NET guidelines and naming
+ *      convention were made. These include, among others:
+ *          * Get/Set accessors were turned into Properties wherever
+ *            this was appropriate.
+ *          * The names of many events were changed to follow proper
+ *            naming convension.
+ *          * Protected event triggers were added.
+ *          * Former inner classes (such as the various EventArgs) are
+ *            taken outside the class and moved to separate files. They
+ *            can be found in the EventArgs project folder. All these
+ *            classes have also been edited following the same guidelines.
+ *    
+ *    - A base modeling class (ViewModel) implementing INotifyPropertyChanged
+ *      is added and subclassed. This makes WebView MVVM friendly.
+ *      
+ *    - Part of the Find logic is now handled by this class making it
+ *      more straightforward. FindNext is added.
+ *    
+ *    - Extensive pro-exception verification of validity before every API
+ *      call is added.  
+ * 
+ *-------------------------------------------------------------------------------
+ *
+ *    !Changes may need to be tested with AwesomiumMono. I didn't test them!
+ * 
+ ********************************************************************************/
+
+#region Using
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
@@ -6,6 +50,7 @@ using System.Runtime.InteropServices;
 #if !USING_MONO
 using System.Linq;
 #endif
+#endregion
 
 #if USING_MONO
 namespace AwesomiumMono
@@ -13,497 +58,21 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    #region JSCallback
+    public delegate void JSCallback( object sender, JSCallbackEventArgs e );
+    #endregion
+
     /// <summary>
     /// The WebView is sort of like a tab in Chrome: you can load web-pages into it, interact with it, 
     /// and render it to a buffer (we give you the raw pixels, its your duty to display it).
-    /// You can create a WebView using WebCore.CreateWebview
+    /// You can create a WebView using <see cref="WebCore.CreateWebview"/>.
     /// </summary>
-    public class WebView
+    public class WebView : ViewModel, IWebView
     {
-        internal IntPtr instance;
-        private bool disposed = false;
-
+        #region Fields
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
 
-        public class BeginLoadingEventArgs : EventArgs
-        {
-            public BeginLoadingEventArgs(WebView webView, string url, string frameName, int statusCode, string mimeType)
-            {
-                this.webView = webView;
-                this.url = url;
-                this.frameName = frameName;
-                this.statusCode = statusCode;
-                this.mimeType = mimeType;
-            }
-
-            public WebView webView;
-            public string url;
-            public string frameName;
-            public int statusCode;
-            public string mimeType;
-        };
-
-        public delegate void BeginLoadingEventHandler(object sender, BeginLoadingEventArgs e);
-        /// <summary>
-        /// This event occurs when a WebView begins loading a new page (first bits of data received from server).
-        /// </summary>
-        public event BeginLoadingEventHandler OnBeginLoading;
-
-        public class BeginNavigationEventArgs : EventArgs
-        {
-
-            public BeginNavigationEventArgs(WebView webView, string url, string frameName)
-            {
-                this.webView = webView;
-                this.url = url;
-                this.frameName = frameName;
-            }
-
-            public WebView webView;
-            public string url;
-            public string frameName;
-        };
-
-        public delegate void BeginNavigationEventArgsHandler(object sender, BeginNavigationEventArgs e);
-        /// <summary>
-        /// This event occurs when a WebView begins navigating to a new URL.
-        /// </summary>
-        public event BeginNavigationEventArgsHandler OnBeginNavigation;
-
-        public class JSCallbackEventArgs : EventArgs
-        {
-            public JSCallbackEventArgs(WebView webView, string objectName, string callbackName, JSValue[] args)
-            {
-                this.webView = webView;
-                this.objectName = objectName;
-                this.callbackName = callbackName;
-                this.args = args;
-            }
-
-            public WebView webView;
-            public string objectName;
-            public string callbackName;
-            public JSValue[] args;
-        };
-
-        internal delegate void JSCallbackEventArgsHandler(object sender, JSCallbackEventArgs e);
-        internal event JSCallbackEventArgsHandler OnJSCallback;
-
-        public class ChangeCursorEventArgs : EventArgs
-        {
-            public ChangeCursorEventArgs(WebView webView, CursorType cursorType)
-            {
-                this.webView = webView;
-                this.cursorType = cursorType;
-            }
-
-            public WebView webView;
-            public CursorType cursorType;
-        };
-
-        public delegate void ChangeCursorEventArgsHandler(object sender, ChangeCursorEventArgs e);
-        /// <summary>
-        /// This event occurs when the mouse cursor type changes.
-        /// </summary>
-        public event ChangeCursorEventArgsHandler OnChangeCursor;
-
-        public class ChangeKeyboardFocusEventArgs : EventArgs
-        {
-            public ChangeKeyboardFocusEventArgs(WebView webView, bool isFocused)
-            {
-                this.webView = webView;
-                this.isFocused = isFocused;
-            }
-
-            public WebView webView;
-            public bool isFocused;
-        };
-
-        public delegate void ChangeKeyboardFocusEventArgsHandler(object sender, ChangeKeyboardFocusEventArgs e);
-        /// <summary>
-        /// This event occurs when keyboard focus changes (usually as a result of a textbox being focused).
-        /// </summary>
-        public event ChangeKeyboardFocusEventArgsHandler OnChangeKeyboardFocus;
-
-        public class ChangeTargetUrlEventArgs : EventArgs
-        {
-            public ChangeTargetUrlEventArgs(WebView webView, string url)
-            {
-                this.webView = webView;
-                this.url = url;
-            }
-
-            public WebView webView;
-            public string url;
-        };
-
-        public delegate void ChangeTargetUrlEventArgsHandler(object sender, ChangeTargetUrlEventArgs e);
-        /// <summary>
-        /// This event occurs when the target URL changes (usually the result of hovering over a link).
-        /// </summary>
-        public event ChangeTargetUrlEventArgsHandler OnChangeTargetUrl;
-
-        public class ChangeTooltipEventArgs : EventArgs
-        {
-            public ChangeTooltipEventArgs(WebView webView, string tooltip)
-            {
-                this.webView = webView;
-                this.tooltip = tooltip;
-            }
-
-            public WebView webView;
-            public string tooltip;
-        };
-
-        public delegate void ChangeTooltipEventArgsHandler(object sender, ChangeTooltipEventArgs e);
-        /// <summary>
-        /// This event occurs when the tooltip text changes.
-        /// </summary>
-        public event ChangeTooltipEventArgsHandler OnChangeTooltip;
-
-        public class DomReadyEventArgs : EventArgs
-        {
-            public DomReadyEventArgs(WebView webView)
-            {
-                this.webView = webView;
-            }
-
-            public WebView webView;
-        };
-
-        public delegate void DomReadyEventArgsHandler(object sender, DomReadyEventArgs e);
-        /// <summary>
-        /// This event occurs once the document has been parsed for a page but before all resources (images, etc.)
-        /// have been loaded. This is your first chance to execute Javascript on a page (useful for initialization purposes).
-        /// </summary>
-        public event DomReadyEventArgsHandler OnDomReady;
-
-        public class FinishLoadingEventArgs : EventArgs
-        {
-            public FinishLoadingEventArgs(WebView webView)
-            {
-                this.webView = webView;
-            }
-
-            public WebView webView;
-        };
-
-        public delegate void FinishLoadingEventArgsHandler(object sender, FinishLoadingEventArgs e);
-        /// <summary>
-        /// This event occurs once a page (and all of its sub-frames) has completely finished loading.
-        /// </summary>
-        public event FinishLoadingEventArgsHandler OnFinishLoading;
-
-        public class GetPageContentsEventArgs : EventArgs
-        {
-            public GetPageContentsEventArgs(WebView webView, string url, string contents)
-            {
-                this.webView = webView;
-                this.url = url;
-                this.contents = contents;
-            }
-
-            public WebView webView;
-            public string url;
-            public string contents;
-        };
-
-        public delegate void GetPageContentsEventArgsHandler(object sender, GetPageContentsEventArgs e);
-        /// <summary>
-        /// This event occurs once the page contents (as text) have been retrieved (usually after the end
-        /// of each page load). This plain text is useful for indexing/search purposes.
-        /// </summary>
-        public event GetPageContentsEventArgsHandler OnGetPageContents;
-
-        public class OpenExternalLinkEventArgs : EventArgs
-        {
-            public OpenExternalLinkEventArgs(WebView webView, string url, string source)
-            {
-                this.webView = webView;
-                this.url = url;
-                this.source = source;
-            }
-
-            public WebView webView;
-            public string url;
-            public string source;
-        };
-
-        public delegate void OpenExternalLinkEventArgsHandler(object sender, OpenExternalLinkEventArgs e);
-        /// <summary>
-        /// This event occurs when an external link is attempted to be opened. An external link
-        /// is any link that normally opens in a new window (for example, links with target="_blank", calls
-        /// to window.open(), and URL open events from Flash plugins). You are responsible for
-        /// creating a new WebView to handle these URLs yourself.
-        /// </summary>
-        public event OpenExternalLinkEventArgsHandler OnOpenExternalLink;
-
-        public class PluginCrashedEventArgs : EventArgs
-        {
-            public PluginCrashedEventArgs(WebView webView, string pluginName)
-            {
-                this.webView = webView;
-                this.pluginName = pluginName;
-            }
-
-            public WebView webView;
-            public string pluginName;
-        };
-
-        public delegate void PluginCrashedEventArgsHandler(object sender, PluginCrashedEventArgs e);
-        /// <summary>
-        /// This event occurs whenever a plugin crashes on a page (usually Flash).
-        /// </summary>
-        public event PluginCrashedEventArgsHandler OnPluginCrashed;
-
-        public class ReceiveTitleEventArgs : EventArgs
-        {
-            public ReceiveTitleEventArgs(WebView webView, string title, string frameName)
-            {
-                this.webView = webView;
-                this.title = title;
-                this.frameName = frameName;
-            }
-
-            public WebView webView;
-            public string title;
-            public string frameName;
-        };
-
-        public delegate void ReceiveTitleEventArgsHandler(object sender, ReceiveTitleEventArgs e);
-        /// <summary>
-        /// This event occurs once we receive the page title.
-        /// </summary>
-        public event ReceiveTitleEventArgsHandler OnReceiveTitle;
-
-        public class RequestMoveEventArgs : EventArgs
-        {
-            public RequestMoveEventArgs(WebView webView, int x, int y)
-            {
-                this.webView = webView;
-                this.x = x;
-                this.y = y;
-            }
-
-            public WebView webView;
-            public int x;
-            public int y;
-        };
-
-        public delegate void RequestMoveEventArgsHandler(object sender, RequestMoveEventArgs e);
-        /// <summary>
-        /// This event occurs whenever the window is requested to be moved (via Javascript).
-        /// </summary>
-        public event RequestMoveEventArgsHandler OnRequestMove;
-
-        public class RequestDownloadEventArgs : EventArgs
-        {
-            public RequestDownloadEventArgs(WebView webView, string url)
-            {
-                this.webView = webView;
-                this.url = url;
-            }
-
-            public WebView webView;
-            public string url;
-        };
-
-        public delegate void RequestDownloadEventArgsHandler(object sender, RequestDownloadEventArgs e);
-        /// <summary>
-        /// This event occurs whenever a URL is requested to be downloaded (you must handle this yourself).
-        /// </summary>
-        public event RequestDownloadEventArgsHandler OnRequestDownload;
-
-        public class WebViewCrashedEventArgs : EventArgs
-        {
-            public WebViewCrashedEventArgs(WebView webView)
-            {
-                this.webView = webView;
-            }
-
-            public WebView webView;
-        };
-
-        public delegate void WebViewCrashedEventArgsHandler(object sender, WebViewCrashedEventArgs e);
-        /// <summary>
-        /// This event occurs when the renderer (which is isolated in a separate process) crashes unexpectedly.
-        /// </summary>
-        public event WebViewCrashedEventArgsHandler OnWebViewCrashed;
-
-        public class RequestFileChooserEventArgs : EventArgs
-        {
-            public RequestFileChooserEventArgs(WebView webView, bool selectMultipleFiles, string title, string defaultPaths)
-            {
-                this.webView = webView;
-                this.selectMultipleFiles = selectMultipleFiles;
-                this.title = title;
-                this.defaultPaths = defaultPaths;
-            }
-
-            public WebView webView;
-            public bool selectMultipleFiles;
-            public string title;
-            public string defaultPaths;
-        };
-
-        public delegate void RequestFileChooserEventArgsHandler(object sender, RequestFileChooserEventArgs e);
-        /// <summary>
-        /// This event occurs whenever a page requests a file chooser dialog to be displayed (usually due
-        /// to an upload form being clicked by a user). You will need to display your own dialog (it does
-        /// not have to be modal, this request is non-blocking). Once a file has been chosen by the user,
-        /// you should call WebView.chooseFile
-        /// </summary>
-        public event RequestFileChooserEventArgsHandler OnRequestFileChooser;
-
-        public class GetScrollDataEventArgs : EventArgs
-        {
-            public GetScrollDataEventArgs(WebView webView, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY)
-            {
-                this.webView = webView;
-                this.contentWidth = contentWidth;
-                this.contentHeight = contentHeight;
-                this.preferredWidth = preferredWidth;
-                this.scrollX = scrollX;
-                this.scrollY = scrollY;
-            }
-
-            public WebView webView;
-            public int contentWidth;
-            public int contentHeight;
-            public int preferredWidth;
-            public int scrollX;
-            public int scrollY;
-        };
-
-        public delegate void GetScrollDataEventArgsHandler(object sender, GetScrollDataEventArgs e);
-        /// <summary>
-        /// This event occurs as a response to WebView.RequestScrollData
-        /// </summary>
-        public event GetScrollDataEventArgsHandler OnGetScrollData;
-
-        public class JSConsoleMessageEventArgs : EventArgs
-        {
-            public JSConsoleMessageEventArgs(WebView webView, string message, int lineNumber, string source)
-            {
-                this.webView = webView;
-                this.message = message;
-                this.lineNumber = lineNumber;
-                this.source = source;
-            }
-
-            public WebView webView;
-            public string message;
-            public int lineNumber;
-            public string source;
-        };
-
-        public delegate void JSConsoleMessageEventArgsHandler(object sender, JSConsoleMessageEventArgs e);
-        /// <summary>
-        /// This event occurs whenever a new message is added to the Javascript Console (usually
-        /// the result of a Javascript error).
-        /// </summary>
-        public event JSConsoleMessageEventArgsHandler OnJSConsoleMessage;
-
-        public class GetFindResultsEventArgs : EventArgs
-        {
-            public GetFindResultsEventArgs(WebView webView, int requestID, int numMatches, AweRect selection,
-                int curMatch, bool finalUpdate)
-            {
-                this.webView = webView;
-                this.requestID = requestID;
-                this.numMatches = numMatches;
-                this.selection = selection;
-                this.curMatch = curMatch;
-                this.finalUpdate = finalUpdate;
-            }
-
-            public WebView webView;
-            public int requestID;
-            public int numMatches;
-            public AweRect selection;
-            public int curMatch;
-            public bool finalUpdate;
-        };
-
-        public delegate void GetFindResultsEventArgsHandler(object sender, GetFindResultsEventArgs e);
-        /// <summary>
-        /// This event occurs whenever we receive results back from an in-page find operation (WebView.Find).
-        /// </summary>
-        public event GetFindResultsEventArgsHandler OnGetFindResults;
-
-        public class UpdateIMEEventArgs : EventArgs
-        {
-            public UpdateIMEEventArgs(WebView webView, IMEState state, AweRect caretRect)
-            {
-                this.webView = webView;
-                this.state = state;
-                this.caretRect = caretRect;
-            }
-
-            public WebView webView;
-            public IMEState state;
-            public AweRect caretRect;
-        };
-
-        public delegate void UpdateIMEEventArgsHandler(object sender, UpdateIMEEventArgs e);
-        /// <summary>
-        /// This event occurs whenever the user does something that changes the 
-        /// position or visiblity of the IME Widget. This event is only active when 
-        /// IME is activated (please see WebView.ActivateIME).
-        /// </summary>
-        public event UpdateIMEEventArgsHandler OnUpdateIME;
-
-        public class ResourceRequestEventArgs : EventArgs
-        {
-            public ResourceRequestEventArgs(WebView webView, ResourceRequest request)
-            {
-                this.webView = webView;
-                this.request = request;
-            }
-
-            public WebView webView;
-            public ResourceRequest request;
-        }
-
-        public delegate ResourceResponse ResourceRequestEventArgsHandler(object sender, ResourceRequestEventArgs e);
-        /// <summary>
-        /// This event occurs whenever there is a request for a certain resource (URL). You can either modify the request
-        /// before it is sent or immediately return your own custom response. This is useful for implementing your own
-        /// custom resource-loading back-end or for tracking of resource loads.
-        /// </summary>
-        public event ResourceRequestEventArgsHandler OnResourceRequest;
-
-        public class ResourceResponseEventArgs : EventArgs
-        {
-            public ResourceResponseEventArgs(WebView webView, string url, int statusCode, bool wasCached, long requestTimeMs,
-                long responseTimeMs, long expectedContentSize, string mimeType)
-            {
-                this.webView = webView;
-                this.url = url;
-                this.statusCode = statusCode;
-                this.wasCached = wasCached;
-                this.requestTimeMs = requestTimeMs;
-                this.responseTimeMs = responseTimeMs;
-                this.expectedContentSize = expectedContentSize;
-                this.mimeType = mimeType;
-            }
-
-            public WebView webView;
-            public string url;
-            public int statusCode;
-            public bool wasCached;
-            public long requestTimeMs;
-            public long responseTimeMs;
-            public long expectedContentSize;
-            public string mimeType;
-        }
-
-        public delegate void ResourceResponseEventArgsHandler(object sender, ResourceResponseEventArgs e);
-        /// <summary>
-        /// This event occurs whenever a response has been received from a server. This is useful for statistics
-        /// and resource tracking purposes.
-        /// </summary>
-        public event ResourceResponseEventArgsHandler OnResourceResponse;
+        private Random findRequestRandomizer;
 
         private CallbackBeginLoadingCallback beginLoadingCallback;
         private CallbackBeginNavigationCallback beginNavigationCallback;
@@ -529,199 +98,591 @@ namespace AwesomiumSharp
 
         private CallbackResourceRequestCallback resourceRequestCallback;
         private CallbackResourceResponseCallback resourceResponseCallback;
+        #endregion
 
-        internal WebView(IntPtr webview)
+        #region Events
+        internal event JSCallbackCalledEventHandler JSCallbackCalled;
+
+        /// <summary>
+        /// Occurs when this WebView needs to be rendered again.
+        /// </summary>
+        /// <remarks>
+        /// This event is fired only if <see cref="WebCore.AutoUpdate"/> is set to true.
+        /// This event may be fired in a background thread.
+        /// </remarks>
+        public event EventHandler IsDirtyChanged;
+
+        /// <summary>
+        /// Raises the <see cref="IsDirtyChanged"/> event.
+        /// </summary>
+        protected virtual void OnIsDirtyChanged( object sender, EventArgs e )
         {
-            this.instance = webview;
+            if ( IsDirtyChanged != null )
+                IsDirtyChanged( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when a WebView begins loading a new page (first bits of data received from server).
+        /// </summary>
+        public event BeginLoadingEventHandler BeginLoading;
+
+        /// <summary>
+        /// Raises the <see cref="BeginLoading"/> event.
+        /// </summary>
+        protected virtual void OnBeginLoading( object sender, BeginLoadingEventArgs e )
+        {
+            if ( BeginLoading != null )
+                BeginLoading( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when a WebView begins navigating to a new URL.
+        /// </summary>
+        public event BeginNavigationEventHandler BeginNavigation;
+
+        /// <summary>
+        /// Raises the <see cref="BeginNavigation"/> event.
+        /// </summary>
+        protected virtual void OnBeginNavigation( object sender, BeginNavigationEventArgs e )
+        {
+            if ( BeginNavigation != null )
+                BeginNavigation( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when the mouse cursor type changes.
+        /// </summary>
+        public event CursorChangedEventHandler CursorChanged;
+
+        /// <summary>
+        /// Raises the <see cref="CursorChanged"/> event.
+        /// </summary>
+        protected virtual void OnCursorChanged( object sender, ChangeCursorEventArgs e )
+        {
+            if ( CursorChanged != null )
+                CursorChanged( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when keyboard focus changes (usually as a result of a textbox being focused).
+        /// </summary>
+        public event KeyboardFocusChangedEventHandler KeyboardFocusChanged;
+
+        /// <summary>
+        /// Raises the <see cref="KeyboardFocusChanged"/> event.
+        /// </summary>
+        protected virtual void OnKeyboardFocusChanged( object sender, ChangeKeyboardFocusEventArgs e )
+        {
+            if ( KeyboardFocusChanged != null )
+                KeyboardFocusChanged( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when the target URL changes (usually the result of hovering over a link).
+        /// </summary>
+        public event UrlEventHandler TargetUrlChanged;
+
+        /// <summary>
+        /// Raises the <see cref="TargetUrlChanged"/> event.
+        /// </summary>
+        protected virtual void OnTargetUrlChanged( object sender, UrlEventArgs e )
+        {
+            if ( TargetUrlChanged != null )
+                TargetUrlChanged( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when the tooltip text changes.
+        /// </summary>
+        public event TooltipChangedEventHandler TooltipChanged;
+
+        /// <summary>
+        /// Raises the <see cref="TooltipChanged"/> event.
+        /// </summary>
+        protected virtual void OnTooltipChanged( object sender, ChangeTooltipEventArgs e )
+        {
+            if ( TooltipChanged != null )
+                TooltipChanged( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs once the document has been parsed for a page but before all resources (images, etc.)
+        /// have been loaded. This is your first chance to execute Javascript on a page (useful for initialization purposes).
+        /// </summary>
+        public event EventHandler DomReady;
+
+        /// <summary>
+        /// Raises the <see cref="DomReady"/> event.
+        /// </summary>
+        protected virtual void OnDomReady( object sender, EventArgs e )
+        {
+            if ( DomReady != null )
+                DomReady( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs once a page (and all of its sub-frames) has completely finished loading.
+        /// </summary>
+        public event EventHandler LoadCompleted;
+
+        /// <summary>
+        /// Raises the <see cref="LoadCompleted"/> event.
+        /// </summary>
+        protected virtual void OnLoadCompleted( object sender, EventArgs e )
+        {
+            if ( LoadCompleted != null )
+                LoadCompleted( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs once the page contents (as text) have been retrieved (usually after the end
+        /// of each page load). This plain text is useful for indexing/search purposes.
+        /// </summary>
+        public event PageContentsReceivedEventHandler PageContentsReceived;
+
+        /// <summary>
+        /// Raises the <see cref="PageContentsReceived"/> event.
+        /// </summary>
+        protected virtual void OnPageContentsReceived( object sender, GetPageContentsEventArgs e )
+        {
+            if ( PageContentsReceived != null )
+                PageContentsReceived( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when an external link is attempted to be opened. An external link
+        /// is any link that normally opens in a new window (for example, links with target="_blank", calls
+        /// to window.open(), and URL open events from Flash plugins). You are responsible for
+        /// creating a new WebView to handle these URLs yourself.
+        /// </summary>
+        public event OpenExternalLinkEventHandler OpenExternalLink;
+
+        /// <summary>
+        /// Raises the <see cref="OpenExternalLink"/> event.
+        /// </summary>
+        protected virtual void OnOpenExternalLink( object sender, OpenExternalLinkEventArgs e )
+        {
+            if ( OpenExternalLink != null )
+                OpenExternalLink( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever a plugin crashes on a page (usually Flash).
+        /// </summary>
+        public event PluginCrashedEventHandler PluginCrashed;
+
+        /// <summary>
+        /// Raises the <see cref="PluginCrashed"/> event.
+        /// </summary>
+        protected virtual void OnPluginCrashed( object sender, PluginCrashedEventArgs e )
+        {
+            if ( PluginCrashed != null )
+                PluginCrashed( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs once we receive the page title.
+        /// </summary>
+        public event TitleReceivedEventHandler TitleReceived;
+
+        /// <summary>
+        /// Raises the <see cref="TitleReceived"/> event.
+        /// </summary>
+        protected virtual void OnTitleReceived( object sender, ReceiveTitleEventArgs e )
+        {
+            if ( TitleReceived != null )
+                TitleReceived( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever the window is requested to be moved (via Javascript).
+        /// </summary>
+        public event MoveEventHandler Move;
+
+        /// <summary>
+        /// Raises the <see cref="Move"/> event.
+        /// </summary>
+        protected virtual void OnMove( object sender, MoveEventArgs e )
+        {
+            if ( Move != null )
+                Move( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever a URL is requested to be downloaded (you must handle this yourself).
+        /// </summary>
+        public event UrlEventHandler Download;
+
+        /// <summary>
+        /// Raises the <see cref="Download"/> event.
+        /// </summary>
+        protected virtual void OnDownload( object sender, UrlEventArgs e )
+        {
+            if ( Download != null )
+                Download( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs when the renderer (which is isolated in a separate process) crashes unexpectedly.
+        /// </summary>
+        public event EventHandler Crashed;
+
+        /// <summary>
+        /// Raises the <see cref="Crashed"/> event.
+        /// </summary>
+        protected virtual void OnCrashed( object sender, EventArgs e )
+        {
+            if ( Crashed != null )
+                Crashed( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever a page requests a file chooser dialog to be displayed (usually due
+        /// to an upload form being clicked by a user). You will need to display your own dialog.
+        /// Assign the selected local file(s) to <see cref="SelectLocalFilesEventArgs.SelectedFiles"/>
+        /// </summary>
+        /// <remarks>
+        /// The dialog does not have to be modal, this request is non-blocking. Once a file has been chosen by the user,
+        /// you can manually report this back to the view by calling <see cref="WebView.ChooseFile"/>.
+        /// </remarks>
+        public event SelectLocalFilesEventHandler SelectLocalFiles;
+
+        /// <summary>
+        /// Raises the <see cref="FileChooserRequest"/> event.
+        /// </summary>
+        protected virtual void OnSelectLocalFiles( object sender, SelectLocalFilesEventArgs e )
+        {
+            if ( SelectLocalFiles != null )
+                SelectLocalFiles( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs as a response to WebView.RequestScrollData
+        /// </summary>
+        public event ScrollDataReceivedEventHandler ScrollDataReceived;
+
+        /// <summary>
+        /// Raises the <see cref="ScrollDataReceived"/> event.
+        /// </summary>
+        protected virtual void OnScrollDataReceived( object sender, ScrollDataEventArgs e )
+        {
+            if ( ScrollDataReceived != null )
+                ScrollDataReceived( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever a new message is added to the Javascript Console (usually
+        /// the result of a Javascript error).
+        /// </summary>
+        public event JSConsoleMessageAddedEventHandler JSConsoleMessageAdded;
+
+        /// <summary>
+        /// Raises the <see cref="JSConsoleMessageAdded"/> event.
+        /// </summary>
+        protected virtual void OnJSConsoleMessageAdded( object sender, JSConsoleMessageEventArgs e )
+        {
+            if ( JSConsoleMessageAdded != null )
+                JSConsoleMessageAdded( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever we receive results back from an in-page find operation (WebView.Find).
+        /// </summary>
+        public event FindResultsReceivedEventHandler FindResultsReceived;
+
+        /// <summary>
+        /// Raises the <see cref="FindResultsReceived"/> event.
+        /// </summary>
+        protected virtual void OnFindResultsReceived( object sender, GetFindResultsEventArgs e )
+        {
+            if ( FindResultsReceived != null )
+                FindResultsReceived( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever the user does something that changes the 
+        /// position or visiblity of the IME Widget. This event is only active when 
+        /// IME is activated (please see WebView.ActivateIME).
+        /// </summary>
+        public event ImeUpdatedEventHandler ImeUpdated;
+
+        /// <summary>
+        /// Raises the <see cref="ImeUpdated"/> event.
+        /// </summary>
+        protected virtual void OnImeUpdated( object sender, UpdateImeEventArgs e )
+        {
+            if ( ImeUpdated != null )
+                ImeUpdated( sender, e );
+        }
+
+        /// <summary>
+        /// This event occurs whenever there is a request for a certain resource (URL). You can either modify the request
+        /// before it is sent or immediately return your own custom response. This is useful for implementing your own
+        /// custom resource-loading back-end or for tracking of resource loads.
+        /// </summary>
+        public event ResourceRequestEventHandler ResourceRequest;
+
+        /// <summary>
+        /// Raises the <see cref="ResourceRequest"/> event.
+        /// </summary>
+        protected virtual ResourceResponse OnResourceRequest( object sender, ResourceRequestEventArgs e )
+        {
+            if ( ResourceRequest != null )
+                return ResourceRequest( sender, e );
+
+            return null;
+        }
+
+        /// <summary>
+        /// This event occurs whenever a response has been received from a server. This is useful for statistics
+        /// and resource tracking purposes.
+        /// </summary>
+        public event ResourceResponseEventHandler ResourceResponse;
+
+        /// <summary>
+        /// Raises the <see cref="ResourceResponse"/> event.
+        /// </summary>
+        protected virtual void OnResourceResponse( object sender, ResourceResponseEventArgs e )
+        {
+            if ( ResourceResponse != null )
+                ResourceResponse( sender, e );
+        }
+        #endregion
+
+
+        #region Ctor
+        internal WebView( IntPtr webview )
+        {
+            findRequestRandomizer = new Random();
+
+            this.Instance = webview;
 
             beginNavigationCallback = internalBeginNavigationCallback;
-            awe_webview_set_callback_begin_navigation(webview, beginNavigationCallback);
+            awe_webview_set_callback_begin_navigation( webview, beginNavigationCallback );
 
             beginLoadingCallback = internalBeginLoadingCallback;
-            awe_webview_set_callback_begin_loading(webview, beginLoadingCallback);
+            awe_webview_set_callback_begin_loading( webview, beginLoadingCallback );
 
             finishLoadingCallback = internalFinishLoadingCallback;
-            awe_webview_set_callback_finish_loading(webview, finishLoadingCallback);
+            awe_webview_set_callback_finish_loading( webview, finishLoadingCallback );
 
             jsCallback = internalJsCallback;
-            awe_webview_set_callback_js_callback(webview, jsCallback);
+            awe_webview_set_callback_js_callback( webview, jsCallback );
 
             receiveTitleCallback = internalReceiveTitleCallback;
-            awe_webview_set_callback_receive_title(webview, receiveTitleCallback);
+            awe_webview_set_callback_receive_title( webview, receiveTitleCallback );
 
             changeTooltipCallback = internalChangeTooltipCallback;
-            awe_webview_set_callback_change_tooltip(webview, changeTooltipCallback);
+            awe_webview_set_callback_change_tooltip( webview, changeTooltipCallback );
 
             changeCursorCallback = internalChangeCursorCallback;
-            awe_webview_set_callback_change_cursor(webview, changeCursorCallback);
+            awe_webview_set_callback_change_cursor( webview, changeCursorCallback );
 
             changeKeyboardFocusCallback = internalChangeKeyboardFocusCallback;
-            awe_webview_set_callback_change_keyboard_focus(webview, changeKeyboardFocusCallback);
+            awe_webview_set_callback_change_keyboard_focus( webview, changeKeyboardFocusCallback );
 
             changeTargetURLCallback = internalChangeTargetURLCallback;
-            awe_webview_set_callback_change_target_url(webview, changeTargetURLCallback);
+            awe_webview_set_callback_change_target_url( webview, changeTargetURLCallback );
 
             openExternalLinkCallback = internalOpenExternalLinkCallback;
-            awe_webview_set_callback_open_external_link(webview, openExternalLinkCallback);
+            awe_webview_set_callback_open_external_link( webview, openExternalLinkCallback );
 
             requestDownloadCallback = internalRequestDownloadCallback;
-            awe_webview_set_callback_request_download(webview, requestDownloadCallback);
+            awe_webview_set_callback_request_download( webview, requestDownloadCallback );
 
             webviewCrashedCallback = internalWebviewCrashedCallback;
-            awe_webview_set_callback_web_view_crashed(webview, webviewCrashedCallback);
+            awe_webview_set_callback_web_view_crashed( webview, webviewCrashedCallback );
 
             pluginCrashedCallback = internalPluginCrashedCallback;
-            awe_webview_set_callback_plugin_crashed(webview, pluginCrashedCallback);
+            awe_webview_set_callback_plugin_crashed( webview, pluginCrashedCallback );
 
             requestMoveCallback = internalRequestMoveCallback;
-            awe_webview_set_callback_request_move(webview, requestMoveCallback);
+            awe_webview_set_callback_request_move( webview, requestMoveCallback );
 
             getPageContentsCallback = internalGetPageContentsCallback;
-            awe_webview_set_callback_get_page_contents(webview, getPageContentsCallback);
+            awe_webview_set_callback_get_page_contents( webview, getPageContentsCallback );
 
             domReadyCallback = internalDomReadyCallback;
-            awe_webview_set_callback_dom_ready(webview, domReadyCallback);
+            awe_webview_set_callback_dom_ready( webview, domReadyCallback );
 
             requestFileChooserCallback = internalRequestFileChooser;
-            awe_webview_set_callback_request_file_chooser(webview, requestFileChooserCallback);
+            awe_webview_set_callback_request_file_chooser( webview, requestFileChooserCallback );
 
             getScrollDataCallback = internalGetScrollData;
-            awe_webview_set_callback_get_scroll_data(webview, getScrollDataCallback);
+            awe_webview_set_callback_get_scroll_data( webview, getScrollDataCallback );
 
             jsConsoleMessageCallback = internalJSConsoleMessage;
-            awe_webview_set_callback_js_console_message(webview, jsConsoleMessageCallback);
+            awe_webview_set_callback_js_console_message( webview, jsConsoleMessageCallback );
 
             getFindResultsCallback = internalGetFindResults;
-            awe_webview_set_callback_get_find_results(webview, getFindResultsCallback);
+            awe_webview_set_callback_get_find_results( webview, getFindResultsCallback );
 
             updateIMECallback = internalUpdateIME;
-            awe_webview_set_callback_update_ime(webview, updateIMECallback);
+            awe_webview_set_callback_update_ime( webview, updateIMECallback );
 
             resourceRequestCallback = internalResourceRequestCallback;
-            awe_webview_set_callback_resource_request(webview, resourceRequestCallback);
+            awe_webview_set_callback_resource_request( webview, resourceRequestCallback );
 
             resourceResponseCallback = internalResourceResponseCallback;
-            awe_webview_set_callback_resource_response(webview, resourceResponseCallback);
+            awe_webview_set_callback_resource_response( webview, resourceResponseCallback );
 
             jsObjectCallbackMap = new Dictionary<string, JSCallback>();
-            this.OnJSCallback += handleJSCallback;
+            this.JSCallbackCalled += handleJSCallback;
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_destroy(IntPtr webview);
+        #region IDisposable
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_destroy( IntPtr webview );
 
-        ~WebView()
+        protected override void OnDispose()
         {
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!disposed)
+            if ( Instance != IntPtr.Zero )
             {
-                if (instance != IntPtr.Zero)
+                if ( !WebCore.IsShuttingDown )
                 {
-                    WebCore.activeWebViews.Remove(this);
-                    awe_webview_destroy(instance);
-                    instance = IntPtr.Zero;
+                    if ( ( WebCore.activeWebViews != null ) && WebCore.activeWebViews.Contains( this ) )
+                        WebCore.activeWebViews.Remove( this );
+
+                    awe_webview_destroy( Instance );
                 }
 
-                disposed = true;
+                Instance = IntPtr.Zero;
             }
-
-            GC.SuppressFinalize(this);
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+
+        #region Methods
+
+        #region Internal
+
+        #region VerifyLive
+        private void VerifyLive()
+        {
+            if ( !IsLive )
+                throw new InvalidOperationException( "The WebControl is not initialized." );
+        }
+        #endregion
+
+        #region PrepareForShutdown
+        internal void PrepareForShutdown()
+        {
+            if ( Instance != IntPtr.Zero )
+            {
+                resourceRequestCallback = null;
+                awe_webview_set_callback_resource_request( Instance, null );
+
+                resourceResponseCallback = null;
+                awe_webview_set_callback_resource_response( Instance, null );
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region Public
+
+        #region LoadURL
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_set_resource_interceptor(/*To do?*/);
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_load_url(IntPtr webview,
-                                         IntPtr url,
-                                         IntPtr frame_name,
-                                         IntPtr username,
-                                         IntPtr password);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_load_url( IntPtr webview, IntPtr url, IntPtr frame_name, IntPtr username, IntPtr password );
 
-        public void LoadURL(string url,
-                            string frameName = "",
-                            string username = "",
-                            string password = "")
+        public void LoadURL( string url, string frameName = "", string username = "", string password = "" )
         {
-            StringHelper urlStr = new StringHelper(url);
-            StringHelper frameNameStr = new StringHelper(frameName);
-            StringHelper usernameStr = new StringHelper(username);
-            StringHelper passwordStr = new StringHelper(password);
+            VerifyLive();
 
-            awe_webview_load_url(instance, urlStr.value(), frameNameStr.value(), usernameStr.value(), passwordStr.value());
+            StringHelper urlStr = new StringHelper( url );
+            StringHelper frameNameStr = new StringHelper( frameName );
+            StringHelper usernameStr = new StringHelper( username );
+            StringHelper passwordStr = new StringHelper( password );
+
+            awe_webview_load_url( Instance, urlStr.value(), frameNameStr.value(), usernameStr.value(), passwordStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_load_html(IntPtr webview,
-                                          IntPtr html,
-                                          IntPtr frame_name);
+        #region LoadHTML
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_load_html( IntPtr webview, IntPtr html, IntPtr frame_name );
 
-        public void LoadHTML(string html,
-                             string frameName = "")
+        public void LoadHTML( string html, string frameName = "" )
         {
-            StringHelper htmlStr = new StringHelper(html);
-            StringHelper frameNameStr = new StringHelper(frameName);
+            VerifyLive();
 
-            awe_webview_load_html(instance, htmlStr.value(), frameNameStr.value());
+            StringHelper htmlStr = new StringHelper( html );
+            StringHelper frameNameStr = new StringHelper( frameName );
+
+            awe_webview_load_html( Instance, htmlStr.value(), frameNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_load_file(IntPtr webview,
-                                          IntPtr file,
-                                          IntPtr frame_name);
+        #region LoadFile
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_load_file( IntPtr webview, IntPtr file, IntPtr frame_name );
 
-        public void LoadFile(string file,
-                             string frameName = "")
+        public void LoadFile( string file, string frameName = "" )
         {
-            StringHelper fileStr = new StringHelper(file);
-            StringHelper frameNameStr = new StringHelper(frameName);
+            VerifyLive();
 
-            awe_webview_load_file(instance, fileStr.value(), frameNameStr.value());
+            StringHelper fileStr = new StringHelper( file );
+            StringHelper frameNameStr = new StringHelper( frameName );
+
+            awe_webview_load_file( Instance, fileStr.value(), frameNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_go_to_history_offset(IntPtr webview,
-                                                     int offset);
+        #region GoToHistoryOffset
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_go_to_history_offset( IntPtr webview, int offset );
 
+        public void GoToHistoryOffset( int offset )
+        {
+            VerifyLive();
+            awe_webview_go_to_history_offset( Instance, offset );
+        }
+        #endregion
+
+        #region GoBack
         public void GoBack()
         {
-            GoToHistoryOffset(-1);
+            GoToHistoryOffset( -1 );
         }
+        #endregion
 
+        #region GoForward
         public void GoForward()
         {
-            GoToHistoryOffset(1);
+            GoToHistoryOffset( 1 );
         }
+        #endregion
 
-        public void GoToHistoryOffset(int offset)
-        {
-            awe_webview_go_to_history_offset(instance, offset);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_stop(IntPtr webview);
+        #region Stop
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_stop( IntPtr webview );
 
         public void Stop()
         {
-            awe_webview_stop(instance);
+            VerifyLive();
+            awe_webview_stop( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_reload(IntPtr webview);
+        #region Reload
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_reload( IntPtr webview );
 
         public void Reload()
         {
-            awe_webview_reload(instance);
+            VerifyLive();
+            awe_webview_reload( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_execute_javascript(IntPtr webview,
-                                                   IntPtr javascript,
-                                                   IntPtr frame_name);
+        #region ExecuteJavascript
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_execute_javascript( IntPtr webview, IntPtr javascript, IntPtr frame_name );
 
         /// <summary>
         /// Executes a string of Javascript in the context of the current page
@@ -730,21 +691,20 @@ namespace AwesomiumSharp
         /// <param name="javascript">The string of Javascript to execute</param>
         /// <param name="frameName">Optional; the name of the frame to execute in,
         /// leave this blank to execute in the main frame.</param>
-        public void ExecuteJavascript(string javascript,
-                                      string frameName = "")
+        public void ExecuteJavascript( string javascript, string frameName = "" )
         {
-            StringHelper javascriptStr = new StringHelper(javascript);
-            StringHelper frameNameStr = new StringHelper(frameName);
+            VerifyLive();
 
-            awe_webview_execute_javascript(instance, javascriptStr.value(), frameNameStr.value());
+            StringHelper javascriptStr = new StringHelper( javascript );
+            StringHelper frameNameStr = new StringHelper( frameName );
+
+            awe_webview_execute_javascript( Instance, javascriptStr.value(), frameNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_webview_execute_javascript_with_result(
-                                                        IntPtr webview,
-                                                        IntPtr javascript,
-                                                        IntPtr frame_name,
-                                                        int timeout_ms);
+        #region ExecuteJavascriptWithResult
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static IntPtr awe_webview_execute_javascript_with_result( IntPtr webview, IntPtr javascript, IntPtr frame_name, int timeout_ms );
 
         /// <summary>
         /// Executes a string of Javascript in the context of the current page
@@ -760,46 +720,47 @@ namespace AwesomiumSharp
         /// result is only a shallow, read-only copy of the original object. This
         /// method does not return system-defined Javascript objects (such as "window",
         /// "document", or any DOM elements).</returns>
-        public JSValue ExecuteJavascriptWithResult(string javascript,
-                                                  string frameName = "",
-                                                  int timeoutMs = 0)
+        public JSValue ExecuteJavascriptWithResult( string javascript, string frameName = "", int timeoutMs = 0 )
         {
-            StringHelper javascriptStr = new StringHelper(javascript);
-            StringHelper frameNameStr = new StringHelper(frameName);
+            VerifyLive();
 
-            IntPtr temp = awe_webview_execute_javascript_with_result(instance, javascriptStr.value(), frameNameStr.value(), timeoutMs);
+            StringHelper javascriptStr = new StringHelper( javascript );
+            StringHelper frameNameStr = new StringHelper( frameName );
 
-            JSValue result = new JSValue(temp);
-            result.ownsInstance = true;
+            IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.value(), frameNameStr.value(), timeoutMs );
+            JSValue result = new JSValue( temp ) { ownsInstance = true };
 
             return result;
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_call_javascript_function(IntPtr webview,
-                                                         IntPtr objectName,
-                                                         IntPtr function,
-                                                         IntPtr arguments,
-                                                         IntPtr frame_name);
+        #region CallJavascriptFunction
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_call_javascript_function( IntPtr webview,
+            IntPtr objectName,
+            IntPtr function,
+            IntPtr arguments,
+            IntPtr frame_name );
 
-        public void CallJavascriptFunction(string objectName,
-                                           string function,
-                                           params JSValue[] arguments)
+        public void CallJavascriptFunction( string objectName, string function, params JSValue[] arguments )
         {
-            IntPtr jsarray = JSArrayHelper.createArray(arguments);
+            VerifyLive();
 
-            StringHelper objectNameStr = new StringHelper(objectName);
-            StringHelper functionStr = new StringHelper(function);
-            StringHelper frameNameStr = new StringHelper("");
+            IntPtr jsarray = JSArrayHelper.CreateArray( arguments );
 
-            awe_webview_call_javascript_function(instance, objectNameStr.value(), functionStr.value(), jsarray, frameNameStr.value());
+            StringHelper objectNameStr = new StringHelper( objectName );
+            StringHelper functionStr = new StringHelper( function );
+            StringHelper frameNameStr = new StringHelper( "" );
 
-            JSArrayHelper.destroyArray(jsarray);
+            awe_webview_call_javascript_function( Instance, objectNameStr.value(), functionStr.value(), jsarray, frameNameStr.value() );
+
+            JSArrayHelper.DestroyArray( jsarray );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_create_object(IntPtr webview,
-                                              IntPtr object_name);
+        #region CreateObject
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_create_object( IntPtr webview, IntPtr object_name );
 
         /// <summary>
         /// Creates a new global Javascript object that will persist throughout
@@ -809,29 +770,31 @@ namespace AwesomiumSharp
         /// WebView.SetObjectProperty and WebView.SetObjectCallback, respectively.
         /// </summary>
         /// <param name="objectName"></param>
-        public void CreateObject(string objectName)
+        public void CreateObject( string objectName )
         {
-            StringHelper objectNameStr = new StringHelper(objectName);
+            VerifyLive();
 
-            awe_webview_create_object(instance, objectNameStr.value());
+            StringHelper objectNameStr = new StringHelper( objectName );
+            awe_webview_create_object( Instance, objectNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_destroy_object(IntPtr webview,
-                                               IntPtr object_name);
+        #region DestroyObject
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_destroy_object( IntPtr webview, IntPtr object_name );
 
-        public void DestroyObject(string objectName)
+        public void DestroyObject( string objectName )
         {
-            StringHelper objectNameStr = new StringHelper(objectName);
+            VerifyLive();
 
-            awe_webview_destroy_object(instance, objectNameStr.value());
+            StringHelper objectNameStr = new StringHelper( objectName );
+            awe_webview_destroy_object( Instance, objectNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_object_property(IntPtr webview,
-                                                     IntPtr object_name,
-                                                     IntPtr property_name,
-                                                     IntPtr val);
+        #region SetObjectProperty
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_object_property( IntPtr webview, IntPtr object_name, IntPtr property_name, IntPtr val );
 
         /// <summary>
         /// Sets a property of a Javascript object previously created by WebView.CreateObject.
@@ -848,22 +811,20 @@ namespace AwesomiumSharp
         /// <param name="objectName"></param>
         /// <param name="propertyName"></param>
         /// <param name="val"></param>
-        public void SetObjectProperty(string objectName,
-                                      string propertyName,
-                                      JSValue val)
+        public void SetObjectProperty( string objectName, string propertyName, JSValue val )
         {
-            StringHelper objectNameStr = new StringHelper(objectName);
-            StringHelper propertyNameStr = new StringHelper(propertyName);
+            VerifyLive();
 
-            awe_webview_set_object_property(instance, objectNameStr.value(), propertyNameStr.value(), val.getInstance());
+            StringHelper objectNameStr = new StringHelper( objectName );
+            StringHelper propertyNameStr = new StringHelper( propertyName );
+
+            awe_webview_set_object_property( Instance, objectNameStr.value(), propertyNameStr.value(), val.Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_object_callback(IntPtr webview,
-                                                     IntPtr object_name,
-                                                     IntPtr callback_name);
-
-        public delegate void JSCallback(object sender, JSCallbackEventArgs e);
+        #region SetObjectCallback
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_object_callback( IntPtr webview, IntPtr object_name, IntPtr callback_name );
 
         /// <summary>
         /// Binds a callback function to a Javascript object previously created by WebView.CreateObject.
@@ -887,72 +848,49 @@ namespace AwesomiumSharp
         /// <param name="objectName"></param>
         /// <param name="callbackName"></param>
         /// <param name="callback"></param>
-        public void SetObjectCallback(string objectName,
-                                      string callbackName,
-                                      JSCallback callback)
+        public void SetObjectCallback( string objectName, string callbackName, JSCallback callback )
         {
-            StringHelper objectNameStr = new StringHelper(objectName);
-            StringHelper callbackNameStr = new StringHelper(callbackName);
+            VerifyLive();
 
-            awe_webview_set_object_callback(instance, objectNameStr.value(), callbackNameStr.value());
+            StringHelper objectNameStr = new StringHelper( objectName );
+            StringHelper callbackNameStr = new StringHelper( callbackName );
 
-            string key = objectName + "." + callbackName;
+            awe_webview_set_object_callback( Instance, objectNameStr.value(), callbackNameStr.value() );
 
-            if (jsObjectCallbackMap.ContainsKey(key))
-                jsObjectCallbackMap.Remove(key);
+            string key = String.Format( "{0}.{1}", objectName, callbackName );
 
-            if(callback != null)
-                jsObjectCallbackMap.Add(key, callback);
+            if ( jsObjectCallbackMap.ContainsKey( key ) )
+                jsObjectCallbackMap.Remove( key );
+
+            if ( callback != null )
+                jsObjectCallbackMap.Add( key, callback );
         }
+        #endregion
 
-        internal void handleJSCallback(object sender, JSCallbackEventArgs e)
-        {
-            string key = e.objectName + "." + e.callbackName;
-
-            if (jsObjectCallbackMap.ContainsKey(key))
-                jsObjectCallbackMap[key](sender, e);
-        }
-
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_webview_is_loading_page(IntPtr webview);
-
-        public bool IsLoadingPage()
-        {
-            return awe_webview_is_loading_page(instance);
-        }
-
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_webview_is_dirty(IntPtr webview);
-
-        /// <summary>
-        /// Whether or not this WebView needs to be rendered again.
-        /// </summary>
-        /// <returns></returns>
-        public bool IsDirty()
-        {
-            return awe_webview_is_dirty(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern AweRect awe_webview_get_dirty_bounds(IntPtr webview);
+        #region GetDirtyBounds
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern AweRect awe_webview_get_dirty_bounds( IntPtr webview );
 
         public AweRect GetDirtyBounds()
         {
-            AweRect bounds = awe_webview_get_dirty_bounds(instance);
+            VerifyLive();
 
-            AweRect result = new AweRect();
-            result.x = bounds.x;
-            result.y = bounds.y;
-            result.width = bounds.width;
-            result.height = bounds.height;
+            AweRect bounds = awe_webview_get_dirty_bounds( Instance );
+            AweRect result = new AweRect
+            {
+                X = bounds.X,
+                Y = bounds.Y,
+                Width = bounds.Width,
+                Height = bounds.Height
+            };
 
             return result;
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_webview_render(IntPtr webview);
+        #region Render
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern IntPtr awe_webview_render( IntPtr webview );
 
         /// <summary>
         /// Renders this WebView into an offscreen pixel buffer and clears the dirty state.
@@ -962,11 +900,14 @@ namespace AwesomiumSharp
         /// value may change between renders and may return null if the WebView has crashed.</returns>
         public RenderBuffer Render()
         {
-            return new RenderBuffer(awe_webview_render(instance));
+            VerifyLive();
+            return new RenderBuffer( awe_webview_render( Instance ) );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_pause_rendering(IntPtr webview);
+        #region PauseRendering
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_pause_rendering( IntPtr webview );
 
         /// <summary>
         /// All rendering is actually done asynchronously in a separate process
@@ -975,136 +916,165 @@ namespace AwesomiumSharp
         /// </summary>
         public void PauseRendering()
         {
-            awe_webview_pause_rendering(instance);
+            VerifyLive();
+            awe_webview_pause_rendering( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_resume_rendering(IntPtr webview);
+        #region ResumeRendering
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_resume_rendering( IntPtr webview );
 
         /// <summary>
         /// Resume rendering after a call to WebView.PauseRendering
         /// </summary>
         public void ResumeRendering()
         {
-            awe_webview_resume_rendering(instance);
+            VerifyLive();
+            awe_webview_resume_rendering( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_mouse_move(IntPtr webview,
-                                                  int x,
-                                                  int y);
+        #region InjectMouseMove
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_mouse_move( IntPtr webview, int x, int y );
 
-        public void InjectMouseMove(int x, int y)
+        public void InjectMouseMove( int x, int y )
         {
-            awe_webview_inject_mouse_move(instance, x, y);
+            VerifyLive();
+            awe_webview_inject_mouse_move( Instance, x, y );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_mouse_down(IntPtr webview,
-                                                  MouseButton mouseButton);
+        #region InjectMouseDown
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_mouse_down( IntPtr webview, MouseButton mouseButton );
 
-        public void InjectMouseDown(MouseButton mouseButton)
+        public void InjectMouseDown( MouseButton mouseButton )
         {
-            awe_webview_inject_mouse_down(instance, mouseButton);
+            VerifyLive();
+            awe_webview_inject_mouse_down( Instance, mouseButton );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_mouse_up(IntPtr webview,
-                                                MouseButton mouseButton);
+        #region InjectMouseUp
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_mouse_up( IntPtr webview, MouseButton mouseButton );
 
-        public void InjectMouseUp(MouseButton mouseButton)
+        public void InjectMouseUp( MouseButton mouseButton )
         {
-            awe_webview_inject_mouse_up(instance, mouseButton);
+            VerifyLive();
+            awe_webview_inject_mouse_up( Instance, mouseButton );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_mouse_wheel(IntPtr webview,
-                                                   int scroll_amount_vert,
-                                                   int scroll_amount_horz);
+        #region InjectMouseWheel
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_mouse_wheel( IntPtr webview, int scroll_amount_vert, int scroll_amount_horz );
 
-        public void InjectMouseWheel(int scrollAmountVert, int scrollAmountHorz = 0)
+        public void InjectMouseWheel( int scrollAmountVert, int scrollAmountHorz = 0 )
         {
-            awe_webview_inject_mouse_wheel(instance, scrollAmountVert, scrollAmountHorz);
+            VerifyLive();
+            awe_webview_inject_mouse_wheel( Instance, scrollAmountVert, scrollAmountHorz );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_keyboard_event(IntPtr webview,
-                                                      WebKeyboardEvent key_event);
+        #region InjectKeyboardEvent
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_keyboard_event( IntPtr webview, WebKeyboardEvent key_event );
 
-        public void InjectKeyboardEvent(WebKeyboardEvent keyEvent)
+        public void InjectKeyboardEvent( WebKeyboardEvent keyEvent )
         {
-            awe_webview_inject_keyboard_event(instance, keyEvent);
+            VerifyLive();
+            awe_webview_inject_keyboard_event( Instance, keyEvent );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_inject_keyboard_event_win(IntPtr webview,
-                                                  int msg,
-                                                  int wparam,
-                                                  int lparam);
+        #region InjectKeyboardEventWin
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_inject_keyboard_event_win( IntPtr webview, int msg, int wparam, int lparam );
 
-        public void InjectKeyboardEventWin(int msg,
-                                           int wparam,
-                                           int lparam)
+        public void InjectKeyboardEventWin( int msg, int wparam, int lparam )
         {
-            awe_webview_inject_keyboard_event_win(instance, msg, wparam, lparam);
+            VerifyLive();
+            awe_webview_inject_keyboard_event_win( Instance, msg, wparam, lparam );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_cut(IntPtr webview);
+        #region Cut
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_cut( IntPtr webview );
 
         public void Cut()
         {
-            awe_webview_cut(instance);
+            VerifyLive();
+            awe_webview_cut( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_copy(IntPtr webview);
+        #region Copy
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_copy( IntPtr webview );
 
         public void Copy()
         {
-            awe_webview_copy(instance);
+            VerifyLive();
+            awe_webview_copy( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_paste(IntPtr webview);
+        #region Paste
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_paste( IntPtr webview );
 
         public void Paste()
         {
-            awe_webview_paste(instance);
+            VerifyLive();
+            awe_webview_paste( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_select_all(IntPtr webview);
+        #region SelectAll
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_select_all( IntPtr webview );
 
         public void SelectAll()
         {
-            awe_webview_select_all(instance);
+            VerifyLive();
+            awe_webview_select_all( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_zoom(IntPtr webview,
-                                         int zoom_percent);
+        #region SetZoom
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_zoom( IntPtr webview, int zoom_percent );
 
-        public void SetZoom(int zoomPercent)
+        public void SetZoom( int zoomPercent )
         {
-            awe_webview_set_zoom(instance, zoomPercent);
+            VerifyLive();
+            awe_webview_set_zoom( Instance, zoomPercent );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_reset_zoom(IntPtr webview);
+        #region ResetZoom
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_reset_zoom( IntPtr webview );
 
         public void ResetZoom()
         {
-            awe_webview_reset_zoom(instance);
+            VerifyLive();
+            awe_webview_reset_zoom( Instance );
         }
+        #endregion
 
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_webview_resize(IntPtr webview,
-                                       int width,
-                                       int height,
-                                       bool wait_for_repaint,
-                                       int repaint_timeout_ms);
+        #region Resize
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static bool awe_webview_resize( IntPtr webview,
+            int width,
+            int height,
+            bool wait_for_repaint,
+            int repaint_timeout_ms );
 
         /// <summary>
         /// Resizes this WebView to certain dimensions. This operation can fail
@@ -1118,38 +1088,27 @@ namespace AwesomiumSharp
         /// <param name="repaintTimeoutMs">The max amount of time to wait for
         /// a repaint, in milliseconds</param>
         /// <returns>Returns true if the resize was successful.</returns>
-        public bool Resize(int width,
-                           int height,
-                           bool waitForRepaint = true,
-                           int repaintTimeoutMs = 300)
+        public bool Resize( int width, int height, bool waitForRepaint = true, int repaintTimeoutMs = 300 )
         {
-            return awe_webview_resize(instance, width, height, waitForRepaint, repaintTimeoutMs);
+            VerifyLive();
+            return awe_webview_resize( Instance, width, height, waitForRepaint, repaintTimeoutMs );
         }
+        #endregion
 
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_webview_is_resizing(IntPtr webview);
-
-        /// <summary>
-        /// Checks whether or not there is a resize operation pending.
-        /// </summary>
-        /// <returns>Returns true if we are waiting for the WebView process to
-        /// return acknowledgement of a pending resize operation.</returns>
-        public bool IsResizing()
-        {
-            return awe_webview_is_resizing(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_unfocus(IntPtr webview);
+        #region Unfocus
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_unfocus( IntPtr webview );
 
         public void Unfocus()
         {
-            awe_webview_unfocus(instance);
+            VerifyLive();
+            awe_webview_unfocus( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_focus(IntPtr webview);
+        #region Focus
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_focus( IntPtr webview );
 
         /// <summary>
         /// Notifies the current page that it has gained focus. You will need to
@@ -1158,134 +1117,158 @@ namespace AwesomiumSharp
         /// </summary>
         public void Focus()
         {
-            awe_webview_focus(instance);
+            VerifyLive();
+            awe_webview_focus( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_transparent(IntPtr webview,
-                                                bool is_transparent);
+        #region SetTransparent
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_transparent( IntPtr webview, bool is_transparent );
 
         /// <summary>
         /// Sets whether or not pages should be rendered with transparency
         /// preserved (for ex, for pages with style="background-color:transparent")
         /// </summary>
         /// <param name="isTransparent"></param>
-        public void SetTransparent(bool isTransparent)
+        public void SetTransparent( bool isTransparent )
         {
-            awe_webview_set_transparent(instance, isTransparent);
+            VerifyLive();
+            awe_webview_set_transparent( Instance, isTransparent );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_url_filtering_mode(IntPtr webview,
-                                                       URLFilteringMode filteringMode);
+        #region SetURLFilteringMode
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_url_filtering_mode( IntPtr webview, URLFilteringMode filteringMode );
 
-        public void SetURLFilteringMode(URLFilteringMode filteringMode)
+        public void SetURLFilteringMode( URLFilteringMode filteringMode )
         {
-            awe_webview_set_url_filtering_mode(instance, filteringMode);
+            VerifyLive();
+            awe_webview_set_url_filtering_mode( Instance, filteringMode );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_add_url_filter(IntPtr webview,
-                                                IntPtr filter);
+        #region AddURLFilter
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_add_url_filter( IntPtr webview, IntPtr filter );
 
-        public void AddURLFilter(string filter)
+        public void AddURLFilter( string filter )
         {
-            StringHelper filterStr = new StringHelper(filter);
+            VerifyLive();
 
-            awe_webview_add_url_filter(instance, filterStr.value());
+            StringHelper filterStr = new StringHelper( filter );
+            awe_webview_add_url_filter( Instance, filterStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_clear_all_url_filters(IntPtr webview);
+        #region ClearAllURLFilters
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_clear_all_url_filters( IntPtr webview );
 
         public void ClearAllURLFilters()
         {
-            awe_webview_clear_all_url_filters(instance);
+            VerifyLive();
+            awe_webview_clear_all_url_filters( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_header_definition(IntPtr webview,
-                                                 IntPtr name,
-                                                 uint num_fields,
-                                                 IntPtr[] field_names,
-                                                 IntPtr[] field_values);
+        #region SetHeaderDefinition
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_header_definition( IntPtr webview,
+            IntPtr name,
+            uint num_fields,
+            IntPtr[] field_names,
+            IntPtr[] field_values );
 
-        public void SetHeaderDefinition(string name,
-                                        NameValueCollection fields)
+        public void SetHeaderDefinition( string name, NameValueCollection fields )
         {
-            StringHelper nameStr = new StringHelper(name);
+            VerifyLive();
+
+            StringHelper nameStr = new StringHelper( name );
 
             int count = fields.Count;
-            IntPtr[] keys = new IntPtr[count];
-            IntPtr[] values = new IntPtr[count];
+            IntPtr[] keys = new IntPtr[ count ];
+            IntPtr[] values = new IntPtr[ count ];
 
-            for (int i = 0; i < count; i++ )
+            for ( int i = 0; i < count; i++ )
             {
                 byte[] utf16string;
 
-                utf16string = Encoding.Unicode.GetBytes(fields.GetKey(i));
-                keys[i] = StringHelper.awe_string_create_from_utf16(utf16string, (uint)fields.GetKey(i).Length);
+                utf16string = Encoding.Unicode.GetBytes( fields.GetKey( i ) );
+                keys[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.GetKey( i ).Length );
 
-                utf16string = Encoding.Unicode.GetBytes(fields.Get(i));
-                values[i] = StringHelper.awe_string_create_from_utf16(utf16string, (uint)fields.Get(i).Length);
+                utf16string = Encoding.Unicode.GetBytes( fields.Get( i ) );
+                values[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.Get( i ).Length );
             }
 
-            awe_webview_set_header_definition(instance, nameStr.value(), (uint)count, keys, values);
+            awe_webview_set_header_definition( Instance, nameStr.value(), (uint)count, keys, values );
 
-            for (uint i = 0; i < count; i++)
+            for ( uint i = 0; i < count; i++ )
             {
-                StringHelper.awe_string_destroy(keys[i]);
-                StringHelper.awe_string_destroy(values[i]);
+                StringHelper.awe_string_destroy( keys[ i ] );
+                StringHelper.awe_string_destroy( values[ i ] );
             }
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_add_header_rewrite_rule(IntPtr webview,
-                                                         IntPtr rule,
-                                                         IntPtr name);
+        #region AddHeaderRewriteRule
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_add_header_rewrite_rule( IntPtr webview, IntPtr rule, IntPtr name );
 
-        public void AddHeaderRewriteRule(string rule, string name)
+        public void AddHeaderRewriteRule( string rule, string name )
         {
-            StringHelper ruleStr = new StringHelper(rule);
-            StringHelper nameStr = new StringHelper(name);
+            VerifyLive();
 
-            awe_webview_add_header_rewrite_rule(instance, ruleStr.value(), nameStr.value());
+            StringHelper ruleStr = new StringHelper( rule );
+            StringHelper nameStr = new StringHelper( name );
+
+            awe_webview_add_header_rewrite_rule( Instance, ruleStr.value(), nameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_remove_header_rewrite_rule(IntPtr webview,
-                                                                          IntPtr rule);
-        public void RemoveHeaderRewriteRule(string rule)
+        #region RemoveHeaderRewriteRule
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_remove_header_rewrite_rule( IntPtr webview, IntPtr rule );
+
+        public void RemoveHeaderRewriteRule( string rule )
         {
-            StringHelper ruleStr = new StringHelper(rule);
+            VerifyLive();
 
-            awe_webview_remove_header_rewrite_rule(instance, ruleStr.value());
+            StringHelper ruleStr = new StringHelper( rule );
+            awe_webview_remove_header_rewrite_rule( Instance, ruleStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_remove_header_rewrite_rules_by_definition_name(IntPtr webview,
-                                                                                              IntPtr name);
+        #region RemoveHeaderRewriteRulesByDefinition
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_remove_header_rewrite_rules_by_definition_name( IntPtr webview, IntPtr name );
 
-        public void RemoveHeaderRewriteRulesByDefinition(string name)
+        public void RemoveHeaderRewriteRulesByDefinition( string name )
         {
-            StringHelper nameStr = new StringHelper(name);
+            VerifyLive();
 
-            awe_webview_remove_header_rewrite_rules_by_definition_name(instance, nameStr.value());
+            StringHelper nameStr = new StringHelper( name );
+            awe_webview_remove_header_rewrite_rules_by_definition_name( Instance, nameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_choose_file(IntPtr webview,
-                                                           IntPtr file_path);
+        #region ChooseFile
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_choose_file( IntPtr webview, IntPtr file_path );
 
-        public void ChooseFile(string filePath)
+        public void ChooseFile( string filePath )
         {
-            StringHelper filePathStr = new StringHelper(filePath);
+            VerifyLive();
 
-            awe_webview_choose_file(instance, filePathStr.value());
+            StringHelper filePathStr = new StringHelper( filePath );
+            awe_webview_choose_file( Instance, filePathStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_print(IntPtr webview);
+        #region Print
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_print( IntPtr webview );
 
         /// <summary>
         /// Print the current page. To suppress the printer selection dialog
@@ -1293,91 +1276,115 @@ namespace AwesomiumSharp
         /// </summary>
         public void Print()
         {
-            awe_webview_print(instance);
+            VerifyLive();
+            awe_webview_print( Instance );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_request_scroll_data(IntPtr webview,
-                                                                   IntPtr frame_name);
+        #region RequestScrollData
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_request_scroll_data( IntPtr webview, IntPtr frame_name );
 
-        public void RequestScrollData(string frameName = "")
+        public void RequestScrollData( string frameName = "" )
         {
-            StringHelper frameNameStr = new StringHelper(frameName);
+            VerifyLive();
 
-            awe_webview_request_scroll_data(instance, frameNameStr.value());
+            StringHelper frameNameStr = new StringHelper( frameName );
+            awe_webview_request_scroll_data( Instance, frameNameStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_find(IntPtr webview,
-                                                    int request_id,
-                                                    IntPtr search_string,
-                                                    bool forward, 
-                                                    bool case_sensitive, 
-                                                    bool find_next);
+        #region Find
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_find( IntPtr webview,
+            int request_id,
+            IntPtr search_string,
+            bool forward,
+            bool case_sensitive,
+            bool find_next );
 
+        private FindData findRequest;
 
         /// <summary>
         /// Start finding a certain string on the current web-page. All matches
-        /// of the string will be highlighted on the page and you can jump
-        /// to different instances of the string by using the 'findNext' 
-        /// parameter. To get actual stats about a certain query, please
-        /// see WebView.OnGetFindResults
+        /// of the string will be highlighted on the page and you can jump to different 
+        /// instances of the string by using the <see cref="FindNext"/> method.
+        /// To get actual stats about a certain query, please see <see cref="FindResultsReceived"/>.
         /// </summary>
-        /// <param name="requestID">A unique numeric ID for each search. You will
-        ///                     need to generate one yourself for each unique
-		///                     search-- please note that you should use the
-		///                     same requestID if you wish to iterate through
-		///                     all the search results using the 'findNext'
-        ///                     parameter.</param>
-        /// <param name="searchStr">The string to search for</param>
-        /// <param name="forward">Whether or not we should search forward, down the page</param>
+        /// <param name="searchStr">The string to search for.</param>
+        /// <param name="forward">Whether or not we should search forward, down the page.</param>
         /// <param name="caseSensitive">Whether or not this search is case-sensitive.</param>
-        /// <param name="findNext">Whether or not we should jump to the next
-		///                     instance of a search string (you should use
-		///                     the same requestID as a previously-successful
-        ///                     search).</param>
-        public void Find(int requestID, string searchStr, bool forward,
-            bool caseSensitive, bool findNext)
+        public void Find( string searchStr, bool forward = true, bool caseSensitive = false )
         {
-            StringHelper searchCStr = new StringHelper(searchStr);
+            VerifyLive();
 
-            awe_webview_find(instance, requestID, searchCStr.value(), forward, caseSensitive, findNext);
+            if ( findRequest != null )
+            {
+                StopFind( true );
+            }
+
+            findRequest = new FindData( findRequestRandomizer.Next(), searchStr, caseSensitive );
+            StringHelper searchCStr = new StringHelper( searchStr );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, caseSensitive, false );
         }
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_stop_find(IntPtr webview,
-                                                     bool clear_selection);
+        /// <summary>
+        /// Jump to the next match of a previously successful search.
+        /// </summary>
+        /// <param name="forward">
+        /// Whether or not we should search forward, down the page.
+        /// </param>
+        public void FindNext( bool forward = true )
+        {
+            VerifyLive();
+
+            if ( findRequest == null )
+                return;
+
+            StringHelper searchCStr = new StringHelper( findRequest.SearchText );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, findRequest.CaseSensitive, true );
+        }
+        #endregion
+
+        #region StopFind
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_stop_find( IntPtr webview, bool clear_selection );
         /// <summary>
         /// Stop finding. This will un-highlight all matches of a previous call to WebView.Find
         /// </summary>
         /// <param name="clearSelection">Whether or not we should also deselect the 
         /// currently-selected string instance</param>
-        public void StopFind(bool clearSelection)
+        public void StopFind( bool clearSelection )
         {
-            awe_webview_stop_find(instance, clearSelection);
+            VerifyLive();
+            awe_webview_stop_find( Instance, clearSelection );
+            findRequest = null;
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_translate_page(IntPtr webview,
-                                                              IntPtr source_language,
-                                                              IntPtr target_language);
+        #region TranslatePage
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_translate_page( IntPtr webview, IntPtr source_language, IntPtr target_language );
         /// <summary>
         /// Attempt automatic translation of the current page via Google
         /// Translate. All language codes are ISO 639-2.
         /// </summary>
         /// <param name="sourceLanguage">The language to translate from (for ex. "en" for English)</param>
         /// <param name="targetLanguage">The language to translate to (for ex. "fr" for French)</param>
-        public void TranslatePage(string sourceLanguage, string targetLanguage)
+        public void TranslatePage( string sourceLanguage, string targetLanguage )
         {
-            StringHelper sourceLanguageStr = new StringHelper(sourceLanguage);
-            StringHelper targetLanguageStr = new StringHelper(targetLanguage);
+            VerifyLive();
 
-            awe_webview_translate_page(instance, sourceLanguageStr.value(), targetLanguageStr.value());
+            StringHelper sourceLanguageStr = new StringHelper( sourceLanguage );
+            StringHelper targetLanguageStr = new StringHelper( targetLanguage );
+
+            awe_webview_translate_page( Instance, sourceLanguageStr.value(), targetLanguageStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_activate_ime(IntPtr webview,
-                                                            bool activate);
+        #region ActivateIME
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_activate_ime( IntPtr webview, bool activate );
 
         /// <summary>
         /// Call this method to the let the WebView know you will be passing
@@ -1386,17 +1393,20 @@ namespace AwesomiumSharp
         /// Please see WebView.OnUpdateIME
         /// </summary>
         /// <param name="activate"></param>
-        public void ActivateIME(bool activate)
+        public void ActivateIME( bool activate )
         {
-            awe_webview_activate_ime(instance, activate);
+            VerifyLive();
+            awe_webview_activate_ime( Instance, activate );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_ime_composition(IntPtr webview,
-                                                                IntPtr input_string,
-                                                                int cursor_pos,
-                                                                int target_start,
-                                                                int target_end);
+        #region SetIMEComposition
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_set_ime_composition( IntPtr webview,
+            IntPtr input_string,
+            int cursor_pos,
+            int target_start,
+            int target_end );
 
         /// <summary>
         /// Create or Update the current IME text composition.
@@ -1405,661 +1415,743 @@ namespace AwesomiumSharp
         /// <param name="cursorPos">The current cursor position in your IME composition.</param>
         /// <param name="targetStart">The position of the beginning of the selection.</param>
         /// <param name="targetEnd">The position of the end of the selection.</param>
-        public void SetIMEComposition(string inputStr, int cursorPos, int targetStart, int targetEnd)
+        public void SetIMEComposition( string inputStr, int cursorPos, int targetStart, int targetEnd )
         {
-            StringHelper inputCStr = new StringHelper(inputStr);
+            VerifyLive();
 
-            awe_webview_set_ime_composition(instance, inputCStr.value(), cursorPos, targetStart, targetEnd);
+            StringHelper inputCStr = new StringHelper( inputStr );
+            awe_webview_set_ime_composition( Instance, inputCStr.value(), cursorPos, targetStart, targetEnd );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_confirm_ime_composition(IntPtr webview,
-                                                                 IntPtr input_string);
+        #region ConfirmIMEComposition
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static void awe_webview_confirm_ime_composition( IntPtr webview, IntPtr input_string );
 
-        public void ConfirmIMEComposition(string inputStr)
+        public void ConfirmIMEComposition( string inputStr )
         {
-            StringHelper inputCStr = new StringHelper(inputStr);
+            VerifyLive();
 
-            awe_webview_confirm_ime_composition(instance, inputCStr.value());
+            StringHelper inputCStr = new StringHelper( inputStr );
+            awe_webview_confirm_ime_composition( Instance, inputCStr.value() );
         }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_cancel_ime_composition(IntPtr webview);
+        #region CancelIMEComposition
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_cancel_ime_composition( IntPtr webview );
 
         public void CancelIMEComposition()
         {
-            awe_webview_cancel_ime_composition(instance);
+            VerifyLive();
+            awe_webview_cancel_ime_composition( Instance );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackBeginNavigationCallback(IntPtr caller, IntPtr url, IntPtr frame_name);
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_begin_navigation(IntPtr webview, CallbackBeginNavigationCallback callback);
+        #endregion
 
-        private void internalBeginNavigationCallback(IntPtr caller, IntPtr url, IntPtr frame_name)
+        #region Properties
+
+        #region IsLive
+        /// <summary>
+        /// Gets if the control is live and the view is instantiated.
+        /// </summary>
+        protected bool IsLive
         {
-            BeginNavigationEventArgs e = new BeginNavigationEventArgs(this, StringHelper.ConvertAweString(url),
-                StringHelper.ConvertAweString(frame_name));
-
-            if (OnBeginNavigation != null)
-                OnBeginNavigation(this, e);
+            get
+            {
+                return ( Instance != IntPtr.Zero );
+            }
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackBeginLoadingCallback(IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type);
+        #region Instance
+        internal IntPtr Instance { get; set; }
+        #endregion
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_begin_loading(IntPtr webview, CallbackBeginLoadingCallback callback);
+        #region IsDirty
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern bool awe_webview_is_dirty( IntPtr webview );
+        private bool isDirty;
 
-        private void internalBeginLoadingCallback(IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type)
+        /// <summary>
+        /// Gets whether or not this WebView needs to be rendered again.
+        /// </summary>
+        /// <remarks>
+        /// Internal changes to this property fire a <see cref="INotifyPropertyChanged.PropertyChanged"/>
+        /// only if <see cref="WebCore.AutoUpdate"/> is set to true.
+        /// </remarks>
+        public bool IsDirty
         {
-            BeginLoadingEventArgs e = new BeginLoadingEventArgs(this, StringHelper.ConvertAweString(url), StringHelper.ConvertAweString(frame_name), status_code, StringHelper.ConvertAweString(mime_type));
+            get
+            {
+                if ( !WebCore.AutoUpdate )
+                {
+                    isDirty = false;
+                    VerifyLive();
+                    return awe_webview_is_dirty( Instance );
+                }
 
-            if (OnBeginLoading != null)
-                OnBeginLoading(this, e);
+                return isDirty;
+            }
+            internal set
+            {
+                // Insist on firing while True.
+                if ( !isDirty && ( isDirty == value ) )
+                    return;
+
+                isDirty = value;
+                RaisePropertyChanged( "IsDirty" );
+                this.OnIsDirtyChanged( this, EventArgs.Empty );
+            }
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackFinishLoadingCallback(IntPtr caller);
+        #region IsResizing
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern bool awe_webview_is_resizing( IntPtr webview );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        /// <summary>
+        /// Checks whether or not there is a resize operation pending.
+        /// </summary>
+        /// <returns>Returns true if we are waiting for the WebView process to
+        /// return acknowledgment of a pending resize operation.</returns>
+        public bool IsResizing
+        {
+            get
+            {
+                VerifyLive();
+                return awe_webview_is_resizing( Instance );
+            }
+        }
+        #endregion
+
+        #region IsLoadingPage
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern bool awe_webview_is_loading_page( IntPtr webview );
+
+        public bool IsLoadingPage
+        {
+            get
+            {
+                VerifyLive();
+                return awe_webview_is_loading_page( Instance );
+            }
+        }
+        #endregion
+
+        #region Title
+        private String title;
+        public String Title
+        {
+            get
+            {
+                return title;
+            }
+            protected set
+            {
+                if ( title == value )
+                    return;
+
+                title = value;
+                RaisePropertyChanged( "Title" );
+            }
+        }
+        #endregion
+
+        #region Tooltip
+        private String tooltip;
+
+        public String Tooltip
+        {
+            get
+            {
+                return tooltip;
+            }
+            protected set
+            {
+                if ( tooltip == value )
+                    return;
+
+                tooltip = value;
+                RaisePropertyChanged( "Tooltip" );
+            }
+        }
+        #endregion
+
+        #region Cursor
+        private CursorType cursor;
+
+        public CursorType Cursor
+        {
+            get
+            {
+                return cursor;
+            }
+            protected set
+            {
+                if ( cursor == value )
+                    return;
+
+                cursor = value;
+                RaisePropertyChanged( "Cursor" );
+            }
+        }
+        #endregion
+
+        #region HasKeyboardFocus
+        private bool hasKeyboardFocus;
+
+        public bool HasKeyboardFocus
+        {
+            get
+            {
+                return hasKeyboardFocus;
+            }
+            protected set
+            {
+                if ( hasKeyboardFocus == value )
+                    return;
+
+                hasKeyboardFocus = value;
+                RaisePropertyChanged( "HasKeyboardFocus" );
+            }
+        }
+        #endregion
+
+        #region TargetURL
+        private String targetURL;
+
+        public String TargetURL
+        {
+            get
+            {
+                return targetURL;
+            }
+            protected set
+            {
+                if ( targetURL == value )
+                    return;
+
+                targetURL = value;
+                RaisePropertyChanged( "TargetURL" );
+            }
+        }
+        #endregion
+
+        #region IsCrashed
+        private bool isCrashed;
+
+        public bool IsCrashed
+        {
+            get
+            {
+                return isCrashed;
+            }
+            protected set
+            {
+                if ( isCrashed == value )
+                    return;
+
+                isCrashed = value;
+                RaisePropertyChanged( "IsCrashed" );
+            }
+        }
+        #endregion
+
+        #region PageContents
+        private String pageContents;
+
+        public String PageContents
+        {
+            get
+            {
+                return pageContents;
+            }
+            protected set
+            {
+                if ( pageContents == value )
+                    return;
+
+                pageContents = value;
+                RaisePropertyChanged( "PageContents" );
+            }
+        }
+        #endregion
+
+        #region IsDomReady
+        private bool isDomReady;
+
+        public bool IsDomReady
+        {
+            get
+            {
+                return isDomReady;
+            }
+            protected set
+            {
+                if ( isDomReady == value )
+                    return;
+
+                isDomReady = value;
+                RaisePropertyChanged( "IsDomReady" );
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region Internal Event Handlers
+
+        #region BeginNavigation
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackBeginNavigationCallback( IntPtr caller, IntPtr url, IntPtr frame_name );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_begin_navigation( IntPtr webview, CallbackBeginNavigationCallback callback );
+
+        private void internalBeginNavigationCallback( IntPtr caller, IntPtr url, IntPtr frame_name )
+        {
+            BeginNavigationEventArgs e = new BeginNavigationEventArgs( StringHelper.ConvertAweString( url ),
+                StringHelper.ConvertAweString( frame_name ) );
+
+            this.IsDomReady = false;
+            RaisePropertyChanged( "IsLoading" );
+            this.OnBeginNavigation( this, e );
+        }
+        #endregion
+
+        #region BeginLoading
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackBeginLoadingCallback( IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_begin_loading( IntPtr webview, CallbackBeginLoadingCallback callback );
+
+        private void internalBeginLoadingCallback( IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type )
+        {
+            BeginLoadingEventArgs e = new BeginLoadingEventArgs( StringHelper.ConvertAweString( url ),
+                StringHelper.ConvertAweString( frame_name ),
+                status_code,
+                StringHelper.ConvertAweString( mime_type ) );
+
+            RaisePropertyChanged( "IsLoading" );
+            this.OnBeginLoading( this, e );
+        }
+        #endregion
+
+        #region FinishLoading
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackFinishLoadingCallback( IntPtr caller );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_set_callback_finish_loading(
                             IntPtr webview,
-                            CallbackFinishLoadingCallback callback);
+                            CallbackFinishLoadingCallback callback );
 
-        private void internalFinishLoadingCallback(IntPtr caller)
+        private void internalFinishLoadingCallback( IntPtr caller )
         {
-            FinishLoadingEventArgs e = new FinishLoadingEventArgs(this);
-            if (OnFinishLoading != null)
-                OnFinishLoading(this, e);
+            RaisePropertyChanged( "IsLoading" );
+            this.OnLoadCompleted( this, EventArgs.Empty );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackJsCallback(IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments);
+        #region JsCallback
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackJsCallback( IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_js_callback(IntPtr webview, CallbackJsCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_js_callback( IntPtr webview, CallbackJsCallback callback );
 
 
-        private void internalJsCallback(IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments)
+        private void internalJsCallback( IntPtr caller, IntPtr object_name, IntPtr callback_name, IntPtr arguments )
         {
-            JSValue[] args = JSArrayHelper.getArray(arguments);
+            JSValue[] args = JSArrayHelper.getArray( arguments );
 
-            JSCallbackEventArgs e = new JSCallbackEventArgs(this, StringHelper.ConvertAweString(object_name), StringHelper.ConvertAweString(callback_name), args);
+            JSCallbackEventArgs e = new JSCallbackEventArgs( StringHelper.ConvertAweString( object_name ), StringHelper.ConvertAweString( callback_name ), args );
 
-            if (OnJSCallback != null)
-                OnJSCallback(this, e);
+            if ( JSCallbackCalled != null )
+                JSCallbackCalled( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackReceiveTitleCallback(IntPtr caller, IntPtr title, IntPtr frame_name);
+        #region ReceiveTitle
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackReceiveTitleCallback( IntPtr caller, IntPtr title, IntPtr frame_name );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_receive_title(IntPtr webview, CallbackReceiveTitleCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_receive_title( IntPtr webview, CallbackReceiveTitleCallback callback );
 
-        private void internalReceiveTitleCallback(IntPtr caller, IntPtr title, IntPtr frame_name)
+        private void internalReceiveTitleCallback( IntPtr caller, IntPtr title, IntPtr frame_name )
         {
-            ReceiveTitleEventArgs e = new ReceiveTitleEventArgs(this, StringHelper.ConvertAweString(title), StringHelper.ConvertAweString(frame_name));
+            ReceiveTitleEventArgs e = new ReceiveTitleEventArgs(
+                StringHelper.ConvertAweString( title ),
+                StringHelper.ConvertAweString( frame_name ) );
 
-            if (OnReceiveTitle != null)
-                OnReceiveTitle(this, e);
+            this.Title = e.Title;
+            this.OnTitleReceived( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackChangeTooltipCallback(IntPtr caller, IntPtr tooltip);
+        #region ChangeTooltip
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackChangeTooltipCallback( IntPtr caller, IntPtr tooltip );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_change_tooltip(IntPtr webview, CallbackChangeTooltipCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_change_tooltip( IntPtr webview, CallbackChangeTooltipCallback callback );
 
-        private void internalChangeTooltipCallback(IntPtr caller, IntPtr tooltip)
+        private void internalChangeTooltipCallback( IntPtr caller, IntPtr tooltip )
         {
-            ChangeTooltipEventArgs e = new ChangeTooltipEventArgs(this, StringHelper.ConvertAweString(tooltip));
+            ChangeTooltipEventArgs e = new ChangeTooltipEventArgs( StringHelper.ConvertAweString( tooltip ) );
 
-            if (OnChangeTooltip != null)
-                OnChangeTooltip(this, e);
+            this.Tooltip = e.Tooltip;
+            this.OnTooltipChanged( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackChangeCursorCallback(IntPtr caller, int cursor);
+        #region ChangeCursor
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackChangeCursorCallback( IntPtr caller, int cursor );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_change_cursor(IntPtr webview, CallbackChangeCursorCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_change_cursor( IntPtr webview, CallbackChangeCursorCallback callback );
 
-        private void internalChangeCursorCallback(IntPtr caller, int cursor)
+        private void internalChangeCursorCallback( IntPtr caller, int cursor )
         {
-            ChangeCursorEventArgs e = new ChangeCursorEventArgs(this, (CursorType)cursor);
+            ChangeCursorEventArgs e = new ChangeCursorEventArgs( (CursorType)cursor );
 
-            if (OnChangeCursor != null)
-                OnChangeCursor(this, e);
+            this.Cursor = e.CursorType;
+            this.OnCursorChanged( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackChangeKeyboardFocusCallback(IntPtr caller, bool is_focused);
+        #region ChangeKeyboardFocus
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackChangeKeyboardFocusCallback( IntPtr caller, bool is_focused );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_change_keyboard_focus(IntPtr webview, CallbackChangeKeyboardFocusCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_change_keyboard_focus( IntPtr webview, CallbackChangeKeyboardFocusCallback callback );
 
-        private void internalChangeKeyboardFocusCallback(IntPtr caller, bool is_focused)
+        private void internalChangeKeyboardFocusCallback( IntPtr caller, bool is_focused )
         {
-            ChangeKeyboardFocusEventArgs e = new ChangeKeyboardFocusEventArgs(this, is_focused);
+            ChangeKeyboardFocusEventArgs e = new ChangeKeyboardFocusEventArgs( is_focused );
 
-            if (OnChangeKeyboardFocus != null)
-                OnChangeKeyboardFocus(this, e);
+            this.HasKeyboardFocus = e.IsFocused;
+            this.OnKeyboardFocusChanged( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackChangeTargetURLCallback(IntPtr caller, IntPtr url);
+        #region ChangeTargetURL
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackChangeTargetURLCallback( IntPtr caller, IntPtr url );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_change_target_url(IntPtr webview, CallbackChangeTargetURLCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_change_target_url( IntPtr webview, CallbackChangeTargetURLCallback callback );
 
-        private void internalChangeTargetURLCallback(IntPtr caller, IntPtr url)
+        private void internalChangeTargetURLCallback( IntPtr caller, IntPtr url )
         {
-            ChangeTargetUrlEventArgs e = new ChangeTargetUrlEventArgs(this, StringHelper.ConvertAweString(url));
+            UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( url ) );
 
-            if (OnChangeTargetUrl != null)
-                OnChangeTargetUrl(this, e);
+            this.TargetURL = e.Url;
+            this.OnTargetUrlChanged( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackOpenExternalLinkCallback(IntPtr caller, IntPtr url, IntPtr source);
+        #region OpenExternalLink
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackOpenExternalLinkCallback( IntPtr caller, IntPtr url, IntPtr source );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_open_external_link(IntPtr webview, CallbackOpenExternalLinkCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_open_external_link( IntPtr webview, CallbackOpenExternalLinkCallback callback );
 
-        private void internalOpenExternalLinkCallback(IntPtr caller, IntPtr url, IntPtr source)
+        private void internalOpenExternalLinkCallback( IntPtr caller, IntPtr url, IntPtr source )
         {
-            OpenExternalLinkEventArgs e = new OpenExternalLinkEventArgs(this, StringHelper.ConvertAweString(url), StringHelper.ConvertAweString(source));
+            OpenExternalLinkEventArgs e = new OpenExternalLinkEventArgs(
+                StringHelper.ConvertAweString( url ),
+                StringHelper.ConvertAweString( source ) );
 
-            if (OnOpenExternalLink != null)
-                OnOpenExternalLink(this, e);
+            this.OnOpenExternalLink( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackRequestDownloadCallback(IntPtr caller, IntPtr download);
+        #region RequestDownload
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackRequestDownloadCallback( IntPtr caller, IntPtr download );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_request_download(IntPtr webview, CallbackRequestDownloadCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_request_download( IntPtr webview, CallbackRequestDownloadCallback callback );
 
-        private void internalRequestDownloadCallback(IntPtr caller, IntPtr download)
+        private void internalRequestDownloadCallback( IntPtr caller, IntPtr download )
         {
-            RequestDownloadEventArgs e = new RequestDownloadEventArgs(this, StringHelper.ConvertAweString(download));
+            UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
 
-            if (OnRequestDownload != null)
-                OnRequestDownload(this, e);
+            this.OnDownload( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackWebviewCrashedCallback(IntPtr caller);
+        #region WebviewCrashed
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackWebviewCrashedCallback( IntPtr caller );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_web_view_crashed(IntPtr webview, CallbackWebviewCrashedCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_web_view_crashed( IntPtr webview, CallbackWebviewCrashedCallback callback );
 
-        private void internalWebviewCrashedCallback(IntPtr caller)
+        private void internalWebviewCrashedCallback( IntPtr caller )
         {
-            WebViewCrashedEventArgs e = new WebViewCrashedEventArgs(this);
-
-            if (OnWebViewCrashed != null)
-                OnWebViewCrashed(this, e);
+            this.IsCrashed = true;
+            this.OnCrashed( this, EventArgs.Empty );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackPluginCrashedCallback(IntPtr caller, IntPtr plugin_name);
+        #region PluginCrashed
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackPluginCrashedCallback( IntPtr caller, IntPtr plugin_name );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_plugin_crashed(IntPtr webview, CallbackPluginCrashedCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_plugin_crashed( IntPtr webview, CallbackPluginCrashedCallback callback );
 
-        private void internalPluginCrashedCallback(IntPtr caller, IntPtr plugin_name)
+        private void internalPluginCrashedCallback( IntPtr caller, IntPtr plugin_name )
         {
-            PluginCrashedEventArgs e = new PluginCrashedEventArgs(this, StringHelper.ConvertAweString(plugin_name));
-
-            if (OnPluginCrashed != null)
-                OnPluginCrashed(this, e);
+            PluginCrashedEventArgs e = new PluginCrashedEventArgs( StringHelper.ConvertAweString( plugin_name ) );
+            this.OnPluginCrashed( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackRequestMoveCallback(IntPtr caller, int x, int y);
+        #region RequestMove
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackRequestMoveCallback( IntPtr caller, int x, int y );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_request_move(IntPtr webview, CallbackRequestMoveCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_request_move( IntPtr webview, CallbackRequestMoveCallback callback );
 
-        private void internalRequestMoveCallback(IntPtr caller, int x, int y)
+        private void internalRequestMoveCallback( IntPtr caller, int x, int y )
         {
-            RequestMoveEventArgs e = new RequestMoveEventArgs(this, x, y);
-
-            if (OnRequestMove != null)
-                OnRequestMove(this, e);
+            MoveEventArgs e = new MoveEventArgs( x, y );
+            this.OnMove( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackGetPageContentsCallback(IntPtr caller, IntPtr url, IntPtr contents);
+        #region GetPageContents
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackGetPageContentsCallback( IntPtr caller, IntPtr url, IntPtr contents );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_get_page_contents(IntPtr webview, CallbackGetPageContentsCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_get_page_contents( IntPtr webview, CallbackGetPageContentsCallback callback );
 
-        private void internalGetPageContentsCallback(IntPtr caller, IntPtr url, IntPtr contents)
+        private void internalGetPageContentsCallback( IntPtr caller, IntPtr url, IntPtr contents )
         {
-            GetPageContentsEventArgs e = new GetPageContentsEventArgs(this, StringHelper.ConvertAweString(url), StringHelper.ConvertAweString(contents));
+            GetPageContentsEventArgs e = new GetPageContentsEventArgs(
+                StringHelper.ConvertAweString( url ),
+                StringHelper.ConvertAweString( contents ) );
 
-            if (OnGetPageContents != null)
-                OnGetPageContents(this, e);
+            this.PageContents = e.Contents;
+            this.OnPageContentsReceived( this, e );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackDomReadyCallback(IntPtr caller);
+        #region DomReady
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackDomReadyCallback( IntPtr caller );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_dom_ready(IntPtr webview, CallbackDomReadyCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_dom_ready( IntPtr webview, CallbackDomReadyCallback callback );
 
-        private void internalDomReadyCallback(IntPtr caller)
+        private void internalDomReadyCallback( IntPtr caller )
         {
-            DomReadyEventArgs e = new DomReadyEventArgs(this);
-
-            if (OnDomReady != null)
-                OnDomReady(this, e);
+            this.IsDomReady = true;
+            this.OnDomReady( this, EventArgs.Empty );
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackRequestFileChooserCallback(IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_path);
+        #region RequestFileChooser
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackRequestFileChooserCallback( IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_path );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_request_file_chooser(IntPtr webview, CallbackRequestFileChooserCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_request_file_chooser( IntPtr webview, CallbackRequestFileChooserCallback callback );
 
-        private void internalRequestFileChooser(IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_paths)
+        private void internalRequestFileChooser( IntPtr caller, bool select_multiple_files, IntPtr title, IntPtr default_paths )
         {
-            RequestFileChooserEventArgs e = new RequestFileChooserEventArgs(this, select_multiple_files, 
-                StringHelper.ConvertAweString(title), StringHelper.ConvertAweString(default_paths));
+            SelectLocalFilesEventArgs e = new SelectLocalFilesEventArgs(
+                select_multiple_files,
+                StringHelper.ConvertAweString( title ),
+                StringHelper.ConvertAweString( default_paths ) );
 
-            if (OnRequestFileChooser != null)
-                OnRequestFileChooser(this, e);
-        }
+            this.OnSelectLocalFiles( this, e );
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackGetScrollDataCallback(IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_get_scroll_data(IntPtr webview, CallbackGetScrollDataCallback callback);
-
-        private void internalGetScrollData(IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY)
-        {
-            GetScrollDataEventArgs e = new GetScrollDataEventArgs(this, contentWidth, contentHeight, preferredWidth, scrollX, scrollY);
-
-            if (OnGetScrollData != null)
-                OnGetScrollData(this, e);
-        }
-
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackJSConsoleMessageCallback(IntPtr caller, IntPtr message, int lineNumber, IntPtr source);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_js_console_message(IntPtr webview, CallbackJSConsoleMessageCallback callback);
-
-        private void internalJSConsoleMessage(IntPtr caller, IntPtr message, int lineNumber, IntPtr source)
-        {
-            JSConsoleMessageEventArgs e = new JSConsoleMessageEventArgs(this, StringHelper.ConvertAweString(message), lineNumber, 
-                StringHelper.ConvertAweString(source));
-
-            if (OnJSConsoleMessage != null)
-                OnJSConsoleMessage(this, e);
-        }
-
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackGetFindResultsCallback(IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_get_find_results(IntPtr webview, CallbackGetFindResultsCallback callback);
-
-        private void internalGetFindResults(IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate)
-        {
-            GetFindResultsEventArgs e = new GetFindResultsEventArgs(this, request_id, num_matches, selection, cur_match, finalUpdate);
-
-            if (OnGetFindResults != null)
-                OnGetFindResults(this, e);
-        }
-
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackUpdateIMECallback(IntPtr caller, int state, AweRect caret_rect);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_update_ime(IntPtr webview, CallbackUpdateIMECallback callback);
-
-        private void internalUpdateIME(IntPtr caller, int state, AweRect caret_rect)
-        {
-            UpdateIMEEventArgs e = new UpdateIMEEventArgs(this, (IMEState)state, caret_rect);
-
-            if (OnUpdateIME != null)
-                OnUpdateIME(this, e);
-        }
-
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate IntPtr CallbackResourceRequestCallback(IntPtr caller, IntPtr request);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_resource_request(IntPtr webview, CallbackResourceRequestCallback callback);
-
-        private IntPtr internalResourceRequestCallback(IntPtr caller, IntPtr request)
-        {
-            ResourceRequest requestWrap = new ResourceRequest(request);
-
-            ResourceRequestEventArgs e = new ResourceRequestEventArgs(this, requestWrap);
-
-            if (OnResourceRequest != null)
+            if ( ( e.SelectedFiles != null ) && ( e.SelectedFiles.Length > 0 ) )
             {
-                ResourceResponse response = OnResourceRequest(this, e);
+                foreach ( string f in e.SelectedFiles )
+                    this.ChooseFile( f );
+            }
+        }
+        #endregion
 
-                if (response != null)
+        #region GetScrollData
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackGetScrollDataCallback( IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_get_scroll_data( IntPtr webview, CallbackGetScrollDataCallback callback );
+
+        private void internalGetScrollData( IntPtr caller, int contentWidth, int contentHeight, int preferredWidth, int scrollX, int scrollY )
+        {
+            ScrollDataEventArgs e = new ScrollDataEventArgs( new ScrollData( contentWidth, contentHeight, preferredWidth, scrollX, scrollY ) );
+            this.OnScrollDataReceived( this, e );
+        }
+        #endregion
+
+        #region JSConsoleMessage
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackJSConsoleMessageCallback( IntPtr caller, IntPtr message, int lineNumber, IntPtr source );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_js_console_message( IntPtr webview, CallbackJSConsoleMessageCallback callback );
+
+        private void internalJSConsoleMessage( IntPtr caller, IntPtr message, int lineNumber, IntPtr source )
+        {
+            JSConsoleMessageEventArgs e = new JSConsoleMessageEventArgs(
+                StringHelper.ConvertAweString( message ),
+                lineNumber,
+                StringHelper.ConvertAweString( source ) );
+
+            this.OnJSConsoleMessageAdded( this, e );
+        }
+        #endregion
+
+        #region GetFindResults
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackGetFindResultsCallback( IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_get_find_results( IntPtr webview, CallbackGetFindResultsCallback callback );
+
+        private void internalGetFindResults( IntPtr caller, int request_id, int num_matches, AweRect selection, int cur_match, bool finalUpdate )
+        {
+            GetFindResultsEventArgs e = new GetFindResultsEventArgs( request_id,
+                num_matches,
+                selection,
+                cur_match,
+                finalUpdate );
+
+            this.OnFindResultsReceived( this, e );
+        }
+        #endregion
+
+        #region UpdateIME
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackUpdateIMECallback( IntPtr caller, int state, AweRect caret_rect );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_update_ime( IntPtr webview, CallbackUpdateIMECallback callback );
+
+        private void internalUpdateIME( IntPtr caller, int state, AweRect caret_rect )
+        {
+            UpdateImeEventArgs e = new UpdateImeEventArgs( (IMEState)state, caret_rect );
+            this.OnImeUpdated( this, e );
+        }
+        #endregion
+
+        #region ResourceRequest
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate IntPtr CallbackResourceRequestCallback( IntPtr caller, IntPtr request );
+
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_resource_request( IntPtr webview, CallbackResourceRequestCallback callback );
+
+        private IntPtr internalResourceRequestCallback( IntPtr caller, IntPtr request )
+        {
+            ResourceRequest requestWrap = new ResourceRequest( request );
+            ResourceRequestEventArgs e = new ResourceRequestEventArgs( requestWrap );
+
+            if ( ResourceRequest != null )
+            {
+                ResourceResponse response = this.OnResourceRequest( this, e );
+
+                if ( response != null )
                     return response.getInstance();
             }
 
             return IntPtr.Zero;
         }
+        #endregion
 
-        [UnmanagedFunctionPointerAttribute(CallingConvention.Cdecl)]
-        internal delegate void CallbackResourceResponseCallback(IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
-            long responseTimeMs, long expectedContentSize, IntPtr mimeType);
+        #region ResourceResponse
+        [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
+        internal delegate void CallbackResourceResponseCallback( IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
+            long responseTimeMs, long expectedContentSize, IntPtr mimeType );
 
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_webview_set_callback_resource_response(IntPtr webview, CallbackResourceResponseCallback callback);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_set_callback_resource_response( IntPtr webview, CallbackResourceResponseCallback callback );
 
-        private void internalResourceResponseCallback(IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
-            long responseTimeMs, long expectedContentSize, IntPtr mimeType)
+        private void internalResourceResponseCallback( IntPtr caller, IntPtr url, int statusCode, bool wasCached, long requestTimeMs,
+            long responseTimeMs, long expectedContentSize, IntPtr mimeType )
         {
-            ResourceResponseEventArgs e = new ResourceResponseEventArgs(this, StringHelper.ConvertAweString(url), statusCode, wasCached,
-                requestTimeMs, responseTimeMs, expectedContentSize, StringHelper.ConvertAweString(mimeType));
+            ResourceResponseEventArgs e = new ResourceResponseEventArgs(
+                StringHelper.ConvertAweString( url ),
+                statusCode, wasCached,
+                requestTimeMs,
+                responseTimeMs,
+                expectedContentSize,
+                StringHelper.ConvertAweString( mimeType ) );
 
-            if (OnResourceResponse != null)
-                OnResourceResponse(this, e);
+            this.OnResourceResponse( this, e );
+        }
+        #endregion
+
+
+        #region JSCallback
+        internal void handleJSCallback( object sender, JSCallbackEventArgs e )
+        {
+            string key = String.Format( "{0}.{1}", e.ObjectName, e.CallbackName );
+
+            if ( jsObjectCallbackMap.ContainsKey( key ) )
+                jsObjectCallbackMap[ key ]( sender, e );
+        }
+        #endregion
+
+        #endregion
+
+
+        #region IWebView Members
+        void IWebView.OnCoreAutoUpdateChanged( bool newValue )
+        {
+            // WebView does not care about this.
         }
 
-        internal void PrepareForShutdown()
+        void IWebView.PrepareForShutdown()
         {
-            if (instance != IntPtr.Zero)
-            {
-                resourceRequestCallback = null;
-                awe_webview_set_callback_resource_request(instance, null);
+            PrepareForShutdown();
+        }
 
-                resourceResponseCallback = null;
-                awe_webview_set_callback_resource_response(instance, null);
+        IntPtr IWebView.Instance
+        {
+            get
+            {
+                return this.Instance;
+            }
+            set
+            {
+                this.Instance = value;
             }
         }
+
+        bool IWebView.IsDirty
+        {
+            get
+            {
+                return this.IsDirty;
+            }
+            set
+            {
+                this.IsDirty = value;
+            }
+        }
+        #endregion
     }
-
-    public class ResourceRequest
-    {
-        private IntPtr instance;
-
-        internal ResourceRequest(IntPtr instance)
-        {
-            this.instance = instance;
-        }
-
-        internal IntPtr getInstance()
-        {
-            return instance;
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_cancel(IntPtr request);
-
-        public void cancel()
-        {
-            awe_resource_request_cancel(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_get_url(IntPtr request);
-
-        public string getURL()
-        {
-            return StringHelper.ConvertAweString(awe_resource_request_get_url(instance), true);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_get_method(IntPtr request);
-
-        /// <summary>
-        /// Get the method for the request (usually either "GET" or "POST")
-        /// </summary>
-        /// <returns></returns>
-        public string getMethod()
-        {
-            return StringHelper.ConvertAweString(awe_resource_request_get_method(instance), true);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_set_method(IntPtr request,
-												IntPtr method);
-
-        /// <summary>
-        /// Sets the method for the request (usually either "GET" or "POST")
-        /// </summary>
-        /// <returns></returns>
-        public void setMethod(string method)
-        {
-            StringHelper methodStr = new StringHelper(method);
-
-            awe_resource_request_set_method(instance, methodStr.value());
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_get_referrer(IntPtr request);
-
-        public string getReferrer()
-        {
-            return StringHelper.ConvertAweString(awe_resource_request_get_referrer(instance), true);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_set_referrer(IntPtr request,
-												  IntPtr referrer);
-
-        public void setReferrer(string referrer)
-        {
-            StringHelper referrerStr = new StringHelper(referrer);
-
-            awe_resource_request_set_referrer(instance, referrerStr.value());
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_get_extra_headers(IntPtr request);
-
-        public string getExtraHeaders()
-        {
-            return StringHelper.ConvertAweString(awe_resource_request_get_extra_headers(instance), true);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_set_extra_headers(IntPtr request,
-												IntPtr headers);
-
-        /// <summary>
-        /// Override the extra headers for the request. Each header is delimited by /r/n (CRLF)
-        /// Headers should NOT end in /r/n (CRLF).
-        /// </summary>
-        /// <param name="headers"></param>
-        public void setExtraHeaders(string headers)
-        {
-            StringHelper headersStr = new StringHelper(headers);
-
-            awe_resource_request_set_extra_headers(instance, headersStr.value());
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_append_extra_header(IntPtr request,
-														 IntPtr name,
-														 IntPtr value);
-
-        /// <summary>
-        /// Appends a new header to this request
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
-        public void appendExtraHeader(string name, string value)
-        {
-            StringHelper nameStr = new StringHelper(name);
-            StringHelper valueStr = new StringHelper(value);
-
-            awe_resource_request_append_extra_header(instance, nameStr.value(), valueStr.value());
-        }
-	
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern uint awe_resource_request_get_num_upload_elements(IntPtr request);
-
-        /// Get the number of upload elements (essentially, batches of POST data).	
-        public uint getNumUploadElements()
-        {
-            return awe_resource_request_get_num_upload_elements(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_request_get_upload_element(IntPtr request,
-																			 uint idx);
-
-        /// <summary>
-        /// Get a certain upload element (returned instance is owned by this class)	
-        /// </summary>
-        /// <param name="idx"></param>
-        /// <returns></returns>
-        public UploadElement getUploadElement(uint idx)
-        {
-            return new UploadElement(awe_resource_request_get_upload_element(instance, idx));
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_clear_upload_elements(IntPtr request);
-
-        public void clearUploadElements()
-        {
-            awe_resource_request_clear_upload_elements(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_append_upload_file_path(IntPtr request,
-															 IntPtr file_path);
-
-        /// <summary>
-        ///  Append a file for POST data (adds a new UploadElement)	
-        /// </summary>
-        /// <param name="filePath"></param>
-        public void appendUploadFilePath(string filePath)
-        {
-            StringHelper filePathStr = new StringHelper(filePath);
-
-            awe_resource_request_append_upload_file_path(instance, filePathStr.value());
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_resource_request_append_upload_bytes(IntPtr request,
-														 IntPtr bytes);
-
-        /// <summary>
-        /// Append a string of bytes for POST data (adds a new UploadElement)	
-        /// </summary>
-        /// <param name="bytes"></param>
-        public void appendUploadBytes(string bytes)
-        {
-            StringHelper bytesStr = new StringHelper(bytes);
-
-            awe_resource_request_append_upload_bytes(instance, bytesStr.value());
-        }
-    }
-
-    /// <summary>
-    /// This class represents a single batch of "upload data" to be sent with
-    /// a ResourceRequest. Also commonly known as "POST" data.
-    /// </summary>
-    public class UploadElement
-    {
-        private IntPtr instance;
-
-        internal UploadElement(IntPtr instance)
-        {
-            this.instance = instance;
-        }
-
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_upload_element_is_file_path(IntPtr ele);
-
-        public bool isFilePath()
-        {
-            return awe_upload_element_is_file_path(instance);
-        }
-
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool awe_upload_element_is_bytes(IntPtr ele);
-
-        public bool isBytes()
-        {
-            return awe_upload_element_is_bytes(instance);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_upload_element_get_bytes(IntPtr ele);
-
-        public string getBytes()
-        {
-            return StringHelper.ConvertAweString(awe_upload_element_get_bytes(instance), true);
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_upload_element_get_file_path(IntPtr ele);
-
-        public string getFilePath()
-        {
-            return StringHelper.ConvertAweString(awe_upload_element_get_file_path(instance), true);
-        }
-    }
-
-    /// <summary>
-    /// This class allows you to override the response for a certain ResourceRequest.
-    /// </summary>
-    public class ResourceResponse
-    {
-        private IntPtr instance;
-
-        /// <summary>
-        /// Create a ResourceResponse from a byte array
-        /// </summary>
-        /// <param name="data">The data to be initialized from (a copy is made)</param>
-        /// <param name="mimeType">The mime-type of the data (for ex. "text/html")</param>
-        public ResourceResponse(byte[] data, string mimeType)
-        {
-            StringHelper mimeTypeStr = new StringHelper(mimeType);
-
-            IntPtr dataPtr = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, dataPtr, data.Length);
-
-            instance = awe_resource_response_create((uint)data.Length, dataPtr, mimeTypeStr.value());
-
-            Marshal.FreeHGlobal(dataPtr);
-        }
-
-        /// <summary>
-        /// Create a ResourceResponse from a file on disk
-        /// </summary>
-        /// <param name="filePath"></param>
-        public ResourceResponse(string filePath)
-        {
-            StringHelper filePathStr = new StringHelper(filePath);
-
-            instance = awe_resource_response_create_from_file(filePathStr.value());
-        }
-
-        internal IntPtr getInstance()
-        {
-            return instance;
-        }
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_response_create(uint num_bytes,
-                                                                    IntPtr buffer,
-                                                                    IntPtr mime_type);
-
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_resource_response_create_from_file(IntPtr file_path);
-    }
-
 }

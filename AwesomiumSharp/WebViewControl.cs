@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
-using System.Collections;
 using AwesomiumSharp;
+using System.Windows;
+using System.Diagnostics;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Interop;
+using System.Windows.Controls;
+using System.Windows.Threading;
+using System.Windows.Media.Imaging;
 
 namespace AwesomiumSharp
 {
@@ -64,7 +63,7 @@ namespace AwesomiumSharp
 
         private void InitializeCore()
         {
-            WebCore.Config config = new WebCore.Config { enablePlugins = true, saveCacheAndCookies = true };
+            WebCoreConfig config = new WebCoreConfig() { EnablePlugins = true, SaveCacheAndCookies = true };
             WebCore.Initialize(config);
 
             if (Application.Current.MainWindow != null)
@@ -117,10 +116,10 @@ namespace AwesomiumSharp
             _webview = WebCore.CreateWebview(width, height);
             _webview.LoadURL(Source);
             _webview.Focus();
-            _webview.OnFinishLoading += OnFinishLoading;
-            _webview.OnOpenExternalLink += OpenExternalLink;
-            _webview.OnWebViewCrashed += OnWebviewCrashed;
-            _webview.OnChangeCursor += OnChangeCursor;
+            _webview.LoadCompleted += OnFinishLoading;
+            _webview.OpenExternalLink += OpenExternalLink;
+            _webview.Crashed += OnWebviewCrashed;
+            _webview.CursorChanged += OnChangeCursor;
         }
 
         private void Update(object sender, EventArgs e)
@@ -137,7 +136,7 @@ namespace AwesomiumSharp
             if (_webview == null)
                 return;
 
-            if (_webview.IsDirty() && _bitmap != null)
+            if (_webview.IsDirty && _bitmap != null)
             {
                 RenderBuffer buffer = _webview.Render();
                 if (buffer != null)
@@ -278,30 +277,30 @@ namespace AwesomiumSharp
             _webview.InjectKeyboardEventWin(msg, wParam, lParam);
         }
 
-        private void OnChangeCursor(object sender, WebView.ChangeCursorEventArgs e)
+        private void OnChangeCursor(object sender, ChangeCursorEventArgs e)
         {
-            if (e.cursorType == AwesomiumSharp.CursorType.Hand)
+            if (e.CursorType == AwesomiumSharp.CursorType.Hand)
                 Cursor = Cursors.Hand;
-            else if (e.cursorType == AwesomiumSharp.CursorType.Ibeam)
+            else if (e.CursorType == AwesomiumSharp.CursorType.Ibeam)
                 Cursor = Cursors.IBeam;
             else
                 Cursor = Cursors.Arrow;
         }
 
-        private void OnFinishLoading(object sender, WebView.FinishLoadingEventArgs e)
+        private void OnFinishLoading(object sender, EventArgs e)
         {
             IsLoading = false;
         }
 
-        private void OpenExternalLink(object sender, WebView.OpenExternalLinkEventArgs e)
+        private void OpenExternalLink(object sender, OpenExternalLinkEventArgs e)
         {
-            if (OnOpenExternalLink != null && e.url.Length > 0)
+            if (OnOpenExternalLink != null && e.Url.Length > 0)
             {
-                OnOpenExternalLink(this, new OpenLinkEventArgs(e.url));
+                OnOpenExternalLink(this, new OpenLinkEventArgs(e.Url));
             }
         }
 
-        private void OnWebviewCrashed(object sender, WebView.WebViewCrashedEventArgs e)
+        private void OnWebviewCrashed(object sender, EventArgs e)
         {
             IsLoading = false;
             Child = new TextBlock { Text = "Error: This WebView has crashed." };
