@@ -8,8 +8,6 @@
     xmlns:shell="clr-namespace:Microsoft.Windows.Shell;assembly=Microsoft.Windows.Shell"
     WindowStartupLocation="CenterScreen" 
     Icon="/VBWPFSample;component/Awesomium.ico" 
-    HorizontalContentAlignment="Stretch" 
-    VerticalContentAlignment="Stretch"
     TextOptions.TextFormattingMode="Display"
     RenderOptions.ClearTypeHint="Enabled"
     Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
@@ -153,19 +151,54 @@
             Margin="3,0"
             BorderThickness="0,1,0,0" 
             BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}">
-            <DockPanel LastChildFill="False">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <local:GlowTextBlock 
                     VerticalAlignment="Center"
                     Text="{Binding TargetURL, ElementName=Browser}" 
                     TextTrimming="CharacterEllipsis"/>
                 <ProgressBar 
-                    DockPanel.Dock="Right" 
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Height="20"
-                    Width="150" 
-                    IsIndeterminate="True"
+                    MinWidth="120"
+                    Margin="3,0"
+                    Opacity="0.8"
+                    IsIndeterminate="{Binding IsLoadingPage, ElementName=Browser}"
                     Visibility="{Binding IsLoadingPage, ElementName=Browser, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            </DockPanel>
+                <local:GlowTextBlock 
+                    Grid.Column="2" 
+                    VerticalAlignment="Center" 
+                    Margin="3,0" 
+                    Text="Zoom:"/>
+                <Slider 
+                    Grid.Column="3"
+                    DataContext="{Binding ElementName=Browser}"
+                    Minimum="10" 
+                    Maximum="400"
+                    Width="120"
+                    VerticalAlignment="Center"
+                    Value="{Binding Zoom}" 
+                    AutoToolTipPlacement="TopLeft"
+                    IsSnapToTickEnabled="True"
+                    IsMoveToPointEnabled="True" 
+                    SmallChange="1" 
+                    LargeChange="10" 
+                    TickFrequency="10" 
+                    Focusable="False">
+                    <Slider.ContextMenu>
+                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                            <MenuItem Command="{x:Static awe:WebControlCommands.ResetZoom}" CommandTarget="{Binding}" />
+                        </ContextMenu>
+                    </Slider.ContextMenu>
+                </Slider>
+            </Grid>
         </Border>
     </Grid>
 </Window>

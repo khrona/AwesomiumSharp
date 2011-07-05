@@ -722,7 +722,7 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
-        #region Arrange
+        #region Measure/Arrange
         /// <inheritdoc />
         protected override Size MeasureOverride( Size availableSize )
         {
@@ -740,7 +740,7 @@ namespace AwesomiumSharp.Windows.Controls
                     awe_webview_resize( Instance, width, height, true, 300 );
                     bitmap = new WriteableBitmap( width, height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.WebPaletteTransparent );
                 }
-                catch { /* */}
+                catch { /* */ }
                 finally
                 {
                     GC.Collect();
@@ -749,7 +749,7 @@ namespace AwesomiumSharp.Windows.Controls
                 Update();
             }
 
-            return availableSize;
+            return size;
         }
 
         /// <inheritdoc />
@@ -906,6 +906,7 @@ namespace AwesomiumSharp.Windows.Controls
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseForward, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseStop, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.Refresh, OnCommandExecuted, CanExecuteCommand ) );
+            // NavigationCommands.Search appears to be using the F3 KeyGesture so it's good to represent our FindNext.
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.Search, OnCommandExecuted, CanExecuteCommand ) );
 
             this.CommandBindings.Add( new CommandBinding( WebControlCommands.ActivateIME, OnCommandExecuted, CanExecuteCommand ) );
@@ -1821,7 +1822,8 @@ namespace AwesomiumSharp.Windows.Controls
             get
             {
                 return ( Instance != IntPtr.Zero ) &&
-                    !DesignerProperties.GetIsInDesignMode( this );
+                    !DesignerProperties.GetIsInDesignMode( this ) &&
+                    !IsCrashed;
             }
         }
         #endregion
@@ -2059,7 +2061,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         private static bool ValidateZoom( object value )
         {
-            return ( (int)value > 10 ) && ( (int)value < 500 );
+            return ( (int)value >= 10 ) && ( (int)value <= 500 );
         }
 
         private static void ZoomChanged( DependencyObject d, DependencyPropertyChangedEventArgs e )

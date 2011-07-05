@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*******************************************************************************/
+/*************************** EDITING NOTES *************************************/
+/*******************************************************************************
+ *    Project : AwesomiumSharp
+ *    File    : WebViewControl.cs
+ *    Version : 1.0.0.0 
+ *    Date    : 07/04/2011
+ *    Editor  : Perikles C. Stephanidis (AmaDeuS)
+ *    Contact : perikles@stephanidis.net
+ *-------------------------------------------------------------------------------
+ *
+ *    Notes   :
+ *
+ *    This control is no longer compiled with the library. Please see the
+ *    new WebControl in the Controls folder.
+ *    
+ ********************************************************************************/
+
+#region Using
+using System;
 using AwesomiumSharp;
 using System.Windows;
 using System.Diagnostics;
@@ -8,6 +27,7 @@ using System.Windows.Interop;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using System.Windows.Media.Imaging;
+#endregion
 
 namespace AwesomiumSharp
 {
