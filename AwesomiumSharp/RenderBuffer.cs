@@ -121,7 +121,7 @@ namespace AwesomiumSharp
         {
             StringHelper filePathStr = new StringHelper( filePath );
 
-            bool temp = awe_renderbuffer_save_to_png( renderbuffer, filePathStr.value(), preserveTransparency );
+            bool temp = awe_renderbuffer_save_to_png( renderbuffer, filePathStr.Value, preserveTransparency );
 
             return temp;
         }
@@ -137,7 +137,7 @@ namespace AwesomiumSharp
         {
             StringHelper filePathStr = new StringHelper( filePath );
 
-            bool temp = awe_renderbuffer_save_to_jpeg( renderbuffer, filePathStr.value(), quality );
+            bool temp = awe_renderbuffer_save_to_jpeg( renderbuffer, filePathStr.Value, quality );
 
             return temp;
         }

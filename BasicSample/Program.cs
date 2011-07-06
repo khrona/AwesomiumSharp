@@ -11,9 +11,10 @@ namespace Basic
 
         static void Main( string[] args )
         {
-            // We only want to save an image in this example so
-            // we don't set AutoUpdate to true.
-            WebCore.Initialize( new WebCoreConfig() );
+            // We demonstrate an easy way to hide the scrollbars by providing
+            // custom CSS. Read more about how to style the scrollbars here:
+            // http://www.webkit.org/blog/363/styling-scrollbars/
+            WebCore.Initialize( new WebCoreConfig() { CustomCSS = "::-webkit-scrollbar { visibility: hidden; }" } );
 
             WebView webView = WebCore.CreateWebview( 800, 600 );
             webView.LoadURL( "http://www.google.com" );
@@ -22,6 +23,9 @@ namespace Basic
             while ( !finishedLoading )
             {
                 Thread.Sleep( 100 );
+                // A Console application does not have a synchronization
+                // context, thus auto-update won't be enabled on WebCore.
+                // We need to manually call Update here.
                 WebCore.Update();
             }
 

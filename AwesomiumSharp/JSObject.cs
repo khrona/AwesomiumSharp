@@ -60,7 +60,7 @@ namespace AwesomiumSharp
         public bool HasProperty( string propertyName )
         {
             StringHelper propertyNameStr = new StringHelper( propertyName );
-            return awe_jsobject_has_property( instance, propertyNameStr.value() );
+            return awe_jsobject_has_property( instance, propertyNameStr.Value );
         }
         #endregion
 
@@ -79,12 +79,12 @@ namespace AwesomiumSharp
             get
             {
                 StringHelper propertyNameStr = new StringHelper( propertyName );
-                return new JSValue( awe_jsobject_get_property( instance, propertyNameStr.value() ) );
+                return new JSValue( awe_jsobject_get_property( instance, propertyNameStr.Value ) );
             }
             set
             {
                 StringHelper propertyNameStr = new StringHelper( propertyName );
-                awe_jsobject_set_property( instance, propertyNameStr.value(), value.Instance );
+                awe_jsobject_set_property( instance, propertyNameStr.Value, value.Instance );
             }
         }
 

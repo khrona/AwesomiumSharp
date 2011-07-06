@@ -14,17 +14,10 @@ namespace TabbedBrowserSample
         const int WM_KEYUP = 0x0101;
         const int WM_CHAR = 0x0102;
         ArrayList tabViewList;
-        DispatcherTimer updateTimer;
 
         public MainWindow()
         {
             InitializeComponent();
-
-            // Setup Update Timer
-            updateTimer = new DispatcherTimer();
-            updateTimer.Tick += update;
-            updateTimer.Interval = new TimeSpan(0, 0, 0, 0, 15);
-            updateTimer.Start();
 
             this.SourceInitialized += browserWindowSourceInitialized;
             txtAddress.KeyDown += txtAddressKeyDown;
@@ -39,20 +32,11 @@ namespace TabbedBrowserSample
 
         protected override void OnClosed(EventArgs e)
         {
-            updateTimer.Stop();
             WebCore.Shutdown();
             base.OnClosed(e);
         }
 
-        private void update(object sender, EventArgs e)
-        {
-            WebCore.Update();
-
-            foreach (TabView i in tabViewList)
-                i.render();
-        }
-
-        private TabView createTab()
+        private TabView CreateTab()
         {
             TabView tab = new TabView(tabControl);
             tab.OnUpdateTitle += onTabTitleUpdated;
@@ -66,14 +50,14 @@ namespace TabbedBrowserSample
 
         private void btnBack_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.goToHistoryOffset(-1);
         }
 
         private void btnForward_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.goToHistoryOffset(1);
         }
@@ -82,7 +66,7 @@ namespace TabbedBrowserSample
         {
             btnGo.IsDefault = false;
 
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
             {
                 if (txtAddress.Text.StartsWith("http://") == true)
@@ -92,7 +76,7 @@ namespace TabbedBrowserSample
             }
         }
 
-        private TabView getSelectedTab()
+        private TabView GetSelectedTab()
         {
             TabView result = null;
 
@@ -110,21 +94,21 @@ namespace TabbedBrowserSample
 
         private void btnZoomIn_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.zoomIn();
         }
 
         private void btnZoomOut_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.zoomOut();
         }
 
         private void btnRefresh_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.reload();
         }
@@ -141,7 +125,7 @@ namespace TabbedBrowserSample
 
             if ((message == WM_KEYDOWN || message == WM_KEYUP || message == WM_CHAR) && !txtAddress.IsFocused)
             {
-                TabView selectedTab = getSelectedTab();
+                TabView selectedTab = GetSelectedTab();
                 if (selectedTab != null)
                 {
                     if (message == WM_KEYUP && (int)wParam == 9)
@@ -165,42 +149,42 @@ namespace TabbedBrowserSample
 
         private void btnHome_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.loadURL("http://www.google.com");
         }
 
         private void onTabURLUpdated(object sender, EventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 txtAddress.Text = selectedTab.getURL();
         }
 
         private void onTabTitleUpdated(object sender, EventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 this.Title = "Tabbed Browser Sample - Awesomium - " + selectedTab.getTitle();
         }
 
         private void onTabOpenExternalLink(object sender, OpenLinkEventArgs e)
         {
-            TabView tab = createTab();
+            TabView tab = CreateTab();
             tab.loadUrl(e.url);
             tabControl.SelectedItem = tab.getTab();
         }
 
         private void addTab_Click(object sender, RoutedEventArgs e)
         {
-            createTab();
+            CreateTab();
         }
 
         private void removeTab_Click(object sender, RoutedEventArgs e)
         {
             if (tabControl.Items.Count > 1)
             {
-                TabView selectedTab = getSelectedTab();
+                TabView selectedTab = GetSelectedTab();
                 if (selectedTab != null)
                 {
                     tabViewList.Remove(selectedTab);
@@ -228,13 +212,13 @@ namespace TabbedBrowserSample
 
         private void browserWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            TabView tab = createTab();
+            TabView tab = CreateTab();
             tab.loadUrl("http://www.google.com");
         }
 
         private void print_Click(object sender, RoutedEventArgs e)
         {
-            TabView selectedTab = getSelectedTab();
+            TabView selectedTab = GetSelectedTab();
             if (selectedTab != null)
                 selectedTab.print();
         }

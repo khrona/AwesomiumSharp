@@ -77,7 +77,7 @@ namespace AwesomiumSharp
         {
             StringHelper valueStr = new StringHelper( value );
 
-            instance = awe_jsvalue_create_string_value( valueStr.value() );
+            instance = awe_jsvalue_create_string_value( valueStr.Value );
         }
 
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]

@@ -61,6 +61,7 @@ namespace TabbedBrowserSample
             tab.Content = img;
             myRect = new Int32Rect( 0, 0, (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
             webView = WebCore.CreateWebview( (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
+            webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.Focus();
 
             img.MouseWheel += mainWindowMouseWheel;
@@ -86,6 +87,7 @@ namespace TabbedBrowserSample
 
         ~TabView()
         {
+            webView.IsDirtyChanged -= OnIsDirtyChanged;
             webView.Dispose();
         }
 
@@ -105,6 +107,11 @@ namespace TabbedBrowserSample
             tip.IsOpen = false;
             tip.Content = title;
             ToolTipService.SetIsEnabled( tab, true );
+        }
+
+        private void OnIsDirtyChanged( object sender, EventArgs e )
+        {
+            render();
         }
 
         public void render()

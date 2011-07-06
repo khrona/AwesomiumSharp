@@ -107,8 +107,16 @@ namespace AwesomiumSharp
         /// Occurs when this WebView needs to be rendered again.
         /// </summary>
         /// <remarks>
-        /// This event is fired only if <see cref="WebCore.AutoUpdate"/> is set to true.
-        /// This event may be fired in a background thread.
+        /// <para>
+        /// This event is fired continuously while <see cref="IsDirty"/> is true and until a call 
+        /// to <see cref="Render"/> is made that will render the updated WebView into an offscreen
+        /// pixel buffer and clear the dirty state.
+        /// </para>
+        /// <para>
+        /// This event is not automatically fired if you are running Awesomium from a non-UI
+        /// thread. Please read the Remarks section of <see cref="WebCore.Update"/> for
+        /// details.
+        /// </para>
         /// </remarks>
         public event EventHandler IsDirtyChanged;
 
@@ -539,14 +547,7 @@ namespace AwesomiumSharp
         {
             if ( Instance != IntPtr.Zero )
             {
-                if ( !WebCore.IsShuttingDown )
-                {
-                    if ( ( WebCore.activeWebViews != null ) && WebCore.activeWebViews.Contains( this ) )
-                        WebCore.activeWebViews.Remove( this );
-
-                    awe_webview_destroy( Instance );
-                }
-
+                WebCore.DestroyView( this );
                 Instance = IntPtr.Zero;
             }
         }
@@ -562,20 +563,6 @@ namespace AwesomiumSharp
         {
             if ( !IsLive )
                 throw new InvalidOperationException( "The WebControl is not initialized." );
-        }
-        #endregion
-
-        #region PrepareForShutdown
-        internal void PrepareForShutdown()
-        {
-            if ( Instance != IntPtr.Zero )
-            {
-                resourceRequestCallback = null;
-                awe_webview_set_callback_resource_request( Instance, null );
-
-                resourceResponseCallback = null;
-                awe_webview_set_callback_resource_response( Instance, null );
-            }
         }
         #endregion
 
@@ -599,7 +586,7 @@ namespace AwesomiumSharp
             StringHelper usernameStr = new StringHelper( username );
             StringHelper passwordStr = new StringHelper( password );
 
-            awe_webview_load_url( Instance, urlStr.value(), frameNameStr.value(), usernameStr.value(), passwordStr.value() );
+            awe_webview_load_url( Instance, urlStr.Value, frameNameStr.Value, usernameStr.Value, passwordStr.Value );
         }
         #endregion
 
@@ -614,7 +601,7 @@ namespace AwesomiumSharp
             StringHelper htmlStr = new StringHelper( html );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_load_html( Instance, htmlStr.value(), frameNameStr.value() );
+            awe_webview_load_html( Instance, htmlStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -629,7 +616,7 @@ namespace AwesomiumSharp
             StringHelper fileStr = new StringHelper( file );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_load_file( Instance, fileStr.value(), frameNameStr.value() );
+            awe_webview_load_file( Instance, fileStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -698,7 +685,7 @@ namespace AwesomiumSharp
             StringHelper javascriptStr = new StringHelper( javascript );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_execute_javascript( Instance, javascriptStr.value(), frameNameStr.value() );
+            awe_webview_execute_javascript( Instance, javascriptStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -727,7 +714,7 @@ namespace AwesomiumSharp
             StringHelper javascriptStr = new StringHelper( javascript );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.value(), frameNameStr.value(), timeoutMs );
+            IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.Value, frameNameStr.Value, timeoutMs );
             JSValue result = new JSValue( temp ) { ownsInstance = true };
 
             return result;
@@ -752,7 +739,7 @@ namespace AwesomiumSharp
             StringHelper functionStr = new StringHelper( function );
             StringHelper frameNameStr = new StringHelper( "" );
 
-            awe_webview_call_javascript_function( Instance, objectNameStr.value(), functionStr.value(), jsarray, frameNameStr.value() );
+            awe_webview_call_javascript_function( Instance, objectNameStr.Value, functionStr.Value, jsarray, frameNameStr.Value );
 
             JSArrayHelper.DestroyArray( jsarray );
         }
@@ -775,7 +762,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper objectNameStr = new StringHelper( objectName );
-            awe_webview_create_object( Instance, objectNameStr.value() );
+            awe_webview_create_object( Instance, objectNameStr.Value );
         }
         #endregion
 
@@ -788,7 +775,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper objectNameStr = new StringHelper( objectName );
-            awe_webview_destroy_object( Instance, objectNameStr.value() );
+            awe_webview_destroy_object( Instance, objectNameStr.Value );
         }
         #endregion
 
@@ -818,7 +805,7 @@ namespace AwesomiumSharp
             StringHelper objectNameStr = new StringHelper( objectName );
             StringHelper propertyNameStr = new StringHelper( propertyName );
 
-            awe_webview_set_object_property( Instance, objectNameStr.value(), propertyNameStr.value(), val.Instance );
+            awe_webview_set_object_property( Instance, objectNameStr.Value, propertyNameStr.Value, val.Instance );
         }
         #endregion
 
@@ -855,7 +842,7 @@ namespace AwesomiumSharp
             StringHelper objectNameStr = new StringHelper( objectName );
             StringHelper callbackNameStr = new StringHelper( callbackName );
 
-            awe_webview_set_object_callback( Instance, objectNameStr.value(), callbackNameStr.value() );
+            awe_webview_set_object_callback( Instance, objectNameStr.Value, callbackNameStr.Value );
 
             string key = String.Format( "{0}.{1}", objectName, callbackName );
 
@@ -1158,7 +1145,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper filterStr = new StringHelper( filter );
-            awe_webview_add_url_filter( Instance, filterStr.value() );
+            awe_webview_add_url_filter( Instance, filterStr.Value );
         }
         #endregion
 
@@ -1202,7 +1189,7 @@ namespace AwesomiumSharp
                 values[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.Get( i ).Length );
             }
 
-            awe_webview_set_header_definition( Instance, nameStr.value(), (uint)count, keys, values );
+            awe_webview_set_header_definition( Instance, nameStr.Value, (uint)count, keys, values );
 
             for ( uint i = 0; i < count; i++ )
             {
@@ -1223,7 +1210,7 @@ namespace AwesomiumSharp
             StringHelper ruleStr = new StringHelper( rule );
             StringHelper nameStr = new StringHelper( name );
 
-            awe_webview_add_header_rewrite_rule( Instance, ruleStr.value(), nameStr.value() );
+            awe_webview_add_header_rewrite_rule( Instance, ruleStr.Value, nameStr.Value );
         }
         #endregion
 
@@ -1236,7 +1223,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper ruleStr = new StringHelper( rule );
-            awe_webview_remove_header_rewrite_rule( Instance, ruleStr.value() );
+            awe_webview_remove_header_rewrite_rule( Instance, ruleStr.Value );
         }
         #endregion
 
@@ -1249,7 +1236,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper nameStr = new StringHelper( name );
-            awe_webview_remove_header_rewrite_rules_by_definition_name( Instance, nameStr.value() );
+            awe_webview_remove_header_rewrite_rules_by_definition_name( Instance, nameStr.Value );
         }
         #endregion
 
@@ -1262,7 +1249,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper filePathStr = new StringHelper( filePath );
-            awe_webview_choose_file( Instance, filePathStr.value() );
+            awe_webview_choose_file( Instance, filePathStr.Value );
         }
         #endregion
 
@@ -1290,7 +1277,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper frameNameStr = new StringHelper( frameName );
-            awe_webview_request_scroll_data( Instance, frameNameStr.value() );
+            awe_webview_request_scroll_data( Instance, frameNameStr.Value );
         }
         #endregion
 
@@ -1325,7 +1312,7 @@ namespace AwesomiumSharp
 
             findRequest = new FindData( findRequestRandomizer.Next(), searchStr, caseSensitive );
             StringHelper searchCStr = new StringHelper( searchStr );
-            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, caseSensitive, false );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.Value, forward, caseSensitive, false );
         }
 
         /// <summary>
@@ -1342,7 +1329,7 @@ namespace AwesomiumSharp
                 return;
 
             StringHelper searchCStr = new StringHelper( findRequest.SearchText );
-            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, findRequest.CaseSensitive, true );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.Value, forward, findRequest.CaseSensitive, true );
         }
         #endregion
 
@@ -1378,7 +1365,7 @@ namespace AwesomiumSharp
             StringHelper sourceLanguageStr = new StringHelper( sourceLanguage );
             StringHelper targetLanguageStr = new StringHelper( targetLanguage );
 
-            awe_webview_translate_page( Instance, sourceLanguageStr.value(), targetLanguageStr.value() );
+            awe_webview_translate_page( Instance, sourceLanguageStr.Value, targetLanguageStr.Value );
         }
         #endregion
 
@@ -1420,7 +1407,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper inputCStr = new StringHelper( inputStr );
-            awe_webview_set_ime_composition( Instance, inputCStr.value(), cursorPos, targetStart, targetEnd );
+            awe_webview_set_ime_composition( Instance, inputCStr.Value, cursorPos, targetStart, targetEnd );
         }
         #endregion
 
@@ -1433,7 +1420,7 @@ namespace AwesomiumSharp
             VerifyLive();
 
             StringHelper inputCStr = new StringHelper( inputStr );
-            awe_webview_confirm_ime_composition( Instance, inputCStr.value() );
+            awe_webview_confirm_ime_composition( Instance, inputCStr.Value );
         }
         #endregion
 
@@ -1468,7 +1455,7 @@ namespace AwesomiumSharp
         #endregion
 
         #region Instance
-        internal IntPtr Instance { get; set; }
+        internal IntPtr Instance { get; private set; }
         #endregion
 
         #region IsDirty
@@ -1488,7 +1475,7 @@ namespace AwesomiumSharp
         {
             get
             {
-                if ( !WebCore.AutoUpdate )
+                if ( !WebCore.IsAutoUpdateEnabled )
                 {
                     isDirty = false;
                     VerifyLive();
@@ -2119,14 +2106,18 @@ namespace AwesomiumSharp
 
 
         #region IWebView Members
-        void IWebView.OnCoreAutoUpdateChanged( bool newValue )
-        {
-            // WebView does not care about this.
-        }
-
         void IWebView.PrepareForShutdown()
         {
-            PrepareForShutdown();
+            if ( Instance != IntPtr.Zero )
+            {
+                resourceRequestCallback = null;
+                awe_webview_set_callback_resource_request( Instance, null );
+
+                resourceResponseCallback = null;
+                awe_webview_set_callback_resource_response( Instance, null );
+
+                this.Dispose();
+            }
         }
 
         IntPtr IWebView.Instance

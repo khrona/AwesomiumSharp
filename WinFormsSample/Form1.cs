@@ -9,7 +9,6 @@ namespace WinFormsSample
     public partial class WebForm : Form
     {
         WebView webView;
-        Timer timer;
         Bitmap frameBuffer;
         bool needsResize;
 
@@ -33,13 +32,9 @@ namespace WinFormsSample
             WebCore.Initialize( config );
 
             webView = WebCore.CreateWebview( webViewBitmap.Width, webViewBitmap.Height );
+            webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.LoadURL( "http://www.google.com" );
             webView.Focus();
-
-            timer = new Timer();
-            timer.Interval = 20;
-            timer.Tick += timer_Tick;
-            timer.Start();
         }
 
         void WebForm_Activated( object sender, EventArgs e )
@@ -56,12 +51,12 @@ namespace WinFormsSample
 
         void WebForm_FormClosed( object sender, FormClosedEventArgs e )
         {
-            timer.Dispose();
+            webView.IsDirtyChanged -= OnIsDirtyChanged;
             webView.Dispose();
             WebCore.Shutdown();
         }
 
-        void timer_Tick( object sender, EventArgs e )
+        private void OnIsDirtyChanged( object sender, EventArgs e )
         {
             if ( needsResize && !webView.IsDisposed )
             {
@@ -72,7 +67,6 @@ namespace WinFormsSample
                 }
             }
 
-            WebCore.Update();
             if ( webView.IsDirty )
                 Render();
         }

@@ -28,7 +28,37 @@
  *      the AutoUpdate property.
  *    
  *    - Extensive pro-exception verification of validity before every API
- *      call is added.  
+ *      call is added.
+ *      
+ * 
+ *    07/06/2011:
+ *    
+ *    - I have decided to completely isolate auto-update to the WebCore
+ *      itself, and disallow access to to the auto-Update logic from outside
+ *      the assembly. The scenario and analysis is:
+ *          * If a developer creates many WebView instances and provides for
+ *            them his/her own update logic, or if he/she uses many WebControls
+ *            (that include their own auto-update) we may end up with
+ *            awe_webcore_update being called tens of times almost 
+ *            simultaneously, for no reason. Documentation for awe_webcore_update
+ *            says that this method is "...updating the RenderBuffer of each 
+ *            WebView, destroying any WebViews that are queued for destruction, 
+ *            and invoking any queued WebView events. You should call this 
+ *            as part of your application's update loop.". This means that one
+ *            call is enough to cover all created views.
+ *          * We could demand for a hwnd and hook into the host application's
+ *            message loop, but the idea of calling awe_webcore_update
+ *            from inside our application's message loop is actually not
+ *            appropriate. Awesomium runs as a separate process and has its
+ *            own message loop. Our application may be idle while Awesomium
+ *            is not. So we will keep relying on a timer.
+ *            
+ *    - WebCoreConfig is moved to a separate file.
+ *    
+ *    - Changes in initialization logic and minor bug fixes.
+ *    
+ *    - Added and improved existing documentation to reflect changes and
+ *      help with the understanding of the new logic.
  *      
  *-------------------------------------------------------------------------------
  *
@@ -194,9 +224,12 @@ namespace AwesomiumSharp
             awe_string_destroy( aweString );
         }
 
-        internal IntPtr value()
+        internal IntPtr Value
         {
-            return aweString;
+            get
+            {
+                return aweString;
+            }
         }
 
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
@@ -229,131 +262,6 @@ namespace AwesomiumSharp
     }
     #endregion
 
-    #region WebCoreConfig
-    /// <summary>
-    /// Configuration settings for the WebCore
-    /// </summary>
-    public class WebCoreConfig
-    {
-        public WebCoreConfig()
-        {
-            EnableJavascript = true;
-            UserDataPath = "";
-            PluginPath = "";
-            LogPath = "";
-            LogLevel = LogLevel.Normal;
-            EnableAutoDetectEncoding = true;
-            AcceptLanguageOverride = "";
-            DefaultCharsetOverride = "";
-            UserAgentOverride = "";
-            ProxyServer = "";
-            ProxyConfigScript = "";
-            CustomCSS = "";
-
-            AutoUpdatePeriod = 30;
-        }
-
-        /// <summary>
-        /// Indicates whether or not to enable embedded plugins (e.g., Flash).
-        /// The default is false.
-        /// </summary>
-        public bool EnablePlugins { get; set; }
-        /// <summary>
-        /// Indicates whether or not Javascript is enabled. The default is True.
-        /// </summary>
-        public bool EnableJavascript { get; set; }
-        /// <summary>
-        /// Indicates the path to the directory that will be used to store cache, cookies, and other data. 
-        /// If an empty string is specified, this path defaults to "./Default".
-        /// </summary>
-        public string UserDataPath { get; set; }
-        /// <summary>
-        /// Indicates an absolute path that will be included in the search for plugins. 
-        /// This is useful if you wish to bundle certain plugins with your application.
-        /// </summary>
-        public string PluginPath { get; set; }
-        /// <summary>
-        /// Indicates the path to store the awesomium.log. 
-        /// If none is specified, the log will be stored in the working directory.
-        /// </summary>
-        public string LogPath { get; set; }
-        /// <summary>
-        /// Indicates the logging level to use, this can be either <see cref="LogLevel.None"/>, 
-        /// <see cref="LogLevel.Normal"/>, or <see cref="LogLevel.Verbose"/>.
-        /// The default is <see cref="LogLevel.Normal"/>.
-        /// </summary>
-        public LogLevel LogLevel { get; set; }
-        public bool EnableAutoDetectEncoding { get; set; }
-        public string AcceptLanguageOverride { get; set; }
-        public string DefaultCharsetOverride { get; set; }
-        /// <summary>
-        /// Indicates the user agent string that will be used to override the default. 
-        /// Leave this empty to use the default user agent.
-        /// </summary>
-        public string UserAgentOverride { get; set; }
-        /// <summary>
-        /// Indicates the proxy settings for all network requests. 
-        /// Specify "none" to disable all proxy use, specify "auto" to attempt to detect the proxy using system settings 
-        /// (e.g., via the Internet Properties dialog on Windows or the Network panel of System Preferences on Mac OSX). 
-        /// Specify anything else to set manual proxy settings.
-        /// </summary>
-        /// <example>
-        ///    "none"                         -- No proxy. (Default).
-        ///    "auto"                         -- Detect system proxy settings.
-        ///    "http=myproxy:80;ftp=myproxy2" -- Use HTTP proxy "myproxy:80"  
-        ///                                      for http:// URLs, and HTTP proxy 
-        ///                                      "myproxy2:80" for ftp:// URLs.
-        ///    "myproxy:80"                   -- Use HTTP proxy "foopy:80" for
-        ///                                      all URLs.
-        ///    "socks4://myproxy"             -- Use SOCKS v4 proxy "foopy:1080" 
-        ///                                      for all URLs.
-        /// </example>
-        public string ProxyServer { get; set; }
-        /// <summary>
-        /// Indicates the URL to the PAC (Proxy Auto-Config) Script to use. See <http://en.wikipedia.org/wiki/Proxy_auto-config> for more info.
-        /// </summary>
-        public string ProxyConfigScript { get; set; }
-        /// <summary>
-        /// Indicates whether or not cache and cookies should be saved to disk.
-        /// </summary>
-        public bool SaveCacheAndCookies { get; set; }
-        /// <summary>
-        /// Indicates the maximum disk space to be used by the disk cache, in bytes. Specify 0 to use no limit.
-        /// </summary>
-        public int MaxCacheSize { get; set; }
-        /// <summary>
-        /// Indicates whether or not the "same-origin" policy should be disabled. 
-        /// See <http://en.wikipedia.org/wiki/Same_origin_policy>.
-        /// </summary>
-        public bool DisableSameOriginPolicy { get; set; }
-        /// <summary>
-        /// Indicates 
-        /// </summary>
-        public bool DisableWinMessagePump { get; set; }
-        /// <summary>
-        /// Indicates a string of custom CSS to be included as the global default style for all pages. 
-        /// This is especially useful for customizing scrollbars and other look-and-feel elements.
-        /// </summary>
-        public string CustomCSS { get; set; }
-
-
-        // The following are added and refer to the wrapper.
-        // Properties are also added for these in WebCore.
-
-        /// <summary>
-        /// Indicates if automatic update is enabled.
-        /// </summary>
-        /// <seealso cref="WebCore.Update"/>
-        public bool AutoUpdate { get; set; }
-        /// <summary>
-        /// Indicates the time interval between invocations of <see cref="WebCore.Update"/>, in milliseconds.
-        /// The default is 20.
-        /// </summary>
-        /// <seealso cref="WebCoreConfig.AutoUpdate"/>
-        public int AutoUpdatePeriod { get; set; }
-    };
-    #endregion
-
     /// <summary>
     /// The WebCore is the "core" of Awesomium; it manages the lifetime of
     /// all WebViews (see AwesomiumSharp::WebView) and maintains useful services
@@ -371,10 +279,11 @@ namespace AwesomiumSharp
         internal const string DLLName = "Awesomium";
 #endif
 
-        internal static List<IWebView> activeWebViews;
+        private static List<IWebView> activeWebViews;
+        private static WebCoreConfig configuration;
         private static Timer updateTimer;
         private static int updatePeriod;
-        private static bool isInitialized;
+        private static bool isRunning;
         private static bool isShuttingDown;
         private static SynchronizationContext syncCtx;
         #endregion
@@ -382,13 +291,39 @@ namespace AwesomiumSharp
 
         #region Methods
 
-        #region VerifyInitialized
-        internal static void VerifyInitialized()
+        #region Internal
+
+        #region VerifyLive
+        internal static void VerifyLive()
         {
-            if ( !isInitialized )
-                throw new InvalidOperationException( "The WebCore is not initialized." );
+            if ( !isRunning )
+                throw new InvalidOperationException( "The WebCore is not running. At least one view needs to be created before" );
         }
         #endregion
+
+        #region DestroyView
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webview_destroy( IntPtr webview );
+
+        internal static void DestroyView( IWebView view )
+        {
+            if ( view.Instance != IntPtr.Zero )
+                awe_webview_destroy( view.Instance );
+
+            if ( activeWebViews != null )
+            {
+                if ( !isShuttingDown && activeWebViews.Contains( view ) )
+                    activeWebViews.Remove( view );
+
+                if ( activeWebViews.Count == 0 )
+                    Shutdown();
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region Public
 
         #region Initialize
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
@@ -411,19 +346,49 @@ namespace AwesomiumSharp
             IntPtr custom_css );
 
         /// <summary>
-        /// Create the WebCore singleton with certain configuration settings. You must call
-        /// this before creating any WebViews.
+        /// Initializes the WebCore singleton with certain configuration settings. You must call
+        /// this before creating any WebViews or WebControls.
         /// </summary>
-        /// <param name="config"></param>
+        /// <param name="config">
+        /// An instance of <see cref="WebCoreConfig"/> specifying configuration settings.
+        /// </param>
+        /// <param name="start">
+        /// True if the Awesomium process should immediately start. False to start the process
+        /// when the first view is created. The default is true.
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// If <paramref name="start"/> is set to false, you may call this method and re-initialize
+        /// WebCore by providing new configuration settings for as long as no view has been
+        /// created and WebCore has not started. You have to keep defining false for the
+        /// <paramref name="start"/> to prevent <see cref="WebCore"/> from starting.
+        /// </para>
+        /// <para>
+        /// If you are not sure if <see cref="WebCore"/> is running, check <see cref="IsRunning"/>
+        /// before calling this method. If <see cref="WebCore"/> is running, you will have
+        /// to shut it down by closing all views and their respective hosts, or by calling
+        /// <see cref="Shutdown"/> before initializing the <see cref="WebCore"/> again.
+        /// </para>
+        /// </remarks>
         /// <exception cref="InvalidOperationException">
-        /// The member is called while WebCore is already initialized.
+        /// The member is called while WebCore is running.
         /// </exception>
-        public static void Initialize( WebCoreConfig config )
+        /// <seealso cref="IsRunning"/>
+        public static void Initialize( WebCoreConfig config, bool start = true )
         {
-            if ( isInitialized )
+            if ( isRunning )
                 throw new InvalidOperationException( "The WebCore is already initialized. Call Shutdown() before initializing it again." );
 
             isShuttingDown = false;
+            configuration = config;
+
+            if ( start )
+                Start();
+        }
+
+        private static void Start()
+        {
+            WebCoreConfig config = configuration ?? new WebCoreConfig { SaveCacheAndCookies = true, EnablePlugins = true };
 
             StringHelper userDataPathStr = new StringHelper( config.UserDataPath );
             StringHelper pluginPathStr = new StringHelper( config.PluginPath );
@@ -436,38 +401,35 @@ namespace AwesomiumSharp
             StringHelper customCSSStr = new StringHelper( config.CustomCSS );
 
             awe_webcore_initialize( config.EnablePlugins,
-                                     config.EnableJavascript,
-                                     userDataPathStr.value(),
-                                     pluginPathStr.value(),
-                                     logPathStr.value(),
-                                     config.LogLevel,
-                                     config.EnableAutoDetectEncoding,
-                                     acceptLanguageStr.value(),
-                                     defaultCharsetStr.value(),
-                                     userAgentOverrideStr.value(),
-                                     proxyServerStr.value(),
-                                     proxyConfigScriptStr.value(),
-                                     config.SaveCacheAndCookies,
-                                     config.MaxCacheSize,
-                                     config.DisableSameOriginPolicy,
-                                     config.DisableWinMessagePump,
-                                     customCSSStr.value() );
+                config.EnableJavascript,
+                userDataPathStr.Value,
+                pluginPathStr.Value,
+                logPathStr.Value,
+                config.LogLevel,
+                config.EnableAutoDetectEncoding,
+                acceptLanguageStr.Value,
+                defaultCharsetStr.Value,
+                userAgentOverrideStr.Value,
+                proxyServerStr.Value,
+                proxyConfigScriptStr.Value,
+                config.SaveCacheAndCookies,
+                config.MaxCacheSize,
+                config.DisableSameOriginPolicy,
+                config.DisableWinMessagePump,
+                customCSSStr.Value );
 
             activeWebViews = new List<IWebView>();
             syncCtx = SynchronizationContext.Current;
 
-            if ( config.AutoUpdate )
-            {
-                if ( syncCtx == null )
-                    throw new ArgumentException( "WebCore cannot initiate AutoUpdate. A valid synchronization context could not be obtained." );
+            if ( updateTimer != null )
+                updateTimer.Dispose();
 
-                if ( updateTimer != null )
-                    updateTimer.Dispose();
+            // We will not start auto-update unless we get a synchronization context.
+            // Read the updated documentation of Update for details.
+            if ( syncCtx != null )
+                updateTimer = new Timer( UpdateTimerCallback, null, 20, config.AutoUpdatePeriod );
 
-                updateTimer = new Timer( UpdateTimerCallback, null, 1000, config.AutoUpdatePeriod );
-            }
-
-            isInitialized = true;
+            isRunning = true;
         }
         #endregion
 
@@ -476,25 +438,94 @@ namespace AwesomiumSharp
         private static extern void awe_webcore_shutdown();
 
         /// <summary>
-        /// Destroys the WebCore and destroys any lingering WebView instances.
+        /// Destroys the WebCore and any lingering WebView instances.
         /// </summary>
+        /// <remarks>
+        /// Make sure that this is not called while the hosting UI of any views
+        /// created by this <see cref="WebCore"/>, is still live and visible. 
+        /// This method will destroy all views created by this <see cref="WebCore"/>.
+        /// Any attempt to access them or any member of this class (other than <see cref="Initialize"/>)
+        /// after calling this method, may throw a <see cref="InvalidOperationException"/>.
+        /// </remarks>
         public static void Shutdown()
         {
-            if ( isInitialized )
+            if ( isRunning )
             {
                 isShuttingDown = true;
+
+                if ( updateTimer != null )
+                    updateTimer.Dispose();
 
                 foreach ( IWebView i in activeWebViews )
                 {
                     i.PrepareForShutdown();
                 }
 
-                awe_webcore_shutdown();
+                try
+                {
+                    awe_webcore_shutdown();
+                }
+                catch { }
+                finally
+                {
+                    activeWebViews.Clear();
+                    activeWebViews = null;
 
-                activeWebViews.Clear();
-                activeWebViews = null;
+                    isRunning = false;
+                    isShuttingDown = false;
+                }
+            }
+        }
+        #endregion
 
-                isInitialized = false;
+        #region Update
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_webcore_update();
+
+        /// <summary>
+        /// Updates the WebCore and allows it to conduct various operations such
+        /// as updating the RenderBuffer of each WebView, destroying any
+        /// WebViews that are queued for destruction, and invoking any queued WebView events.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// If you are using Awesomium from a UI thread (regular use), you never need to
+        /// call this method. Internal auto-update takes care of this and you only need to
+        /// watch for the IsDirtyChanged event of WebView or WebControl. If you are
+        /// using Awesomium from a non graphical environment (Console application, Service
+        /// or non-UI thread, auto-update is not available and you must manually call this method
+        /// from either your application message loop or by creating a timer. In such a case,
+        /// you must make sure that any calls to any of the classes of this assembly,
+        /// are called from the same thread.
+        /// </para>
+        /// <para>
+        /// Instances of AwesomiumSharp and their members, are not thread safe.
+        /// </para>
+        /// <para>
+        /// You can check <see cref="IsAutoUpdateEnabled"/> to know if auto-update 
+        /// is already enabled.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called before initializing WebCore.
+        /// </exception>
+        /// <exception cref="AccessViolationException">
+        /// You attempted to access the member from a thread other than
+        /// thread where <see cref="WebCore"/> was created.
+        /// </exception>
+        public static void Update()
+        {
+            VerifyLive();
+
+            try
+            {
+                awe_webcore_update();
+            }
+            catch
+            { 
+                /* TODO: Design an error handling model. 
+                 * AccessViolation is the most typical exception for the time being
+                 * and it appears in many occasions; not only in wrong thread scenarios */
             }
         }
         #endregion
@@ -512,10 +543,10 @@ namespace AwesomiumSharp
         /// </exception>
         public static void SetBaseDirectory( string baseDirPath )
         {
-            VerifyInitialized();
+            VerifyLive();
 
             StringHelper baseDirPathStr = new StringHelper( baseDirPath );
-            awe_webcore_set_base_directory( baseDirPathStr.value() );
+            awe_webcore_set_base_directory( baseDirPathStr.Value );
         }
         #endregion
 
@@ -532,12 +563,10 @@ namespace AwesomiumSharp
         /// <param name="viewSource">Enable View-Source mode on this WebView to view the
         /// HTML source of any web-page (must be loaded via WebView.LoadURL)</param>
         /// <returns>Returns a new WebView instance</returns>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called before initializing WebCore.
-        /// </exception>
         public static WebView CreateWebview( int width, int height, bool viewSource = false )
         {
-            VerifyInitialized();
+            if ( !IsRunning )
+                Start();
 
             IntPtr webviewPtr = awe_webcore_create_webview( width, height, viewSource );
             WebView view = new WebView( webviewPtr );
@@ -546,10 +575,14 @@ namespace AwesomiumSharp
             return view;
         }
 
-        internal static IntPtr CreateWebviewInstance( int width, int height )
+        // Used by WebControl.
+        internal static IntPtr CreateWebviewInstance( int width, int height, IWebView host )
         {
-            VerifyInitialized();
+            if ( !IsRunning )
+                Start();
+
             IntPtr webviewPtr = awe_webcore_create_webview( width, height, false );
+            activeWebViews.Add( host );
             return webviewPtr;
         }
         #endregion
@@ -563,37 +596,10 @@ namespace AwesomiumSharp
         /// </exception>
         public static void SetCustomResponsePage( int statusCode, string filePath )
         {
-            VerifyInitialized();
+            VerifyLive();
 
             StringHelper filePathStr = new StringHelper( filePath );
-            awe_webcore_set_custom_response_page( statusCode, filePathStr.value() );
-        }
-        #endregion
-
-        #region Update
-        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
-        private static extern void awe_webcore_update();
-
-        /// <summary>
-        /// Updates the WebCore and allows it to conduct various operations such
-        /// as updating the RenderBuffer of each WebView, destroying any
-        /// WebViews that are queued for destruction, and invoking any queued WebView events.
-        /// You should call this as part of your application's update loop.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called before initializing WebCore.
-        /// </exception>
-        public static void Update()
-        {
-            VerifyInitialized();
-
-            try
-            {
-                awe_webcore_update();
-            }
-            catch { /* TODO: Design an error handling model. 
-                     * AccessViolation is the most typical exception for the time being
-                     * and it appears in many places. */ }
+            awe_webcore_set_custom_response_page( statusCode, filePathStr.Value );
         }
         #endregion
 
@@ -606,7 +612,7 @@ namespace AwesomiumSharp
         /// </exception>
         public static void ClearCache()
         {
-            VerifyInitialized();
+            VerifyLive();
             awe_webcore_clear_cache();
         }
         #endregion
@@ -620,7 +626,7 @@ namespace AwesomiumSharp
         /// </exception>
         public static void ClearCookies()
         {
-            VerifyInitialized();
+            VerifyLive();
             awe_webcore_clear_cookies();
         }
         #endregion
@@ -637,12 +643,12 @@ namespace AwesomiumSharp
         /// </exception>
         public static void SetCookie( string url, string cookieString, bool isHttpOnly = false, bool forceSessionCookie = false )
         {
-            VerifyInitialized();
+            VerifyLive();
 
             StringHelper urlStr = new StringHelper( url );
             StringHelper cookieStringStr = new StringHelper( cookieString );
 
-            awe_webcore_set_cookie( urlStr.value(), cookieStringStr.value(), isHttpOnly, forceSessionCookie );
+            awe_webcore_set_cookie( urlStr.Value, cookieStringStr.Value, isHttpOnly, forceSessionCookie );
         }
         #endregion
 
@@ -655,10 +661,10 @@ namespace AwesomiumSharp
         /// </exception>
         public static String GetCookies( string url, bool excludeHttpOnly = true )
         {
-            VerifyInitialized();
+            VerifyLive();
 
             StringHelper urlStr = new StringHelper( url );
-            IntPtr temp = awe_webcore_get_cookies( urlStr.value(), excludeHttpOnly );
+            IntPtr temp = awe_webcore_get_cookies( urlStr.Value, excludeHttpOnly );
 
             return StringHelper.ConvertAweString( temp );
         }
@@ -673,12 +679,12 @@ namespace AwesomiumSharp
         /// </exception>
         public static void DeleteCookie( string url, string cookieName )
         {
-            VerifyInitialized();
+            VerifyLive();
 
             StringHelper urlStr = new StringHelper( url );
             StringHelper cookieNameStr = new StringHelper( cookieName );
 
-            awe_webcore_delete_cookie( urlStr.value(), cookieNameStr.value() );
+            awe_webcore_delete_cookie( urlStr.Value, cookieNameStr.Value );
         }
         #endregion
 
@@ -700,9 +706,11 @@ namespace AwesomiumSharp
         /// </exception>
         public static void SuppressPrinterDialog( bool suppress )
         {
-            VerifyInitialized();
+            VerifyLive();
             awe_webcore_set_suppress_printer_dialog( suppress );
         }
+        #endregion
+
         #endregion
 
         #endregion
@@ -734,7 +742,7 @@ namespace AwesomiumSharp
         {
             get
             {
-                VerifyInitialized();
+                VerifyLive();
                 return awe_webcore_are_plugins_enabled();
             }
         }
@@ -754,27 +762,27 @@ namespace AwesomiumSharp
         {
             get
             {
-                VerifyInitialized();
+                VerifyLive();
                 return StringHelper.ConvertAweString( awe_webcore_get_base_directory() );
             }
             set
             {
-                VerifyInitialized();
+                VerifyLive();
                 StringHelper baseDirPathStr = new StringHelper( value );
-                awe_webcore_set_base_directory( baseDirPathStr.value() );
+                awe_webcore_set_base_directory( baseDirPathStr.Value );
             }
         }
         #endregion
 
-        #region IsInitialized
+        #region IsRunning
         /// <summary>
-        /// Gets if the <see cref="WebCore"/> is already initialized and views can be created.
+        /// Gets if the <see cref="WebCore"/> is currently running.
         /// </summary>
-        public static bool IsInitialized
+        public static bool IsRunning
         {
             get
             {
-                return isInitialized;
+                return isRunning;
             }
         }
         #endregion
@@ -792,35 +800,16 @@ namespace AwesomiumSharp
         }
         #endregion
 
-        #region AutoUpdate
+        #region IsAutoUpdateEnabled
         /// <summary>
-        /// Gets or sets if automatic update is enabled.
+        /// Gets if automatic update is successfully enabled.
         /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// Attempted to set this before initializing WebCore.
-        /// </exception>
-        public static bool AutoUpdate
+        /// <seealso cref="Update"/>
+        public static bool IsAutoUpdateEnabled
         {
             get
             {
                 return ( updateTimer != null );
-            }
-            set
-            {
-                VerifyInitialized();
-
-                if ( value && ( updateTimer == null ) )
-                {
-                    if ( WebCore.SynchronizationContext == null )
-                        throw new InvalidOperationException( "WebCore cannot initiate AutoUpdate. A valid synchronization context could not be obtained." );
-
-                    updateTimer = new Timer( UpdateTimerCallback, null, 0, AutoUpdatePeriod );
-                }
-                else if ( updateTimer != null )
-                {
-                    updateTimer.Dispose();
-                    updateTimer = null;
-                }
             }
         }
         #endregion
@@ -841,7 +830,7 @@ namespace AwesomiumSharp
             }
             set
             {
-                VerifyInitialized();
+                VerifyLive();
 
                 if ( updatePeriod == value )
                     return;
@@ -863,9 +852,17 @@ namespace AwesomiumSharp
 
         private static void UpdateTimerCallback( object state )
         {
-            // API calls should normally be thread safe but they are not.
-            // We need the synchronization context to marshal calls.
-            syncCtx.Post( UpdateSync, state );
+            if ( syncCtx != null )
+            {
+                // API calls should normally be thread safe but they are not.
+                // We need the synchronization context to marshal calls.
+                syncCtx.Post( UpdateSync, state );
+            }
+            else if ( updateTimer != null )
+            {
+                // We should not be here anyway!
+                updateTimer.Dispose();
+            }
         }
 
         private static void UpdateSync( object state )
@@ -876,7 +873,8 @@ namespace AwesomiumSharp
             {
                 foreach ( IWebView view in activeWebViews )
                 {
-                    view.IsDirty = awe_webview_is_dirty( view.Instance );
+                    if ( view.Instance != IntPtr.Zero )
+                        view.IsDirty = awe_webview_is_dirty( view.Instance );
                 }
             }
         }
@@ -902,7 +900,7 @@ namespace AwesomiumSharp
  * 
  * Here's a simple example of using the API to render a page once:
  * <pre>
- *   WebCore.Initialize(new WebCore.Config());
+ *   WebCore.Initialize(new WebCoreConfig());
  *
  *   WebView webView = WebCore.CreateWebview(800, 600);
  *   webView.LoadURL("http://www.google.com");

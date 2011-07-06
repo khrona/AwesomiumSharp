@@ -44,7 +44,7 @@ namespace AwesomiumSharp
             StringHelper nameStr = new StringHelper( name );
             StringHelper valueStr = new StringHelper( value );
 
-            awe_resource_request_append_extra_header( instance, nameStr.value(), valueStr.value() );
+            awe_resource_request_append_extra_header( instance, nameStr.Value, valueStr.Value );
         }
 
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
@@ -78,7 +78,7 @@ namespace AwesomiumSharp
         public void AppendUploadFilePath( string filePath )
         {
             StringHelper filePathStr = new StringHelper( filePath );
-            awe_resource_request_append_upload_file_path( instance, filePathStr.value() );
+            awe_resource_request_append_upload_file_path( instance, filePathStr.Value );
         }
 
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
@@ -91,7 +91,7 @@ namespace AwesomiumSharp
         public void AppendUploadBytes( string bytes )
         {
             StringHelper bytesStr = new StringHelper( bytes );
-            awe_resource_request_append_upload_bytes( instance, bytesStr.value() );
+            awe_resource_request_append_upload_bytes( instance, bytesStr.Value );
         }
         #endregion
 
@@ -132,7 +132,7 @@ namespace AwesomiumSharp
             set
             {
                 StringHelper methodStr = new StringHelper( value );
-                awe_resource_request_set_method( instance, methodStr.value() );
+                awe_resource_request_set_method( instance, methodStr.Value );
             }
         }
 
@@ -150,7 +150,7 @@ namespace AwesomiumSharp
             set
             {
                 StringHelper referrerStr = new StringHelper( value );
-                awe_resource_request_set_referrer( instance, referrerStr.value() );
+                awe_resource_request_set_referrer( instance, referrerStr.Value );
             }
         }
 
@@ -172,7 +172,7 @@ namespace AwesomiumSharp
             set
             {
                 StringHelper headersStr = new StringHelper( value );
-                awe_resource_request_set_extra_headers( instance, headersStr.value() );
+                awe_resource_request_set_extra_headers( instance, headersStr.Value );
             }
         }
 

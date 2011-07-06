@@ -8,7 +8,7 @@ Public Class Form1
     Private bitmap As Bitmap
 
     Private Sub Form1_Load(ByVal sender As Object, ByVal e As EventArgs) Handles MyBase.Load
-        Dim config As WebCoreConfig = New WebCoreConfig() With {.EnablePlugins = True, .AutoUpdate = True}
+        Dim config As WebCoreConfig = New WebCoreConfig() With {.EnablePlugins = True}
 
         WebCore.Initialize(config)
         m_WebView = WebCore.CreateWebview(webViewBitmap.Width, webViewBitmap.Height)
@@ -39,16 +39,6 @@ Public Class Form1
 
         webViewBitmap.Image = bitmap
     End Sub
-
-    'Private Sub Timer1_Tick(ByVal sender As Object, ByVal e As EventArgs) Handles Timer1.Tick
-    '    If WebCore.IsInitialized Then
-    '        WebCore.Update()
-
-    '        If m_WebView.IsDirty Then
-    '            Render()
-    '        End If
-    '    End If
-    'End Sub
 
     Public Sub webViewBitmap_MouseDown(ByVal sender As Object, ByVal e As MouseEventArgs) Handles MyBase.MouseDown, webViewBitmap.MouseDown
         m_WebView.InjectMouseDown(MouseButton.Left)
@@ -83,6 +73,10 @@ Public Class Form1
 
     Private Sub Form1_SizeChanged(ByVal sender As Object, ByVal e As EventArgs) Handles MyBase.ResizeEnd
         m_WebView.Resize(webViewBitmap.Width, webViewBitmap.Height)
+    End Sub
+
+    Private Sub Form1_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        m_WebView.Dispose()
     End Sub
 
     Private Sub m_WebView_IsDirtyChanged(sender As Object, e As EventArgs) Handles m_WebView.IsDirtyChanged

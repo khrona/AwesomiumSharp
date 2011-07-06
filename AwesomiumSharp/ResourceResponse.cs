@@ -26,7 +26,7 @@ namespace AwesomiumSharp
             IntPtr dataPtr = Marshal.AllocHGlobal( data.Length );
             Marshal.Copy( data, 0, dataPtr, data.Length );
 
-            instance = awe_resource_response_create( (uint)data.Length, dataPtr, mimeTypeStr.value() );
+            instance = awe_resource_response_create( (uint)data.Length, dataPtr, mimeTypeStr.Value );
 
             Marshal.FreeHGlobal( dataPtr );
         }
@@ -39,7 +39,7 @@ namespace AwesomiumSharp
         {
             StringHelper filePathStr = new StringHelper( filePath );
 
-            instance = awe_resource_response_create_from_file( filePathStr.value() );
+            instance = awe_resource_response_create_from_file( filePathStr.Value );
         }
 
         internal IntPtr getInstance()

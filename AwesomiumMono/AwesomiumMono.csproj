@@ -130,6 +130,9 @@
     <Compile Include="..\AwesomiumSharp\WebCore.cs">
       <Link>WebCore.cs</Link>
     </Compile>
+    <Compile Include="..\AwesomiumSharp\WebCoreConfig.cs">
+      <Link>WebCoreConfig.cs</Link>
+    </Compile>
     <Compile Include="..\AwesomiumSharp\WebView.cs">
       <Link>WebView.cs</Link>
     </Compile>

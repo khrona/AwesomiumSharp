@@ -49,6 +49,13 @@
  *      InitializeCommandBindings() to get an idea of what we support.
  *    
  * 
+ *    07/06/2011:
+ *    
+ *    - Changes in respect to the changes of the WebCore's auto-update
+ *      logic.
+ *      
+ *    - Minor fixes and improvements.
+ * 
  ********************************************************************************/
 
 #region Using
@@ -79,7 +86,6 @@ namespace AwesomiumSharp.Windows.Controls
 
         private static KeyGesture browseBackGesture;
 
-        private Timer updateTimer;
         private Matrix deviceTransform;
         private WriteableBitmap bitmap;
         private ToolTip toolTip;
@@ -120,8 +126,16 @@ namespace AwesomiumSharp.Windows.Controls
         /// Occurs when this WebView needs to be rendered again.
         /// </summary>
         /// <remarks>
-        /// This event is fired only if <see cref="WebCore.AutoUpdate"/> is set to true.
-        /// This event may be fired in a background thread.
+        /// <para>
+        /// This event is fired continuously while <see cref="IsDirty"/> is true and until a call 
+        /// to <see cref="Render"/> is made that will render the updated view into an offscreen
+        /// pixel buffer and clear the dirty state.
+        /// </para>
+        /// <para>
+        /// This event is not automatically fired if you are running Awesomium from a non-UI
+        /// thread. Please read the Remarks section of <see cref="WebCore.Update"/> for
+        /// details.
+        /// </para>
         /// </remarks>
         public event EventHandler IsDirtyChanged;
 
@@ -479,7 +493,6 @@ namespace AwesomiumSharp.Windows.Controls
             if ( DesignerProperties.GetIsInDesignMode( this ) )
                 return;
 
-            ToolTipService.SetIsEnabled( this, false );
             toolTip = new ToolTip();
 
             InitializeCore();
@@ -490,14 +503,18 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.Loaded += OnLoaded;
             this.Unloaded += OnUnloaded;
-
-            this.StartAutoUpdate();
         }
         #endregion
 
         #region Dtor
-        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
-        private static extern void awe_webview_destroy( IntPtr webview );
+        /// <summary>
+        /// Destroys and removes this web view control. Any call to members of this control
+        /// after calling this method, will cause a <see cref="InvalidOperationException"/>.
+        /// </summary>
+        public void Close()
+        {
+            this.Destroy();
+        }
 
         ~WebControl()
         {
@@ -508,20 +525,23 @@ namespace AwesomiumSharp.Windows.Controls
         {
             if ( Instance != IntPtr.Zero )
             {
-                if ( updateTimer != null )
+                // If there are other controls created, they will take care of this.
+                // If this is the only control created or left, the WebCore will
+                // automatically shutdown after removing it.
+                if ( Application.Current.MainWindow != null )
+                    Application.Current.MainWindow.Closing -= ShutdownCore;
+
+                if ( hookAdded )
                 {
-                    updateTimer.Dispose();
-                    updateTimer = null;
+                    HwndSource source = (HwndSource)PresentationSource.FromVisual( this );
+                    if ( source != null )
+                    {
+                        source.RemoveHook( HandleMessages );
+                        hookAdded = false;
+                    }
                 }
 
-                if ( !shuttingDown )
-                {
-                    if ( ( WebCore.activeWebViews != null ) && WebCore.activeWebViews.Contains( this ) )
-                        WebCore.activeWebViews.Remove( this );
-
-                    awe_webview_destroy( Instance );
-                }
-
+                WebCore.DestroyView( this );
                 Instance = IntPtr.Zero;
             }
         }
@@ -694,7 +714,6 @@ namespace AwesomiumSharp.Windows.Controls
                 return;
 
             FocusView();
-            //ResumeRendering();
 
             base.OnGotFocus( e );
         }
@@ -706,7 +725,6 @@ namespace AwesomiumSharp.Windows.Controls
                 return;
 
             UnfocusView();
-            //PauseRendering();
             toolTip.IsOpen = false;
 
             base.OnLostFocus( e );
@@ -790,25 +808,11 @@ namespace AwesomiumSharp.Windows.Controls
         #region InitializeCore
         private void InitializeCore()
         {
-            if ( !WebCore.IsInitialized )
-            {
-                WebCoreConfig config = new WebCoreConfig() { EnablePlugins = true, SaveCacheAndCookies = true };
-                WebCore.Initialize( config );
-            }
+            this.Instance = WebCore.CreateWebviewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this );
+            this.Focus();
 
-            if ( WebCore.IsInitialized )
-            {
-                this.Instance = WebCore.CreateWebviewInstance( (int)this.ActualWidth, (int)this.ActualHeight );
-                WebCore.activeWebViews.Add( this );
-                this.Focus();
-
-                if ( Application.Current.MainWindow != null )
-                    Application.Current.MainWindow.Closing += ShutdownCore;
-            }
-            else
-            {
-                throw new TypeInitializationException( typeof( WebCore ).FullName, null );
-            }
+            if ( Application.Current.MainWindow != null )
+                Application.Current.MainWindow.Closing += ShutdownCore;
         }
 
         private void ShutdownCore( object sender, CancelEventArgs e )
@@ -924,22 +928,6 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
-
-        #region StartAutoUpdate
-        private void StartAutoUpdate()
-        {
-            if ( DesignerProperties.GetIsInDesignMode( this ) )
-                return;
-
-            if ( !WebCore.AutoUpdate )
-            {
-                if ( WebCore.SynchronizationContext == null )
-                    throw new NotSupportedException( "WebControl cannot initiate automatic updating. A valid synchronization context could not be obtained." );
-
-                updateTimer = new Timer( UpdateTimerCallback, null, 0, 20 );
-            }
-        }
-        #endregion
 
         #region Update
         private void Update()
@@ -1105,23 +1093,6 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
-
-        #region PrepareForShutdown
-        internal void PrepareForShutdown()
-        {
-            if ( Instance != IntPtr.Zero )
-            {
-                resourceRequestCallback = null;
-                awe_webview_set_callback_resource_request( Instance, null );
-
-                resourceResponseCallback = null;
-                awe_webview_set_callback_resource_response( Instance, null );
-
-                this.Destroy( true );
-            }
-        }
-        #endregion
-
         #endregion
 
         #region Public
@@ -1142,7 +1113,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper usernameStr = new StringHelper( username );
             StringHelper passwordStr = new StringHelper( password );
 
-            awe_webview_load_url( Instance, urlStr.value(), frameNameStr.value(), usernameStr.value(), passwordStr.value() );
+            awe_webview_load_url( Instance, urlStr.Value, frameNameStr.Value, usernameStr.Value, passwordStr.Value );
         }
         #endregion
 
@@ -1157,7 +1128,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper htmlStr = new StringHelper( html );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_load_html( Instance, htmlStr.value(), frameNameStr.value() );
+            awe_webview_load_html( Instance, htmlStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -1172,7 +1143,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper fileStr = new StringHelper( file );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_load_file( Instance, fileStr.value(), frameNameStr.value() );
+            awe_webview_load_file( Instance, fileStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -1241,7 +1212,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper javascriptStr = new StringHelper( javascript );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            awe_webview_execute_javascript( Instance, javascriptStr.value(), frameNameStr.value() );
+            awe_webview_execute_javascript( Instance, javascriptStr.Value, frameNameStr.Value );
         }
         #endregion
 
@@ -1270,7 +1241,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper javascriptStr = new StringHelper( javascript );
             StringHelper frameNameStr = new StringHelper( frameName );
 
-            IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.value(), frameNameStr.value(), timeoutMs );
+            IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.Value, frameNameStr.Value, timeoutMs );
 
             JSValue result = new JSValue( temp ) { ownsInstance = true };
 
@@ -1296,7 +1267,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper functionStr = new StringHelper( function );
             StringHelper frameNameStr = new StringHelper( "" );
 
-            awe_webview_call_javascript_function( Instance, objectNameStr.value(), functionStr.value(), jsarray, frameNameStr.value() );
+            awe_webview_call_javascript_function( Instance, objectNameStr.Value, functionStr.Value, jsarray, frameNameStr.Value );
 
             JSArrayHelper.DestroyArray( jsarray );
         }
@@ -1319,7 +1290,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper objectNameStr = new StringHelper( objectName );
-            awe_webview_create_object( Instance, objectNameStr.value() );
+            awe_webview_create_object( Instance, objectNameStr.Value );
         }
         #endregion
 
@@ -1332,7 +1303,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper objectNameStr = new StringHelper( objectName );
-            awe_webview_destroy_object( Instance, objectNameStr.value() );
+            awe_webview_destroy_object( Instance, objectNameStr.Value );
         }
         #endregion
 
@@ -1362,7 +1333,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper objectNameStr = new StringHelper( objectName );
             StringHelper propertyNameStr = new StringHelper( propertyName );
 
-            awe_webview_set_object_property( Instance, objectNameStr.value(), propertyNameStr.value(), val.Instance );
+            awe_webview_set_object_property( Instance, objectNameStr.Value, propertyNameStr.Value, val.Instance );
         }
         #endregion
 
@@ -1399,7 +1370,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper objectNameStr = new StringHelper( objectName );
             StringHelper callbackNameStr = new StringHelper( callbackName );
 
-            awe_webview_set_object_callback( Instance, objectNameStr.value(), callbackNameStr.value() );
+            awe_webview_set_object_callback( Instance, objectNameStr.Value, callbackNameStr.Value );
 
             string key = String.Format( "{0}.{1}", objectName, callbackName );
 
@@ -1519,7 +1490,7 @@ namespace AwesomiumSharp.Windows.Controls
         {
             VerifyLive();
             StringHelper filterStr = new StringHelper( filter );
-            awe_webview_add_url_filter( Instance, filterStr.value() );
+            awe_webview_add_url_filter( Instance, filterStr.Value );
         }
         #endregion
 
@@ -1563,7 +1534,7 @@ namespace AwesomiumSharp.Windows.Controls
                 values[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.Get( i ).Length );
             }
 
-            awe_webview_set_header_definition( Instance, nameStr.value(), (uint)count, keys, values );
+            awe_webview_set_header_definition( Instance, nameStr.Value, (uint)count, keys, values );
 
             for ( uint i = 0; i < count; i++ )
             {
@@ -1584,7 +1555,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper ruleStr = new StringHelper( rule );
             StringHelper nameStr = new StringHelper( name );
 
-            awe_webview_add_header_rewrite_rule( Instance, ruleStr.value(), nameStr.value() );
+            awe_webview_add_header_rewrite_rule( Instance, ruleStr.Value, nameStr.Value );
         }
         #endregion
 
@@ -1597,7 +1568,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper ruleStr = new StringHelper( rule );
-            awe_webview_remove_header_rewrite_rule( Instance, ruleStr.value() );
+            awe_webview_remove_header_rewrite_rule( Instance, ruleStr.Value );
         }
         #endregion
 
@@ -1610,7 +1581,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper nameStr = new StringHelper( name );
-            awe_webview_remove_header_rewrite_rules_by_definition_name( Instance, nameStr.value() );
+            awe_webview_remove_header_rewrite_rules_by_definition_name( Instance, nameStr.Value );
         }
         #endregion
 
@@ -1622,7 +1593,7 @@ namespace AwesomiumSharp.Windows.Controls
         {
             VerifyLive();
             StringHelper filePathStr = new StringHelper( filePath );
-            awe_webview_choose_file( Instance, filePathStr.value() );
+            awe_webview_choose_file( Instance, filePathStr.Value );
         }
         #endregion
 
@@ -1649,7 +1620,7 @@ namespace AwesomiumSharp.Windows.Controls
         {
             VerifyLive();
             StringHelper frameNameStr = new StringHelper( frameName );
-            awe_webview_request_scroll_data( Instance, frameNameStr.value() );
+            awe_webview_request_scroll_data( Instance, frameNameStr.Value );
         }
         #endregion
 
@@ -1684,7 +1655,7 @@ namespace AwesomiumSharp.Windows.Controls
 
             findRequest = new FindData( findRequestRandomizer.Next(), searchStr, caseSensitive );
             StringHelper searchCStr = new StringHelper( searchStr );
-            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, caseSensitive, false );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.Value, forward, caseSensitive, false );
         }
 
         /// <summary>
@@ -1701,7 +1672,7 @@ namespace AwesomiumSharp.Windows.Controls
                 return;
 
             StringHelper searchCStr = new StringHelper( findRequest.SearchText );
-            awe_webview_find( Instance, findRequest.RequestID, searchCStr.value(), forward, findRequest.CaseSensitive, true );
+            awe_webview_find( Instance, findRequest.RequestID, searchCStr.Value, forward, findRequest.CaseSensitive, true );
         }
         #endregion
 
@@ -1737,7 +1708,7 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper sourceLanguageStr = new StringHelper( sourceLanguage );
             StringHelper targetLanguageStr = new StringHelper( targetLanguage );
 
-            awe_webview_translate_page( Instance, sourceLanguageStr.value(), targetLanguageStr.value() );
+            awe_webview_translate_page( Instance, sourceLanguageStr.Value, targetLanguageStr.Value );
         }
         #endregion
 
@@ -1779,7 +1750,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper inputCStr = new StringHelper( inputStr );
-            awe_webview_set_ime_composition( Instance, inputCStr.value(), cursorPos, targetStart, targetEnd );
+            awe_webview_set_ime_composition( Instance, inputCStr.Value, cursorPos, targetStart, targetEnd );
         }
         #endregion
 
@@ -1792,7 +1763,7 @@ namespace AwesomiumSharp.Windows.Controls
             VerifyLive();
 
             StringHelper inputCStr = new StringHelper( inputStr );
-            awe_webview_confirm_ime_composition( Instance, inputCStr.value() );
+            awe_webview_confirm_ime_composition( Instance, inputCStr.Value );
         }
         #endregion
 
@@ -2240,6 +2211,11 @@ namespace AwesomiumSharp.Windows.Controls
 
 
         #region Loaded
+        // In WPF, the Loaded/Unloaded events may be fired more than once
+        // in the lifetime of a control. Such as when the control is hidden/shown
+        // or when the control is completely covered by another control and
+        // then appears again (through a change in Panel.ZIndex for example).
+
         private bool hookAdded;
 
         private void OnLoaded( object sender, RoutedEventArgs e )
@@ -2253,11 +2229,13 @@ namespace AwesomiumSharp.Windows.Controls
                 source.AddHook( HandleMessages );
                 hookAdded = true;
             }
+
+            ResumeRendering();
         }
 
         private void OnUnloaded( object sender, RoutedEventArgs e )
         {
-            //
+            PauseRendering();
         }
         #endregion
 
@@ -2277,23 +2255,6 @@ namespace AwesomiumSharp.Windows.Controls
             }
 
             return IntPtr.Zero;
-        }
-        #endregion
-
-        #region UpdateTimerCallback
-        private void UpdateTimerCallback( object state )
-        {
-            if ( WebCore.SynchronizationContext != null )
-                WebCore.SynchronizationContext.Post( UpdateSync, state );
-        }
-
-        private void UpdateSync( object state )
-        {
-            if ( Instance != IntPtr.Zero )
-            {
-                WebCore.Update();
-                this.IsDirty = awe_webview_is_dirty( Instance );
-            }
         }
         #endregion
 
@@ -2432,9 +2393,7 @@ namespace AwesomiumSharp.Windows.Controls
         {
             ChangeCursorEventArgs e = new ChangeCursorEventArgs( (CursorType)cursor );
 
-            this.Cursor = e.CursorType == AwesomiumSharp.CursorType.Hand ?
-                Cursors.Hand : e.CursorType == AwesomiumSharp.CursorType.Ibeam ?
-                Cursors.IBeam : Cursors.Arrow;
+            this.Cursor = Utilities.GetCursor( e.CursorType );
             this.OnCursorChanged( this, e );
         }
         #endregion
@@ -2745,22 +2704,18 @@ namespace AwesomiumSharp.Windows.Controls
 
 
         #region IWebView Members
-        void IWebView.OnCoreAutoUpdateChanged( bool newValue )
-        {
-            if ( newValue && ( updateTimer != null ) )
-            {
-                updateTimer.Dispose();
-                updateTimer = null;
-            }
-            else if ( !newValue && ( updateTimer == null ) )
-            {
-                this.StartAutoUpdate();
-            }
-        }
-
         void IWebView.PrepareForShutdown()
         {
-            PrepareForShutdown();
+            if ( Instance != IntPtr.Zero )
+            {
+                resourceRequestCallback = null;
+                awe_webview_set_callback_resource_request( Instance, null );
+
+                resourceResponseCallback = null;
+                awe_webview_set_callback_resource_response( Instance, null );
+
+                this.Destroy( true );
+            }
         }
 
         IntPtr IWebView.Instance
