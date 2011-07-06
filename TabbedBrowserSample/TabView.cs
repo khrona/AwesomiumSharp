@@ -1,33 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using AwesomiumSharp;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using AwesomiumSharp;
-using System.Windows.Threading;
-using System.Runtime.InteropServices;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Collections;
-using System.Timers;
 
 namespace TabbedBrowserSample
 {
     public class OpenLinkEventArgs : EventArgs
     {
-        public OpenLinkEventArgs(string url) { this.url = url; }
+        public OpenLinkEventArgs( string url ) { this.url = url; }
         public string url;
     };
 
-    public delegate void OpenLinkHandler(object sender, OpenLinkEventArgs e);
+    public delegate void OpenLinkHandler( object sender, OpenLinkEventArgs e );
 
     public class TabView
     {
@@ -41,13 +29,13 @@ namespace TabbedBrowserSample
         int zoomPercent = 100;
         ToolTip tip;
         bool hasFocus = true;
-        bool isLoading = false;
+        bool isLoading;
 
         public event EventHandler OnUpdateURL;
         public event EventHandler OnUpdateTitle;
         public event OpenLinkHandler OnOpenExternalLink;
 
-        public TabView(TabControl tabControl)
+        public TabView( TabControl tabControl )
         {
             this.tabControl = tabControl;
             this.url = "";
@@ -59,20 +47,21 @@ namespace TabbedBrowserSample
             img.Focusable = true;
             tab.Content = img;
             tab.Header = title;
-            tabControl.Items.Add(tab);
+            tabControl.Items.Add( tab );
             tab.Height = 25;
             img.Width = tabControl.Width;
             img.Height = tabControl.Height - (int)tab.Height - 2;
             tip = new ToolTip();
             tip.IsOpen = false;
             tab.ToolTip = tip;
-            ToolTipService.SetIsEnabled(tab, false);
+            ToolTipService.SetIsEnabled( tab, false );
 
-            src = new WriteableBitmap((int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2, 96, 96, PixelFormats.Bgra32, BitmapPalettes.WebPaletteTransparent);
+            src = new WriteableBitmap( (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2, 96, 96, PixelFormats.Bgra32, BitmapPalettes.WebPaletteTransparent );
             img.Source = src;
             tab.Content = img;
-            myRect = new Int32Rect(0, 0, (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2);
-            webView = WebCore.CreateWebview((int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2);
+            myRect = new Int32Rect( 0, 0, (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
+            webView = WebCore.CreateWebview( (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
+            webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.Focus();
 
             img.MouseWheel += mainWindowMouseWheel;
@@ -81,23 +70,24 @@ namespace TabbedBrowserSample
             img.MouseUp += browserImageMouseUp;
 
             // Setup Callbacks
-            webView.OnBeginNavigation += onBeginNavigation;
-            webView.OnBeginLoading += onBeginLoading;
-            webView.OnChangeCursor += onChangeCursor;
-            webView.OnChangeTooltip += onChangeTooltip;
-            webView.OnFinishLoading += onFinishLoading;
-            webView.OnOpenExternalLink += onOpenExternalLink;
-            webView.OnReceiveTitle += onReceiveTitle;
-            webView.OnWebViewCrashed += onWebviewCrashed;
+            webView.BeginNavigation += onBeginNavigation;
+            webView.BeginLoading += onBeginLoading;
+            webView.CursorChanged += onChangeCursor;
+            webView.TooltipChanged += onChangeTooltip;
+            webView.LoadCompleted += onFinishLoading;
+            webView.OpenExternalLink += onOpenExternalLink;
+            webView.TitleReceived += onReceiveTitle;
+            webView.Crashed += onWebviewCrashed;
         }
 
-        public void loadUrl(String url)
+        public void loadUrl( String url )
         {
-            webView.LoadURL(url);
+            webView.LoadURL( url );
         }
 
         ~TabView()
         {
+            webView.IsDirtyChanged -= OnIsDirtyChanged;
             webView.Dispose();
         }
 
@@ -106,7 +96,7 @@ namespace TabbedBrowserSample
             hasFocus = true;
             webView.Focus();
             webView.ResumeRendering();
-            ToolTipService.SetIsEnabled(tab, false);
+            ToolTipService.SetIsEnabled( tab, false );
         }
 
         public void unfocus()
@@ -116,15 +106,20 @@ namespace TabbedBrowserSample
             webView.PauseRendering();
             tip.IsOpen = false;
             tip.Content = title;
-            ToolTipService.SetIsEnabled(tab, true);
+            ToolTipService.SetIsEnabled( tab, true );
+        }
+
+        private void OnIsDirtyChanged( object sender, EventArgs e )
+        {
+            render();
         }
 
         public void render()
         {
-            if (webView.IsDirty() && hasFocus)
+            if ( webView.IsDirty && hasFocus )
             {
                 RenderBuffer rBuffer = webView.Render();
-                rBuffer.CopyToBitmap(src);
+                rBuffer.CopyToBitmap( src );
                 img.Source = src;
             }
         }
@@ -136,47 +131,47 @@ namespace TabbedBrowserSample
 
         public void zoomOut()
         {
-            if (zoomPercent > 10)
-                webView.SetZoom(zoomPercent -= 20);
+            if ( zoomPercent > 10 )
+                webView.SetZoom( zoomPercent -= 20 );
         }
 
         public void zoomIn()
         {
-            if (zoomPercent < 500)
-                webView.SetZoom(zoomPercent += 20);
+            if ( zoomPercent < 500 )
+                webView.SetZoom( zoomPercent += 20 );
         }
 
-        void mainWindowMouseWheel(object sender, MouseWheelEventArgs e)
+        void mainWindowMouseWheel( object sender, MouseWheelEventArgs e )
         {
-            webView.InjectMouseWheel(e.Delta);
+            webView.InjectMouseWheel( e.Delta );
         }
 
-        void browserImageMouseMove(object sender, MouseEventArgs e)
+        void browserImageMouseMove( object sender, MouseEventArgs e )
         {
-            Point position = e.GetPosition(img);
-            webView.InjectMouseMove((int)position.X, (int)position.Y);
+            Point position = e.GetPosition( img );
+            webView.InjectMouseMove( (int)position.X, (int)position.Y );
         }
 
-        void browserImageMouseDown(object sender, MouseButtonEventArgs e)
+        void browserImageMouseDown( object sender, MouseButtonEventArgs e )
         {
             img.Focus();
             webView.Focus();
-            webView.InjectMouseDown(AwesomiumSharp.MouseButton.Left);
+            webView.InjectMouseDown( AwesomiumSharp.MouseButton.Left );
         }
 
-        void browserImageMouseUp(object sender, MouseButtonEventArgs e)
+        void browserImageMouseUp( object sender, MouseButtonEventArgs e )
         {
-            webView.InjectMouseUp(AwesomiumSharp.MouseButton.Left);
+            webView.InjectMouseUp( AwesomiumSharp.MouseButton.Left );
         }
 
-        public void handleKeyboardEvent(int msg, int wParam, int lParam)
+        public void handleKeyboardEvent( int msg, int wParam, int lParam )
         {
-            webView.InjectKeyboardEventWin(msg, wParam, lParam);
+            webView.InjectKeyboardEventWin( msg, wParam, lParam );
         }
 
-        public void goToHistoryOffset(int offset)
+        public void goToHistoryOffset( int offset )
         {
-            webView.GoToHistoryOffset(offset);
+            webView.GoToHistoryOffset( offset );
         }
 
         public void reload()
@@ -184,14 +179,14 @@ namespace TabbedBrowserSample
             webView.Reload();
         }
 
-        public void executeJavascript(string javascript)
+        public void executeJavascript( string javascript )
         {
-            webView.ExecuteJavascript(javascript);
+            webView.ExecuteJavascript( javascript );
         }
 
-        public void loadURL(string URL)
+        public void loadURL( string URL )
         {
-            webView.LoadURL(URL);
+            webView.LoadURL( URL );
         }
 
         public string getURL()
@@ -211,28 +206,15 @@ namespace TabbedBrowserSample
 
         private void updateTabHeader()
         {
-            string tabTitle;
+            string tabTitle = title.Length > 25 ? String.Format( "{0}...", title.Remove( 25, title.Length - 25 ) ) : title;
 
-            if (title.Length > 25)
-                tabTitle = title.Remove(25, title.Length - 25) + "...";
-            else
-                tabTitle = title;
-
-            if (isLoading)
+            if ( isLoading )
             {
-                StackPanel panel = new StackPanel();
-                panel.Height = 18;
-                panel.Orientation = Orientation.Horizontal;
-
-                TextBlock titleBlock = new TextBlock();
-                titleBlock.Text = tabTitle;
-                titleBlock.Margin = new Thickness(0, 0, 5, 0);
-                panel.Children.Add(titleBlock);
-
-                GifImage indicator = new GifImage(new Uri("throbber.gif", UriKind.Relative));
-                indicator.Width = 16;
-                indicator.Height = 16;
-                panel.Children.Add(indicator);
+                StackPanel panel = new StackPanel { Height = 18, Orientation = Orientation.Horizontal };
+                TextBlock titleBlock = new TextBlock { Text = tabTitle, Margin = new Thickness( 0, 0, 5, 0 ) };
+                panel.Children.Add( titleBlock );
+                GifImage indicator = new GifImage( new Uri( "throbber.gif", UriKind.Relative ) ) { Width = 16, Height = 16 };
+                panel.Children.Add( indicator );
 
                 tab.Header = panel;
             }
@@ -242,37 +224,37 @@ namespace TabbedBrowserSample
             }
         }
 
-        private void onBeginNavigation(object sender, WebView.BeginNavigationEventArgs e)
+        private void onBeginNavigation( object sender, BeginNavigationEventArgs e )
         {
             isLoading = true;
             updateTabHeader();
         }
 
-        private void onBeginLoading(object sender, WebView.BeginLoadingEventArgs e)
+        private void onBeginLoading( object sender, BeginLoadingEventArgs e )
         {
-            url = e.url;
+            url = e.Url;
             isLoading = true;
             updateTabHeader();
 
-            if (OnUpdateURL != null)
-                OnUpdateURL(this, null);
+            if ( OnUpdateURL != null )
+                OnUpdateURL( this, null );
         }
 
-        private void onChangeCursor(object sender, WebView.ChangeCursorEventArgs e)
+        private void onChangeCursor( object sender, ChangeCursorEventArgs e )
         {
-            if (e.cursorType == AwesomiumSharp.CursorType.Hand)
+            if ( e.CursorType == AwesomiumSharp.CursorType.Hand )
                 tab.Cursor = Cursors.Hand;
-            else if (e.cursorType == AwesomiumSharp.CursorType.Ibeam)
+            else if ( e.CursorType == AwesomiumSharp.CursorType.Ibeam )
                 tab.Cursor = Cursors.IBeam;
             else
                 tab.Cursor = Cursors.Arrow;
         }
 
-        private void onChangeTooltip(object sender, WebView.ChangeTooltipEventArgs e)
+        private void onChangeTooltip( object sender, ChangeTooltipEventArgs e )
         {
-            if (e.tooltip.Length > 0)
+            if ( e.Tooltip.Length > 0 )
             {
-                tip.Content = e.tooltip;
+                tip.Content = e.Tooltip;
                 tip.IsOpen = true;
                 tip.IsEnabled = true;
             }
@@ -283,28 +265,28 @@ namespace TabbedBrowserSample
             }
         }
 
-        private void onFinishLoading(object sender, WebView.FinishLoadingEventArgs e)
+        private void onFinishLoading( object sender, EventArgs e )
         {
             isLoading = false;
             updateTabHeader();
         }
 
-        private void onOpenExternalLink(object sender, WebView.OpenExternalLinkEventArgs e)
+        private void onOpenExternalLink( object sender, OpenExternalLinkEventArgs e )
         {
-            if (OnOpenExternalLink != null && e.url.Length > 0)
-                OnOpenExternalLink(this, new OpenLinkEventArgs(e.url));
+            if ( OnOpenExternalLink != null && e.Url.Length > 0 )
+                OnOpenExternalLink( this, new OpenLinkEventArgs( e.Url ) );
         }
 
-        private void onReceiveTitle(object sender, WebView.ReceiveTitleEventArgs e)
+        private void onReceiveTitle( object sender, ReceiveTitleEventArgs e )
         {
-            title = e.title;
+            title = e.Title;
             updateTabHeader();
 
-            if (OnUpdateTitle != null)
-                OnUpdateTitle(this, null);
+            if ( OnUpdateTitle != null )
+                OnUpdateTitle( this, null );
         }
 
-        private void onWebviewCrashed(object sender, WebView.WebViewCrashedEventArgs e)
+        private void onWebviewCrashed( object sender,EventArgs e )
         {
             tab.Content = "Oh no! Something broke-- this tab has crashed.";
         }
@@ -316,39 +298,39 @@ namespace TabbedBrowserSample
 
         public int FrameIndex
         {
-            get { return (int)GetValue(FrameIndexProperty); }
-            set { SetValue(FrameIndexProperty, value); }
+            get { return (int)GetValue( FrameIndexProperty ); }
+            set { SetValue( FrameIndexProperty, value ); }
         }
 
         public static readonly DependencyProperty FrameIndexProperty =
-            DependencyProperty.Register("FrameIndex", typeof(int), typeof(GifImage), new UIPropertyMetadata(0, new PropertyChangedCallback(ChangingFrameIndex)));
+            DependencyProperty.Register( "FrameIndex", typeof( int ), typeof( GifImage ), new UIPropertyMetadata( 0, ChangingFrameIndex ) );
 
-        static void ChangingFrameIndex(DependencyObject obj, DependencyPropertyChangedEventArgs ev)
+        static void ChangingFrameIndex( DependencyObject obj, DependencyPropertyChangedEventArgs ev )
         {
             GifImage ob = obj as GifImage;
-            ob.Source = ob.gf.Frames[(int)ev.NewValue];
+            ob.Source = ob.gf.Frames[ (int)ev.NewValue ];
             ob.InvalidateVisual();
         }
 
         GifBitmapDecoder gf;
         Int32Animation anim;
-        bool isRunning = false;
+        bool isRunning;
 
-        public GifImage(Uri uri)
+        public GifImage( Uri uri )
         {
-            gf = new GifBitmapDecoder(uri, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
-            anim = new Int32Animation(0, gf.Frames.Count - 1, new Duration(new TimeSpan(0, 0, 0, gf.Frames.Count / (int)fps, 
-                (int)((gf.Frames.Count / (double)fps - gf.Frames.Count / (int)fps) * 1000))));
+            gf = new GifBitmapDecoder( uri, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default );
+            anim = new Int32Animation( 0, gf.Frames.Count - 1, new Duration( new TimeSpan( 0, 0, 0, gf.Frames.Count / (int)fps,
+                (int)( ( gf.Frames.Count / (double)fps - gf.Frames.Count / (int)fps ) * 1000 ) ) ) );
             anim.RepeatBehavior = RepeatBehavior.Forever;
-            Source = gf.Frames[0];
+            Source = gf.Frames[ 0 ];
         }
 
-        protected override void OnRender(DrawingContext dc)
+        protected override void OnRender( DrawingContext dc )
         {
-            base.OnRender(dc);
-            if (!isRunning)
+            base.OnRender( dc );
+            if ( !isRunning )
             {
-                BeginAnimation(FrameIndexProperty, anim);
+                BeginAnimation( FrameIndexProperty, anim );
                 isRunning = true;
             }
         }

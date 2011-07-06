@@ -37,6 +37,75 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\AwesomiumSharp\EventArgs\BeginLoadingEventArgs.cs">
+      <Link>EventArgs\BeginLoadingEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\BeginNavigationEventArgs.cs">
+      <Link>EventArgs\BeginNavigationEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ChangeCursorEventArgs.cs">
+      <Link>EventArgs\ChangeCursorEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ChangeKeyboardFocusEventArgs.cs">
+      <Link>EventArgs\ChangeKeyboardFocusEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ChangeTooltipEventArgs.cs">
+      <Link>EventArgs\ChangeTooltipEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\GetFindResultsEventArgs.cs">
+      <Link>EventArgs\GetFindResultsEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\GetPageContentsEventArgs.cs">
+      <Link>EventArgs\GetPageContentsEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\GetScrollDataEventArgs.cs">
+      <Link>EventArgs\GetScrollDataEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\JSCallbackEventArgs.cs">
+      <Link>EventArgs\JSCallbackEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\JSConsoleMessageEventArgs.cs">
+      <Link>EventArgs\JSConsoleMessageEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\MoveEventArgs.cs">
+      <Link>EventArgs\MoveEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\OpenExternalLinkEventArgs.cs">
+      <Link>EventArgs\OpenExternalLinkEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\PluginCrashedEventArgs.cs">
+      <Link>EventArgs\PluginCrashedEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ReceiveTitleEventArgs.cs">
+      <Link>EventArgs\ReceiveTitleEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ResourceRequestEventArgs.cs">
+      <Link>EventArgs\ResourceRequestEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\ResourceResponseEventArgs.cs">
+      <Link>EventArgs\ResourceResponseEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\SelectLocalFilesEventArgs.cs">
+      <Link>EventArgs\SelectLocalFilesEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\UpdateImeEventArgs.cs">
+      <Link>EventArgs\UpdateImeEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\UrlEventArgs.cs">
+      <Link>EventArgs\UrlEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\FindData.cs">
+      <Link>FindData.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\IWebView.cs">
+      <Link>IWebView.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\JSArrayHelper.cs">
+      <Link>JSArrayHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\JSObject.cs">
+      <Link>JSObject.cs</Link>
+    </Compile>
     <Compile Include="..\AwesomiumSharp\JSValue.cs">
       <Link>JSValue.cs</Link>
     </Compile>
@@ -46,8 +115,23 @@
     <Compile Include="..\AwesomiumSharp\RenderBuffer.cs">
       <Link>RenderBuffer.cs</Link>
     </Compile>
+    <Compile Include="..\AwesomiumSharp\ResourceRequest.cs">
+      <Link>ResourceRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\ResourceResponse.cs">
+      <Link>ResourceResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\UploadElement.cs">
+      <Link>UploadElement.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\ViewModel.cs">
+      <Link>ViewModel.cs</Link>
+    </Compile>
     <Compile Include="..\AwesomiumSharp\WebCore.cs">
       <Link>WebCore.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\WebCoreConfig.cs">
+      <Link>WebCoreConfig.cs</Link>
     </Compile>
     <Compile Include="..\AwesomiumSharp\WebView.cs">
       <Link>WebView.cs</Link>

@@ -1,8 +1,20 @@
-﻿<Window x:Class="TabbedBrowserSample.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Tabbed Browser Sample - Awesomium" Height="846" Width="1319" ResizeMode="NoResize" Name="browserWindow" Loaded="browserWindow_Loaded" SizeToContent="Manual">
-
+﻿<Window 
+    x:Class="TabbedBrowserSample.MainWindow" 
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+    Title="Tabbed Browser Sample - Awesomium" 
+    Height="846" 
+    Width="1319" 
+    ResizeMode="NoResize" 
+    Name="browserWindow" 
+    Loaded="browserWindow_Loaded" 
+    SizeToContent="Manual">
+    <Window.Background>
+        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+            <GradientStop Color="#FF514D4D" Offset="0" />
+            <GradientStop Color="Black" Offset="1" />
+        </LinearGradientBrush>
+    </Window.Background>
     <Window.Resources>
         <ControlTemplate x:Key="HorizontalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
             <Grid x:Name="Bg" SnapsToDevicePixels="True" Background="Black">
@@ -122,10 +134,16 @@
             </ControlTemplate.Triggers>
         </ControlTemplate>
     </Window.Resources>
-
-
     <Grid Background="#44444444" Width="1326" Name="grid1">
-        <TextBox Height="40" HorizontalAlignment="Left" Margin="293,6,0,0" Name="txtAddress" VerticalAlignment="Top" Width="519" FontSize="24" Foreground="White">
+        <TextBox 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="293,6,0,0" 
+            Name="txtAddress" 
+            VerticalAlignment="Top" 
+            Width="519" 
+            FontSize="24" 
+            Foreground="White">
             <TextBox.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF424242" Offset="0" />
@@ -133,7 +151,21 @@
                 </LinearGradientBrush>
             </TextBox.Background>
         </TextBox>
-        <Button Content="Back" Height="40" HorizontalAlignment="Left" Margin="16,6,0,0" Name="btnBack" VerticalAlignment="Top" Width="75" Click="btnBack_Click" FontWeight="Bold" Foreground="White" BorderThickness="0" ClipToBounds="False" OverridesDefaultStyle="False" AllowDrop="False">
+        <Button 
+            Content="Back" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="16,6,0,0" 
+            Name="btnBack" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnBack_Click" 
+            FontWeight="Bold" 
+            Foreground="White" 
+            BorderThickness="0" 
+            ClipToBounds="False" 
+            OverridesDefaultStyle="False" 
+            AllowDrop="False">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -143,7 +175,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Foward" Height="40" HorizontalAlignment="Left" Margin="97,6,0,0" Name="btnForward" VerticalAlignment="Top" Width="75" Click="btnForward_Click" FontWeight="Bold" Foreground="White">
+        <Button 
+            Content="Foward" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="97,6,0,0" 
+            Name="btnForward" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnForward_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -153,7 +195,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Zoom In" Height="40" HorizontalAlignment="Left" Margin="1014,6,0,0" Name="btnZoomIn" VerticalAlignment="Top" Width="75" Click="btnZoomIn_Click" FontWeight="Bold" Foreground="White">
+        <Button 
+            Content="Zoom In" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="1014,6,0,0" 
+            Name="btnZoomIn" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnZoomIn_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -163,7 +215,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Zoom Out" Height="40" HorizontalAlignment="Left" Margin="1095,6,0,0" Name="btnZoomOut" VerticalAlignment="Top" Width="75" Click="btnZoomOut_Click" FontWeight="Bold" Foreground="White">
+        <Button 
+            Content="Zoom Out" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="1095,6,0,0" 
+            Name="btnZoomOut" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnZoomOut_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -173,7 +235,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Go" Height="40" HorizontalAlignment="Left" Margin="818,6,0,0" Name="btnGo" VerticalAlignment="Top" Width="75" Click="btnGo_Click" FontWeight="Bold" Foreground="White">
+        <Button 
+            Content="Go" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="818,6,0,0" 
+            Name="btnGo" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnGo_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -183,7 +255,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Refresh" Height="40" HorizontalAlignment="Left" Margin="195,6,0,0" Name="btnRefresh" VerticalAlignment="Top" Width="75" Click="btnRefresh_Click" FontWeight="Bold" Foreground="White">
+        <Button 
+            Content="Refresh" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="195,6,0,0" 
+            Name="btnRefresh" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnRefresh_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -193,8 +275,30 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <TabControl  Template="{DynamicResource ScrollableTabControlTemplate}" HorizontalAlignment="Left" Margin="16,78,0,0" Name="tabControl" VerticalAlignment="Top" Padding="0" BorderThickness="0" Width="1280" Height="720" ClipToBounds="False" MaxHeight="720" MaxWidth="1280"></TabControl>
-        <Button Content="Home" Height="40" HorizontalAlignment="Left" Margin="916,6,0,0" Name="btnHome" VerticalAlignment="Top" Width="75" Click="btnHome_Click" FontWeight="Bold" Foreground="White">
+        <TabControl 
+            Template="{DynamicResource ScrollableTabControlTemplate}" 
+            HorizontalAlignment="Left" 
+            Margin="16,78,0,0" 
+            Name="tabControl" 
+            VerticalAlignment="Top" 
+            Padding="0" 
+            BorderThickness="0" 
+            Width="1280" 
+            Height="720" 
+            ClipToBounds="False" 
+            MaxHeight="720" 
+            MaxWidth="1280" />
+        <Button 
+            Content="Home" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="916,6,0,0" 
+            Name="btnHome" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            Click="btnHome_Click" 
+            FontWeight="Bold" 
+            Foreground="White">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -204,7 +308,18 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="+" Height="25" Width="25" Margin="16,53,1286,0" Name="addTab" VerticalAlignment="Top" Click="addTab_Click" Foreground="White" FontWeight="Bold" FontSize="16" FontFamily="Cambria Math">
+        <Button 
+            Content="+" 
+            Height="25" 
+            Width="25" 
+            Margin="16,53,1286,0" 
+            Name="addTab" 
+            VerticalAlignment="Top" 
+            Click="addTab_Click" 
+            Foreground="White" 
+            FontWeight="Bold" 
+            FontSize="16" 
+            FontFamily="Cambria Math">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -214,7 +329,18 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="-" Height="25" Margin="47,53,1254,0" Name="removeTab" VerticalAlignment="Top" Width="25" Click="removeTab_Click" FontFamily="Cambria Math" FontWeight="Bold" Foreground="White" FontSize="20">
+        <Button 
+            Content="-" 
+            Height="25" 
+            Margin="47,53,1254,0" 
+            Name="removeTab" 
+            VerticalAlignment="Top" 
+            Width="25" 
+            Click="removeTab_Click" 
+            FontFamily="Cambria Math" 
+            FontWeight="Bold" 
+            Foreground="White" 
+            FontSize="20">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -224,7 +350,17 @@
                 </LinearGradientBrush>
             </Button.Background>
         </Button>
-        <Button Content="Print" Height="40" HorizontalAlignment="Left" Margin="1200,6,0,0" Name="print" VerticalAlignment="Top" Width="75" FontWeight="Bold" Foreground="White" Click="print_Click">
+        <Button 
+            Content="Print" 
+            Height="40" 
+            HorizontalAlignment="Left" 
+            Margin="1200,6,0,0" 
+            Name="print" 
+            VerticalAlignment="Top" 
+            Width="75" 
+            FontWeight="Bold" 
+            Foreground="White" 
+            Click="print_Click">
             <Button.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="#FF414141" Offset="0.525" />
@@ -235,10 +371,4 @@
             </Button.Background>
         </Button>
     </Grid>
-    <Window.Background>
-        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
-            <GradientStop Color="#FF514D4D" Offset="0" />
-            <GradientStop Color="Black" Offset="1" />
-        </LinearGradientBrush>
-    </Window.Background>
 </Window>

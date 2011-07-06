@@ -4,24 +4,24 @@ Imports System.Drawing.Imaging
 Imports Microsoft.VisualBasic
 
 Public Class Form1
-    Dim webView As WebView
-    Dim bitmap As Bitmap
+    Private WithEvents m_WebView As WebView
+    Private bitmap As Bitmap
 
-    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
-        Dim config As WebCore.Config = New WebCore.Config()
-        config.enablePlugins = True
+    Private Sub Form1_Load(ByVal sender As Object, ByVal e As EventArgs) Handles MyBase.Load
+        Dim config As WebCoreConfig = New WebCoreConfig() With {.EnablePlugins = True}
 
         WebCore.Initialize(config)
-        webView = WebCore.CreateWebview(webViewBitmap.Width, webViewBitmap.Height)
-        webView.LoadURL("http://www.google.com")
-        webView.Focus()
+        m_WebView = WebCore.CreateWebview(webViewBitmap.Width, webViewBitmap.Height)
+        m_WebView.LoadURL("http://www.google.com")
+        m_WebView.Focus()
     End Sub
 
-    Private Sub render()
-        Dim rBuffer As RenderBuffer = webView.Render()
+    Private Sub Render()
+        Dim rBuffer As RenderBuffer = m_WebView.Render()
+        Debug.Print(String.Format("VB: {0}", m_WebView.IsDirty))
 
-        Dim data(webViewBitmap.Width * webViewBitmap.Height) As Integer
-        Marshal.Copy(rBuffer.GetBuffer(), data, 0, webViewBitmap.Width * webViewBitmap.Height)
+        'Dim data(webViewBitmap.Width * webViewBitmap.Height) As Integer
+        'Marshal.Copy(rBuffer.Buffer, data, 0, webViewBitmap.Width * webViewBitmap.Height)
 
         If bitmap Is Nothing Then
             bitmap = New Bitmap(webViewBitmap.Width, webViewBitmap.Height, PixelFormat.Format32bppArgb)
@@ -40,51 +40,48 @@ Public Class Form1
         webViewBitmap.Image = bitmap
     End Sub
 
-    Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
-        WebCore.Update()
-        If webView.IsDirty Then
-            render()
-        End If
+    Public Sub webViewBitmap_MouseDown(ByVal sender As Object, ByVal e As MouseEventArgs) Handles MyBase.MouseDown, webViewBitmap.MouseDown
+        m_WebView.InjectMouseDown(MouseButton.Left)
     End Sub
 
-    Public Sub webViewBitmap_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseDown, webViewBitmap.MouseDown
-        webView.InjectMouseDown(MouseButton.Left)
+    Public Sub webViewBitmap_MouseMove(ByVal sender As Object, ByVal e As MouseEventArgs) Handles MyBase.MouseMove, webViewBitmap.MouseMove
+        m_WebView.InjectMouseMove(e.X, e.Y)
     End Sub
 
-    Public Sub webViewBitmap_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseMove, webViewBitmap.MouseMove
-        webView.InjectMouseMove(e.X, e.Y)
+    Public Sub webViewBitmap_MouseUp(ByVal sender As Object, ByVal e As MouseEventArgs) Handles MyBase.MouseUp, webViewBitmap.MouseUp
+        m_WebView.InjectMouseUp(MouseButton.Left)
     End Sub
 
-    Public Sub webViewBitmap_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseUp, webViewBitmap.MouseUp
-        webView.InjectMouseUp(MouseButton.Left)
+    Public Sub webViewBitmap_MouseWheel(ByVal sender As Object, ByVal e As MouseEventArgs) Handles MyBase.MouseWheel
+        m_WebView.InjectMouseWheel(e.Delta)
     End Sub
 
-    Public Sub webViewBitmap_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles MyBase.MouseWheel
-        webView.InjectMouseWheel(e.Delta)
-    End Sub
-
-    Public Sub Form1_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyDown
-        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent
-        keyEvent.type = WebKeyType.KeyDown
-        keyEvent.virtualKeyCode = e.KeyCode
-        webView.InjectKeyboardEvent(keyEvent)
+    Public Sub Form1_KeyDown(ByVal sender As Object, ByVal e As KeyEventArgs) Handles MyBase.KeyDown
+        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent() With {.Type = WebKeyType.KeyDown, .VirtualKeyCode = e.KeyCode}
+        m_WebView.InjectKeyboardEvent(keyEvent)
     End Sub
 
     Private Sub Form1_KeyPress(ByVal sender As Object, ByVal e As KeyPressEventArgs) Handles MyBase.KeyPress
-        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent
-        keyEvent.type = WebKeyType.Char
-        keyEvent.text = New UShort() {Asc(e.KeyChar), 0, 0, 0}
-        webView.InjectKeyboardEvent(keyEvent)
+        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent() With {.Type = WebKeyType.Char, .Text = New UShort() {Asc(e.KeyChar), 0, 0, 0}}
+        m_WebView.InjectKeyboardEvent(keyEvent)
     End Sub
 
-    Public Sub Form1_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
-        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent
-        keyEvent.type = WebKeyType.KeyUp
-        keyEvent.virtualKeyCode = e.KeyCode
-        webView.InjectKeyboardEvent(keyEvent)
+    Public Sub Form1_KeyUp(ByVal sender As Object, ByVal e As KeyEventArgs) Handles MyBase.KeyUp
+        Dim keyEvent As WebKeyboardEvent = New WebKeyboardEvent() With {.Type = WebKeyType.KeyUp, .VirtualKeyCode = e.KeyCode}
+        m_WebView.InjectKeyboardEvent(keyEvent)
     End Sub
 
-    Private Sub Form1_SizeChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.ResizeEnd
-        webView.Resize(webViewBitmap.Width, webViewBitmap.Height)
+    Private Sub Form1_SizeChanged(ByVal sender As Object, ByVal e As EventArgs) Handles MyBase.ResizeEnd
+        m_WebView.Resize(webViewBitmap.Width, webViewBitmap.Height)
+    End Sub
+
+    Private Sub Form1_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        m_WebView.Dispose()
+    End Sub
+
+    Private Sub m_WebView_IsDirtyChanged(sender As Object, e As EventArgs) Handles m_WebView.IsDirtyChanged
+        If m_WebView.IsDirty Then
+            Render()
+        End If
     End Sub
 End Class
