@@ -47,13 +47,63 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\Utilities.cs" />
+    <Compile Include="Controls\WebControlCommands.cs" />
+    <None Include="Controls\WebControlLayer.cs" />
+    <Compile Include="EventArgs\BeginLoadingEventArgs.cs" />
+    <Compile Include="EventArgs\BeginNavigationEventArgs.cs" />
+    <Compile Include="EventArgs\ChangeCursorEventArgs.cs" />
+    <Compile Include="EventArgs\ChangeKeyboardFocusEventArgs.cs" />
+    <Compile Include="EventArgs\ChangeTooltipEventArgs.cs" />
+    <Compile Include="EventArgs\UrlEventArgs.cs" />
+    <Compile Include="EventArgs\GetFindResultsEventArgs.cs" />
+    <Compile Include="EventArgs\GetPageContentsEventArgs.cs" />
+    <Compile Include="EventArgs\GetScrollDataEventArgs.cs" />
+    <Compile Include="EventArgs\JSCallbackEventArgs.cs" />
+    <Compile Include="EventArgs\JSConsoleMessageEventArgs.cs" />
+    <Compile Include="EventArgs\MoveEventArgs.cs" />
+    <Compile Include="EventArgs\OpenExternalLinkEventArgs.cs" />
+    <Compile Include="EventArgs\PluginCrashedEventArgs.cs" />
+    <Compile Include="EventArgs\ReceiveTitleEventArgs.cs" />
+    <Compile Include="EventArgs\SelectLocalFilesEventArgs.cs" />
+    <Compile Include="EventArgs\ResourceRequestEventArgs.cs" />
+    <Compile Include="EventArgs\ResourceResponseEventArgs.cs" />
+    <Compile Include="EventArgs\UpdateImeEventArgs.cs" />
+    <Compile Include="FindData.cs" />
+    <Compile Include="IWebView.cs" />
+    <Compile Include="JSArrayHelper.cs" />
+    <Compile Include="JSObject.cs" />
     <Compile Include="KeyboardCodes.cs" />
+    <Compile Include="Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="ResourceRequest.cs" />
+    <Compile Include="ResourceResponse.cs" />
+    <Compile Include="UploadElement.cs" />
+    <Compile Include="ViewModel.cs" />
+    <Compile Include="Controls\WebControl.cs" />
     <Compile Include="WebCore.cs" />
     <Compile Include="JSValue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RenderBuffer.cs" />
+    <Compile Include="WebCoreConfig.cs" />
     <Compile Include="WebView.cs" />
-    <Compile Include="WebViewControl.cs" />
+    <None Include="WebViewControl.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

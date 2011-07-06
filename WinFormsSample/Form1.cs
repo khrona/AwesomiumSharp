@@ -1,23 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using AwesomiumSharp;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Drawing.Imaging;
 
 namespace WinFormsSample
 {
     public partial class WebForm : Form
     {
         WebView webView;
-        Timer timer;
-        Bitmap frameBuffer = null;
-        bool needsResize = false;
+        Bitmap frameBuffer;
+        bool needsResize;
 
         public WebForm()
         {
@@ -35,80 +28,79 @@ namespace WinFormsSample
             Activated += WebForm_Activated;
             Deactivate += WebForm_Deactivate;
 
-            WebCore.Config config = new WebCore.Config();
-            config.enablePlugins = true;
-            WebCore.Initialize(config);
+            WebCoreConfig config = new WebCoreConfig { EnablePlugins = true };
+            WebCore.Initialize( config );
 
-            webView = WebCore.CreateWebview(webViewBitmap.Width, webViewBitmap.Height);
-            webView.LoadURL("http://www.google.com");
-            webView.Focus();
-
-            timer = new Timer();
-            timer.Interval = 20;
-            timer.Tick += new EventHandler(timer_Tick);
-            timer.Start();
-        }
-
-        void WebForm_Activated(object sender, EventArgs e)
-        {
+            webView = WebCore.CreateWebview( webViewBitmap.Width, webViewBitmap.Height );
+            webView.IsDirtyChanged += OnIsDirtyChanged;
+            webView.LoadURL( "http://www.google.com" );
             webView.Focus();
         }
 
-        void WebForm_Deactivate(object sender, EventArgs e)
+        void WebForm_Activated( object sender, EventArgs e )
         {
-            webView.Unfocus();
+            if ( !webView.IsDisposed )
+                webView.Focus();
         }
 
-        void WebForm_FormClosed(object sender, FormClosedEventArgs e)
+        void WebForm_Deactivate( object sender, EventArgs e )
         {
-            timer.Dispose();
+            if ( !webView.IsDisposed )
+                webView.Unfocus();
+        }
+
+        void WebForm_FormClosed( object sender, FormClosedEventArgs e )
+        {
+            webView.IsDirtyChanged -= OnIsDirtyChanged;
             webView.Dispose();
             WebCore.Shutdown();
         }
 
-        void timer_Tick(object sender, EventArgs e)
+        private void OnIsDirtyChanged( object sender, EventArgs e )
         {
-            if (needsResize)
+            if ( needsResize && !webView.IsDisposed )
             {
-                if (!webView.IsResizing())
+                if ( !webView.IsResizing )
                 {
-                    webView.Resize(webViewBitmap.Width, webViewBitmap.Height);
+                    webView.Resize( webViewBitmap.Width, webViewBitmap.Height );
                     needsResize = false;
                 }
             }
 
-            WebCore.Update();
-            if (webView.IsDirty())
+            if ( webView.IsDirty )
                 Render();
         }
 
         void Render()
         {
+            if ( webView.IsDisposed )
+                return;
+
             RenderBuffer rBuffer = webView.Render();
 
-            if (frameBuffer == null)
+            if ( frameBuffer == null )
             {
-                frameBuffer = new Bitmap(rBuffer.GetWidth(), rBuffer.GetHeight(), PixelFormat.Format32bppArgb);
+                frameBuffer = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
             }
-            else if (frameBuffer.Width != rBuffer.GetWidth() || frameBuffer.Height != rBuffer.GetHeight())
+            else if ( frameBuffer.Width != rBuffer.Width || frameBuffer.Height != rBuffer.Height )
             {
                 frameBuffer.Dispose();
-                frameBuffer = new Bitmap(rBuffer.GetWidth(), rBuffer.GetHeight(), PixelFormat.Format32bppArgb);
+                frameBuffer = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
             }
 
-            BitmapData bits = frameBuffer.LockBits(new Rectangle(0, 0, rBuffer.GetWidth(), rBuffer.GetHeight()),
-                                ImageLockMode.ReadWrite, frameBuffer.PixelFormat);
+            BitmapData bits = frameBuffer.LockBits( new Rectangle( 0, 0, rBuffer.Width, rBuffer.Height ),
+                                ImageLockMode.ReadWrite, frameBuffer.PixelFormat );
 
 
             unsafe
             {
-                UInt64* ptrBase = (UInt64*)((byte*)bits.Scan0);
-                UInt64* datBase = (UInt64*)rBuffer.GetBuffer();
+                UInt64* ptrBase = (UInt64*)( (byte*)bits.Scan0 );
+                UInt64* datBase = (UInt64*)rBuffer.Buffer;
                 UInt32 lOffset = 0;
-                UInt32 lEnd = (UInt32)webViewBitmap.Height * (UInt32)(webViewBitmap.Width / 8);
+                UInt32 lEnd = (UInt32)webViewBitmap.Height * (UInt32)( webViewBitmap.Width / 8 );
 
                 // copy 64 bits at a time, 4 times (since we divided by 8)
-                for (lOffset = 0; lOffset < lEnd; lOffset++)
+                for ( lOffset = 0; lOffset < lEnd; lOffset++ )
                 {
                     *ptrBase++ = *datBase++;
                     *ptrBase++ = *datBase++;
@@ -117,59 +109,63 @@ namespace WinFormsSample
                 }
             }
 
-            frameBuffer.UnlockBits(bits);
+            frameBuffer.UnlockBits( bits );
 
             webViewBitmap.Image = frameBuffer;
         }
 
-        void WebForm_Resize(object sender, EventArgs e)
+        void WebForm_Resize( object sender, EventArgs e )
         {
-            if (webViewBitmap.Width != 0 && webViewBitmap.Height != 0)
+            if ( webViewBitmap.Width != 0 && webViewBitmap.Height != 0 )
                 needsResize = true;
         }
 
-        void WebForm_KeyPress(object sender, KeyPressEventArgs e)
+        void WebForm_KeyPress( object sender, KeyPressEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent();
-            keyEvent.type = WebKeyType.Char;
-            keyEvent.text = new ushort[] { e.KeyChar, 0, 0, 0 };
-            webView.InjectKeyboardEvent(keyEvent);
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.Char, Text = new ushort[] { e.KeyChar, 0, 0, 0 } };
+
+            if ( !webView.IsDisposed )
+                webView.InjectKeyboardEvent( keyEvent );
         }
 
-        void WebForm_KeyDown(object sender, KeyEventArgs e)
+        void WebForm_KeyDown( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent();
-            keyEvent.type = WebKeyType.KeyDown;
-            keyEvent.virtualKeyCode = (int)e.KeyCode;
-            webView.InjectKeyboardEvent(keyEvent);
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyDown, VirtualKeyCode = (int)e.KeyCode };
+
+            if ( !webView.IsDisposed )
+                webView.InjectKeyboardEvent( keyEvent );
         }
 
-        void WebForm_KeyUp(object sender, KeyEventArgs e)
+        void WebForm_KeyUp( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent();
-            keyEvent.type = WebKeyType.KeyUp;
-            keyEvent.virtualKeyCode = (int)e.KeyCode;
-            webView.InjectKeyboardEvent(keyEvent);
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyUp, VirtualKeyCode = (int)e.KeyCode };
+
+            if ( !webView.IsDisposed )
+                webView.InjectKeyboardEvent( keyEvent );
         }
 
-        void WebForm_MouseUp(object sender, MouseEventArgs e)
+        void WebForm_MouseUp( object sender, MouseEventArgs e )
         {
-            webView.InjectMouseUp(MouseButton.Left);
+            if ( !webView.IsDisposed )
+                webView.InjectMouseUp( MouseButton.Left );
         }
 
-        void WebForm_MouseDown(object sender, MouseEventArgs e)
+        void WebForm_MouseDown( object sender, MouseEventArgs e )
         {
-            webView.InjectMouseDown(MouseButton.Left);
+            if ( !webView.IsDisposed )
+                webView.InjectMouseDown( MouseButton.Left );
         }
 
-        void WebForm_MouseMove(object sender, MouseEventArgs e)
+        void WebForm_MouseMove( object sender, MouseEventArgs e )
         {
-            webView.InjectMouseMove(e.X, e.Y);
+            if ( !webView.IsDisposed )
+                webView.InjectMouseMove( e.X, e.Y );
         }
 
-        void WebForm_MouseWheel(object sender, MouseEventArgs e)
+        void WebForm_MouseWheel( object sender, MouseEventArgs e )
         {
-            webView.InjectMouseWheel(e.Delta);
+            if ( !webView.IsDisposed )
+                webView.InjectMouseWheel( e.Delta );
         }
     }
 }

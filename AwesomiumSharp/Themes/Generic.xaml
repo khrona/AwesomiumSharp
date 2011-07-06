@@ -1,0 +1,12 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:AwesomiumSharp.Windows.Controls">
+
+    <Style TargetType="{x:Type local:WebControl}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="MinWidth" Value="200" />
+        <Setter Property="MinHeight" Value="100" />
+    </Style>
+    
+</ResourceDictionary>

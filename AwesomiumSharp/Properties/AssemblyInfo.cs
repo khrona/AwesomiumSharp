@@ -1,5 +1,6 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System.Windows;
+using System.Reflection;
+using System.Windows.Markup;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
@@ -21,6 +22,20 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("1a1d92a3-87be-403a-aa3f-eab63c95e1f2")]
+
+// The ThemeInfo attribute describes where any theme specific and generic resource dictionaries can be found.
+// 1st parameter: where theme specific resource dictionaries are located
+// (used if a resource is not found in the page, 
+// or application resource dictionaries)
+
+// 2nd parameter: where the generic resource dictionary is located
+// (used if a resource is not found in the page, 
+// app, and any theme specific resource dictionaries)
+[assembly: ThemeInfo(ResourceDictionaryLocation.None, ResourceDictionaryLocation.SourceAssembly)]
+
+// AmaDeuS (07/03/11): Added these definitions.
+[assembly: XmlnsDefinition( "http://schemas.awesomium.com/sharp", "AwesomiumSharp" )]
+[assembly: XmlnsDefinition( "http://schemas.awesomium.com/winfx", "AwesomiumSharp.Windows.Controls" )]
 
 // Version information for an assembly consists of the following four values:
 //
