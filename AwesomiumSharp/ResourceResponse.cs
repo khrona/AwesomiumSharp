@@ -8,17 +8,17 @@ namespace AwesomiumSharp
 #endif
 {
     /// <summary>
-    /// This class allows you to override the response for a certain ResourceRequest.
+    /// This class allows you to override the response for a certain <see cref="ResourceRequest"/>.
     /// </summary>
     public class ResourceResponse
     {
         private IntPtr instance;
 
         /// <summary>
-        /// Create a ResourceResponse from a byte array
+        /// Creates an instance of <see cref="ResourceResponse"/> from a byte array.
         /// </summary>
-        /// <param name="data">The data to be initialized from (a copy is made)</param>
-        /// <param name="mimeType">The mime-type of the data (for ex. "text/html")</param>
+        /// <param name="data">The data to be initialized from (a copy is made).</param>
+        /// <param name="mimeType">The mime-type of the data (for ex. "text/html").</param>
         public ResourceResponse( byte[] data, string mimeType )
         {
             StringHelper mimeTypeStr = new StringHelper( mimeType );
@@ -32,9 +32,11 @@ namespace AwesomiumSharp
         }
 
         /// <summary>
-        /// Create a ResourceResponse from a file on disk
+        /// Create a ResourceResponse from a file on disk.
         /// </summary>
-        /// <param name="filePath"></param>
+        /// <param name="filePath">
+        /// The path to the file containing the response data.
+        /// </param>
         public ResourceResponse( string filePath )
         {
             StringHelper filePathStr = new StringHelper( filePath );

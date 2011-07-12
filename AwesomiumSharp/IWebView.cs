@@ -9,7 +9,7 @@
  *
  *    Notes   :
  *
- *    Allows WebCore communicate with views of any kind. This interface
+ *    Allows WebCore to communicate with views of any kind. This interface
  *    is internal.
  *    
  ********************************************************************************/
@@ -24,7 +24,7 @@ namespace AwesomiumSharp
 {
     internal interface IWebView
     {
-        void PrepareForShutdown();
+        void Close();
         IntPtr Instance { get; set; }
         bool IsDirty { get; set; }
     }

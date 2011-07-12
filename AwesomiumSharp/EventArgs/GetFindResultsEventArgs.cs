@@ -6,8 +6,18 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// Represents the method that will handle the <see cref="WebView.FindResultsReceived"/> and 
+    /// <see cref="Windows.Controls.WebControl.FindResultsReceived"/> events.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An <see cref="GetFindResultsEventArgs"/> that contains the event data.</param>
     public delegate void FindResultsReceivedEventHandler( object sender, GetFindResultsEventArgs e );
 
+    /// <summary>
+    /// Provides data for the <see cref="WebView.FindResultsReceived"/> and 
+    /// <see cref="Windows.Controls.WebControl.FindResultsReceived"/> events.
+    /// </summary>
     public class GetFindResultsEventArgs : EventArgs
     {
         public GetFindResultsEventArgs( int requestID, 

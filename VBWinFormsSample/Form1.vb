@@ -18,7 +18,6 @@ Public Class Form1
 
     Private Sub Render()
         Dim rBuffer As RenderBuffer = m_WebView.Render()
-        Debug.Print(String.Format("VB: {0}", m_WebView.IsDirty))
 
         'Dim data(webViewBitmap.Width * webViewBitmap.Height) As Integer
         'Marshal.Copy(rBuffer.Buffer, data, 0, webViewBitmap.Width * webViewBitmap.Height)
@@ -76,7 +75,7 @@ Public Class Form1
     End Sub
 
     Private Sub Form1_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
-        m_WebView.Dispose()
+        m_WebView.Close()
     End Sub
 
     Private Sub m_WebView_IsDirtyChanged(sender As Object, e As EventArgs) Handles m_WebView.IsDirtyChanged

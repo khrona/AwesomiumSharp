@@ -5,7 +5,6 @@
 '
 '    Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
 '    This code is provided "AS IS" without warranty of any kind.
-'    Use in a production environment is prohibited.
 '***************************************************************************
 
 Imports System.ComponentModel

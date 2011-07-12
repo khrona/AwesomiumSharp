@@ -145,4 +145,12 @@
     <value>Stop Find</value>
     <comment>StopFind description</comment>
   </data>
+  <data name="ERR_InvalidWebView" xml:space="preserve">
+    <value>This WebView instance is invalid. It has either been destroyed or it was never properly instantiated.</value>
+    <comment>ERR_InvalidWebView description</comment>
+  </data>
+  <data name="ERR_WebControlDisabled" xml:space="preserve">
+    <value>The control is disabled either manually or it has been destroyed.</value>
+    <comment>ERR_WebControlDisabled description</comment>
+  </data>
 </root>

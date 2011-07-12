@@ -12,6 +12,9 @@
  *    This class provides initialization settings to the WebCore. It is now
  *    fully documented and taken out of WebCore.cs
  *    
+ *    07/12/2011:
+ *    
+ *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
  * 
  ********************************************************************************/
 
@@ -24,10 +27,26 @@ namespace AwesomiumSharp
 #endif
 {
     /// <summary>
-    /// Configuration settings for the WebCore
+    /// Configuration settings for the <see cref="WebCore"/>.
+    /// Used in <see cref="WebCore.Initialize"/>.
     /// </summary>
     public class WebCoreConfig
     {
+
+        /// <summary>
+        /// Singleton with default configuration settings.
+        /// </summary>
+        public readonly static WebCoreConfig Default;
+
+        static WebCoreConfig()
+        {
+            Default = new WebCoreConfig();
+        }
+
+        /// <summary>
+        /// Creates an instance of <see cref="WebCoreConfig"/>
+        /// initialized with default configuration settings.
+        /// </summary>
         public WebCoreConfig()
         {
             EnableJavascript = true;
@@ -41,8 +60,9 @@ namespace AwesomiumSharp
             UserAgentOverride = "";
             ProxyServer = "";
             ProxyConfigScript = "";
+            AuthServerWhitelist = "";
             CustomCSS = "";
-            AutoUpdatePeriod = 30;
+            AutoUpdatePeriod = 20;
         }
 
         /// <summary>
@@ -90,21 +110,49 @@ namespace AwesomiumSharp
         /// Specify anything else to set manual proxy settings.
         /// </summary>
         /// <example>
-        ///    "none"                         -- No proxy. (Default).
-        ///    "auto"                         -- Detect system proxy settings.
-        ///    "http=myproxy:80;ftp=myproxy2" -- Use HTTP proxy "myproxy:80"  
-        ///                                      for http:// URLs, and HTTP proxy 
-        ///                                      "myproxy2:80" for ftp:// URLs.
-        ///    "myproxy:80"                   -- Use HTTP proxy "foopy:80" for
-        ///                                      all URLs.
-        ///    "socks4://myproxy"             -- Use SOCKS v4 proxy "foopy:1080" 
-        ///                                      for all URLs.
+        /// Example:
+        /// <pre>
+        /// "none"                         -- No proxy. (Default).
+        /// 
+        /// "auto"                         -- Detect system proxy settings.
+        /// 
+        /// "http=myproxy:80;ftp=myproxy2" -- Use HTTP proxy "myproxy:80"  
+        ///                                   for http:// URLs, and HTTP proxy 
+        ///                                   "myproxy2:80" for ftp:// URLs.
+        ///                                   
+        /// "myproxy:80"                   -- Use HTTP proxy "foopy:80" for
+        ///                                   all URLs.
+        ///                                   
+        /// "socks4://myproxy"             -- Use SOCKS v4 proxy "foopy:1080" 
+        ///                                   for all URLs.
+        /// </pre>
         /// </example>
         public string ProxyServer { get; set; }
         /// <summary>
         /// Indicates the URL to the PAC (Proxy Auto-Config) Script to use. See <http://en.wikipedia.org/wiki/Proxy_auto-config> for more info.
         /// </summary>
         public string ProxyConfigScript { get; set; }
+        /// <summary>
+        /// Gets or sets the list of servers that Integrated Authentication is allowed to silently provide user credentials for, when challenged.
+        /// </summary>
+        /// <remarks>
+        /// Integrated Authentication can authenticate the user to an Intranet server or proxy without prompting the user for a username or password. 
+        /// It does this by using cached credentials which are established when the user initially logs in to the machine that Awesomium is running on. 
+        /// Integrated Authentication is supported for Negotiate and NTLM challenges only.
+        /// </remarks>
+        /// <example>
+        /// The list is set using a comma-separated string of URLs. For example, you can specify:
+        /// <code>
+        /// config.AuthServerWhitelist = "*example.com,*foobar.com,*baz";
+        /// </code>
+        /// which would tell Awesomium that any URL ending in either 'example.com', 'foobar.com' or 'baz' is in the permitted list.
+        /// Without the '*' prefix, the URL has to match exactly.
+        /// </example>
+        /// @note
+        /// In Windows only, if you do not set this property, the permitted list consists of those servers in the Local Machine or 
+        /// Local Intranet security zone (for example, when the host in the URL includes a "." character it is outside the Local Intranet security zone), 
+        /// which is the behavior present in IE.
+        public string AuthServerWhitelist { get; set; }
         /// <summary>
         /// Indicates whether or not cache and cookies should be saved to disk.
         /// </summary>

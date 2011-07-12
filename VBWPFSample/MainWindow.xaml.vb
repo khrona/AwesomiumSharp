@@ -40,6 +40,11 @@ Class MainWindow
 
     Private Sub BrowseHomeCommandBinding_Executed(sender As Object, e As ExecutedRoutedEventArgs) Handles BrowseHomeCommandBinding.Executed
         Browser.Source = m_HomePage
+
+        ' Test manually disabling...
+        'Browser.IsEnabled = Not Browser.IsEnabled
+        ' ...OR even destroying.
+        'Browser.Close()
     End Sub
 #End Region
 

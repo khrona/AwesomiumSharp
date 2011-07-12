@@ -7,6 +7,10 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// Represents a request for a URL resource. 
+    /// You can get information about the request or modify it (change GET to POST, modify headers, etc.).
+    /// </summary>
     public class ResourceRequest
     {
         #region Fields
@@ -51,10 +55,9 @@ namespace AwesomiumSharp
         private extern static IntPtr awe_resource_request_get_upload_element( IntPtr request, uint idx );
 
         /// <summary>
-        /// Get a certain upload element (returned instance is owned by this class)	
+        /// Get a certain upload element (returned instance is owned by this class).
         /// </summary>
         /// <param name="idx"></param>
-        /// <returns></returns>
         public UploadElement GetUploadElement( uint idx )
         {
             return new UploadElement( awe_resource_request_get_upload_element( instance, idx ) );
@@ -63,6 +66,9 @@ namespace AwesomiumSharp
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_resource_request_clear_upload_elements( IntPtr request );
 
+        /// <summary>
+        /// Clear all upload elements.
+        /// </summary>
         public void ClearUploadElements()
         {
             awe_resource_request_clear_upload_elements( instance );
@@ -72,9 +78,11 @@ namespace AwesomiumSharp
         private extern static void awe_resource_request_append_upload_file_path( IntPtr request, IntPtr file_path );
 
         /// <summary>
-        ///  Append a file for POST data (adds a new UploadElement)	
+        /// Append a file for POST data (adds a new <see cref="UploadElement"/>)	
         /// </summary>
-        /// <param name="filePath"></param>
+        /// <param name="filePath">
+        /// The path to the file.
+        /// </param>
         public void AppendUploadFilePath( string filePath )
         {
             StringHelper filePathStr = new StringHelper( filePath );
@@ -85,9 +93,9 @@ namespace AwesomiumSharp
         private extern static void awe_resource_request_append_upload_bytes( IntPtr request, IntPtr bytes );
 
         /// <summary>
-        /// Append a string of bytes for POST data (adds a new UploadElement)	
+        /// Append a string of bytes for POST data (adds a new <see cref="UploadElement"/>).
         /// </summary>
-        /// <param name="bytes"></param>
+        /// <param name="bytes">The string to append.</param>
         public void AppendUploadBytes( string bytes )
         {
             StringHelper bytesStr = new StringHelper( bytes );
@@ -107,6 +115,9 @@ namespace AwesomiumSharp
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern IntPtr awe_resource_request_get_url( IntPtr request );
 
+        /// <summary>
+        /// Gets the URL associated with this request.
+        /// </summary>
         public string Url
         {
             get
@@ -121,7 +132,7 @@ namespace AwesomiumSharp
         private extern static void awe_resource_request_set_method( IntPtr request, IntPtr method );
 
         /// <summary>
-        /// Get or sets the method for the request (usually either "GET" or "POST")
+        /// Gets or sets the method for the request (usually "GET" or "POST").
         /// </summary>
         public string Method
         {
@@ -141,6 +152,9 @@ namespace AwesomiumSharp
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_resource_request_set_referrer( IntPtr request, IntPtr referrer );
 
+        /// <summary>
+        /// Gets the referrer.
+        /// </summary>
         public string Referrer
         {
             get

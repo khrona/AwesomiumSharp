@@ -1,4 +1,5 @@
-﻿/*******************************************************************************
+﻿#region Changelog
+/*******************************************************************************
  *    Project : AwesomiumSharp
  *    File    : WebControl.cs
  *    Version : 1.0.0.0 
@@ -55,8 +56,25 @@
  *      logic.
  *      
  *    - Minor fixes and improvements.
+ *    
+ *    07/08/2011:
+ *    
+ *    - Full documentation. Updated documentation will soon be available online
+ *      at: <http://awesomium.com/docs/1_6_2/sharp_api/>
+ *      
+ *    - Changes in view validation logic.
+ *    
+ *    - Few fixes and renaming of members.
+ *
+ *    - Added the WebControlInvalidLayer that displays elementary error
+ *      and design-time messages.
+ *      
+ *    07/12/2011:
+ *    
+ *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
  * 
  ********************************************************************************/
+#endregion
 
 #region Using
 using System;
@@ -73,10 +91,32 @@ using System.Collections.Generic;
 using System.Windows.Media.Imaging;
 using System.Runtime.InteropServices;
 using System.Collections.Specialized;
+using System.Collections;
 #endregion
 
 namespace AwesomiumSharp.Windows.Controls
 {
+    /// <summary>
+    /// Represents a WPF control that wraps an Awesomium web view.
+    /// You can use it to embed Awesomium directly in your WPF application without any additional work.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// You can create an instance of this class by directly invoking the
+    /// default constructor (either by dropping it in your designer surface, through XAML or from code). 
+    /// You do not need to explicitly create an instance of a web view through <see cref="WebCore"/>.
+    /// WebControl takes care of this internally.
+    /// </para>
+    /// @note
+    /// <para>
+    /// Note that it is safe to use this control in a design environment for layout and configuration
+    /// purposes. <see cref="WebCore"/> and the underlying web view are only instantiated during runtime.
+    /// </para>
+    /// </remarks>
+    /// @author Perikles C. Stephanidis (perikles@stephanidis.net)
+    /// @version 1.1
+    /// @date 2011
+    [System.Drawing.ToolboxBitmap( typeof( WebControl ) )]
     public class WebControl : FrameworkElement, IWebView
     {
         #region Fields
@@ -90,6 +130,7 @@ namespace AwesomiumSharp.Windows.Controls
         private WriteableBitmap bitmap;
         private ToolTip toolTip;
         private Random findRequestRandomizer;
+        private WebControlInvalidLayer controlLayer;
 
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
 
@@ -120,10 +161,15 @@ namespace AwesomiumSharp.Windows.Controls
         #endregion
 
         #region Events
-        internal event JSCallbackCalledEventHandler JSCallbackCalled;
 
+        #region JSCallbackCalled
+        internal event JSCallback JSCallbackCalled;
+        #endregion
+
+
+        #region IsDirtyChanged
         /// <summary>
-        /// Occurs when this WebView needs to be rendered again.
+        /// Occurs when this <see cref="WebControl"/> needs to be rendered again.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -147,9 +193,11 @@ namespace AwesomiumSharp.Windows.Controls
             if ( IsDirtyChanged != null )
                 IsDirtyChanged( sender, e );
         }
+        #endregion
 
+        #region BeginLoading
         /// <summary>
-        /// This event occurs when a WebView begins loading a new page (first bits of data received from server).
+        /// This event occurs when a <see cref="WebControl"/> begins loading a new page (first bits of data received from server).
         /// </summary>
         public event BeginLoadingEventHandler BeginLoading;
 
@@ -161,9 +209,11 @@ namespace AwesomiumSharp.Windows.Controls
             if ( BeginLoading != null )
                 BeginLoading( sender, e );
         }
+        #endregion
 
+        #region BeginNavigation
         /// <summary>
-        /// This event occurs when a WebView begins navigating to a new URL.
+        /// This event occurs when a <see cref="WebControl"/> begins navigating to a new URL.
         /// </summary>
         public event BeginNavigationEventHandler BeginNavigation;
 
@@ -175,7 +225,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( BeginNavigation != null )
                 BeginNavigation( sender, e );
         }
+        #endregion
 
+        #region CursorChanged
         /// <summary>
         /// This event occurs when the mouse cursor type changes.
         /// </summary>
@@ -189,9 +241,11 @@ namespace AwesomiumSharp.Windows.Controls
             if ( CursorChanged != null )
                 CursorChanged( sender, e );
         }
+        #endregion
 
+        #region KeyboardFocusChanged
         /// <summary>
-        /// This event occurs when keyboard focus changes (usually as a result of a textbox being focused).
+        /// This event occurs when keyboard focus changes (usually as a result of a text-box being focused).
         /// </summary>
         public event KeyboardFocusChangedEventHandler KeyboardFocusChanged;
 
@@ -203,7 +257,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( KeyboardFocusChanged != null )
                 KeyboardFocusChanged( sender, e );
         }
+        #endregion
 
+        #region TargetUrlChanged
         /// <summary>
         /// This event occurs when the target URL changes (usually the result of hovering over a link).
         /// </summary>
@@ -217,21 +273,25 @@ namespace AwesomiumSharp.Windows.Controls
             if ( TargetUrlChanged != null )
                 TargetUrlChanged( sender, e );
         }
+        #endregion
 
+        #region ToolTipChanged
         /// <summary>
         /// This event occurs when the tooltip text changes.
         /// </summary>
-        public event TooltipChangedEventHandler TooltipChanged;
+        public event ToolTipChangedEventHandler ToolTipChanged;
 
         /// <summary>
-        /// Raises the <see cref="TooltipChanged"/> event.
+        /// Raises the <see cref="ToolTipChanged"/> event.
         /// </summary>
-        protected virtual void OnTooltipChanged( object sender, ChangeTooltipEventArgs e )
+        protected virtual void OnToolTipChanged( object sender, ChangeToolTipEventArgs e )
         {
-            if ( TooltipChanged != null )
-                TooltipChanged( sender, e );
+            if ( ToolTipChanged != null )
+                ToolTipChanged( sender, e );
         }
+        #endregion
 
+        #region DomReady
         /// <summary>
         /// This event occurs once the document has been parsed for a page but before all resources (images, etc.)
         /// have been loaded. This is your first chance to execute Javascript on a page (useful for initialization purposes).
@@ -246,7 +306,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( DomReady != null )
                 DomReady( sender, e );
         }
+        #endregion
 
+        #region LoadCompleted
         /// <summary>
         /// This event occurs once a page (and all of its sub-frames) has completely finished loading.
         /// </summary>
@@ -260,7 +322,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( LoadCompleted != null )
                 LoadCompleted( sender, e );
         }
+        #endregion
 
+        #region PageContentsReceived
         /// <summary>
         /// This event occurs once the page contents (as text) have been retrieved (usually after the end
         /// of each page load). This plain text is useful for indexing/search purposes.
@@ -275,12 +339,14 @@ namespace AwesomiumSharp.Windows.Controls
             if ( PageContentsReceived != null )
                 PageContentsReceived( sender, e );
         }
+        #endregion
 
+        #region OpenExternalLink
         /// <summary>
         /// This event occurs when an external link is attempted to be opened. An external link
         /// is any link that normally opens in a new window (for example, links with target="_blank", calls
         /// to window.open(), and URL open events from Flash plugins). You are responsible for
-        /// creating a new WebView to handle these URLs yourself.
+        /// creating a new <see cref="WebView"/> or <see cref="WebControl"/> to handle these URLs yourself.
         /// </summary>
         public event OpenExternalLinkEventHandler OpenExternalLink;
 
@@ -292,7 +358,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( OpenExternalLink != null )
                 OpenExternalLink( sender, e );
         }
+        #endregion
 
+        #region PluginCrashed
         /// <summary>
         /// This event occurs whenever a plugin crashes on a page (usually Flash).
         /// </summary>
@@ -306,7 +374,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( PluginCrashed != null )
                 PluginCrashed( sender, e );
         }
+        #endregion
 
+        #region TitleReceived
         /// <summary>
         /// This event occurs once we receive the page title.
         /// </summary>
@@ -320,7 +390,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( TitleReceived != null )
                 TitleReceived( sender, e );
         }
+        #endregion
 
+        #region Move
         /// <summary>
         /// This event occurs whenever the window is requested to be moved (via Javascript).
         /// </summary>
@@ -334,7 +406,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( Move != null )
                 Move( sender, e );
         }
+        #endregion
 
+        #region Download
         /// <summary>
         /// This event occurs whenever a URL is requested to be downloaded (you must handle this yourself).
         /// </summary>
@@ -348,7 +422,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( Download != null )
                 Download( sender, e );
         }
+        #endregion
 
+        #region Crashed
         /// <summary>
         /// This event occurs when the renderer (which is isolated in a separate process) crashes unexpectedly.
         /// </summary>
@@ -362,15 +438,17 @@ namespace AwesomiumSharp.Windows.Controls
             if ( Crashed != null )
                 Crashed( sender, e );
         }
+        #endregion
 
+        #region SelectLocalFiles
         /// <summary>
         /// This event occurs whenever a page requests a file chooser dialog to be displayed (usually due
         /// to an upload form being clicked by a user). You will need to display your own dialog.
         /// Assign the selected local file(s) to <see cref="SelectLocalFilesEventArgs.SelectedFiles"/>
         /// </summary>
         /// <remarks>
-        /// The dialog does not have to be modal, this request is non-blocking. Once a file has been chosen by the user,
-        /// you can manually report this back to the view by calling <see cref="WebView.ChooseFile"/>.
+        /// The dialog does not have to be modal; this request is non-blocking. Once a file has been chosen by the user,
+        /// you can manually report this back to the view by calling <see cref="WebControl.ChooseFile"/>.
         /// </remarks>
         public event SelectLocalFilesEventHandler SelectLocalFiles;
 
@@ -382,9 +460,11 @@ namespace AwesomiumSharp.Windows.Controls
             if ( SelectLocalFiles != null )
                 SelectLocalFiles( sender, e );
         }
+        #endregion
 
+        #region ScrollDataReceived
         /// <summary>
-        /// This event occurs as a response to WebView.RequestScrollData
+        /// This event fires in response to <see cref="WebControl.RequestScrollData"/>.
         /// </summary>
         public event ScrollDataReceivedEventHandler ScrollDataReceived;
 
@@ -396,7 +476,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( ScrollDataReceived != null )
                 ScrollDataReceived( sender, e );
         }
+        #endregion
 
+        #region JSConsoleMessageAdded
         /// <summary>
         /// This event occurs whenever a new message is added to the Javascript Console (usually
         /// the result of a Javascript error).
@@ -411,9 +493,12 @@ namespace AwesomiumSharp.Windows.Controls
             if ( JSConsoleMessageAdded != null )
                 JSConsoleMessageAdded( sender, e );
         }
+        #endregion
 
+        #region FindResultsReceived
         /// <summary>
-        /// This event occurs whenever we receive results back from an in-page find operation (WebView.Find).
+        /// This event occurs whenever we receive results back from an in-page find operation
+        /// (<see cref="WebControl.Find"/>).
         /// </summary>
         public event FindResultsReceivedEventHandler FindResultsReceived;
 
@@ -425,11 +510,13 @@ namespace AwesomiumSharp.Windows.Controls
             if ( FindResultsReceived != null )
                 FindResultsReceived( sender, e );
         }
+        #endregion
 
+        #region ImeUpdated
         /// <summary>
         /// This event occurs whenever the user does something that changes the 
         /// position or visiblity of the IME Widget. This event is only active when 
-        /// IME is activated (please see WebView.ActivateIME).
+        /// IME is activated (please see <see cref="WebControl.ActivateIME"/>).
         /// </summary>
         public event ImeUpdatedEventHandler ImeUpdated;
 
@@ -441,7 +528,9 @@ namespace AwesomiumSharp.Windows.Controls
             if ( ImeUpdated != null )
                 ImeUpdated( sender, e );
         }
+        #endregion
 
+        #region ResourceRequest
         /// <summary>
         /// This event occurs whenever there is a request for a certain resource (URL). You can either modify the request
         /// before it is sent or immediately return your own custom response. This is useful for implementing your own
@@ -459,7 +548,9 @@ namespace AwesomiumSharp.Windows.Controls
 
             return null;
         }
+        #endregion
 
+        #region ResourceResponse
         /// <summary>
         /// This event occurs whenever a response has been received from a server. This is useful for statistics
         /// and resource tracking purposes.
@@ -476,20 +567,29 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
+        #endregion
+
 
         #region Ctors
         static WebControl()
         {
             DefaultStyleKeyProperty.OverrideMetadata( typeof( WebControl ), new FrameworkPropertyMetadata( typeof( WebControl ) ) );
             FocusableProperty.OverrideMetadata( typeof( WebControl ), new FrameworkPropertyMetadata( true ) );
+            IsEnabledProperty.OverrideMetadata( typeof( WebControl ), new FrameworkPropertyMetadata( null, CoerceIsEnabled ) );
 
             // We need to remove and restore this when the view gets/loses keyboard focus.
             browseBackGesture = NavigationCommands.BrowseBack.InputGestures.OfType<KeyGesture>().SingleOrDefault( ( kg ) =>
                 ( kg.Modifiers == ModifierKeys.None ) && ( kg.Key == Key.Back ) );
         }
 
+        /// <summary>
+        /// Creates and initializes an instance of <see cref="WebControl"/> and its underlying web view.
+        /// </summary>
         public WebControl()
         {
+            controlLayer = new WebControlInvalidLayer( this );
+            this.IsEnabledChanged += OnIsEnabledChanged;
+
             if ( DesignerProperties.GetIsInDesignMode( this ) )
                 return;
 
@@ -511,20 +611,21 @@ namespace AwesomiumSharp.Windows.Controls
         /// Destroys and removes this web view control. Any call to members of this control
         /// after calling this method, will cause a <see cref="InvalidOperationException"/>.
         /// </summary>
+        /// <remarks>
+        /// @note
+        /// To avoid exceptions, do not call this method when the hosting UI of the control (if any)
+        /// is still alive and visible.
+        /// </remarks>
         public void Close()
-        {
-            this.Destroy();
-        }
-
-        ~WebControl()
-        {
-            this.Destroy();
-        }
-
-        private void Destroy( bool shuttingDown = false )
         {
             if ( Instance != IntPtr.Zero )
             {
+                resourceRequestCallback = null;
+                awe_webview_set_callback_resource_request( Instance, null );
+
+                resourceResponseCallback = null;
+                awe_webview_set_callback_resource_response( Instance, null );
+
                 // If there are other controls created, they will take care of this.
                 // If this is the only control created or left, the WebCore will
                 // automatically shutdown after removing it.
@@ -541,16 +642,70 @@ namespace AwesomiumSharp.Windows.Controls
                     }
                 }
 
+                this.Loaded -= OnLoaded;
+                this.Unloaded -= OnUnloaded;
+
                 WebCore.DestroyView( this );
                 Instance = IntPtr.Zero;
             }
+        }
+
+        ~WebControl()
+        {
+            this.Close();
         }
         #endregion
 
 
         #region Overrides
 
+        #region Layer
+        /** @name Visual Tree Overrides
+         * Visual tree related event triggers overriden from <see cref="FrameworkElement"/> and <see cref="Visual"/>.
+         */
+        /** @{ */
+
+        /// @internal
+        /// <inheritdoc />
+        protected override IEnumerator LogicalChildren
+        {
+            get
+            {
+                if ( !IsLive && ( controlLayer != null ) )
+                    yield return controlLayer;
+
+                yield return null;
+            }
+        }
+
+        /// @internal
+        /// <inheritdoc />
+        protected override Visual GetVisualChild( int index )
+        {
+            return !IsLive && ( controlLayer != null ) ? controlLayer : base.GetVisualChild( index );
+        }
+
+        /// @internal
+        /// <inheritdoc />
+        protected override int VisualChildrenCount
+        {
+            get
+            {
+                return !IsLive ? 1 : base.VisualChildrenCount;
+            }
+        }
+
+        /** @} */
+        #endregion
+
+
         #region Mouse
+        /** @name Mouse Overrides
+         * Mouse event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewMouseMove( MouseEventArgs e )
         {
@@ -565,6 +720,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewMouseMove( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewMouseLeftButtonDown( MouseButtonEventArgs e )
         {
@@ -576,6 +732,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewMouseLeftButtonDown( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewMouseLeftButtonUp( MouseButtonEventArgs e )
         {
@@ -587,6 +744,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewMouseLeftButtonUp( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewMouseRightButtonDown( MouseButtonEventArgs e )
         {
@@ -598,6 +756,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewMouseRightButtonDown( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnMouseRightButtonUp( MouseButtonEventArgs e )
         {
@@ -609,6 +768,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnMouseRightButtonUp( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewMouseWheel( MouseWheelEventArgs e )
         {
@@ -619,6 +779,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewMouseWheel( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnMouseLeave( MouseEventArgs e )
         {
@@ -628,9 +789,17 @@ namespace AwesomiumSharp.Windows.Controls
             awe_webview_inject_mouse_move( Instance, -1, -1 );
             base.OnMouseLeave( e );
         }
+
+        /** @} */
         #endregion
 
         #region Stylus
+        /** @name Stylus Overrides
+         * Stylus event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewStylusMove( StylusEventArgs e )
         {
@@ -645,6 +814,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewStylusMove( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewStylusButtonDown( StylusButtonEventArgs e )
         {
@@ -656,6 +826,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewStylusButtonDown( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewStylusButtonUp( StylusButtonEventArgs e )
         {
@@ -666,9 +837,17 @@ namespace AwesomiumSharp.Windows.Controls
             awe_webview_inject_mouse_up( Instance, MouseButton.Left );
             base.OnPreviewStylusButtonUp( e );
         }
+
+        /** @} */
         #endregion
 
         #region Touch
+        /** @name Touch Overrides
+         * Touch event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewTouchMove( TouchEventArgs e )
         {
@@ -683,6 +862,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewTouchMove( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewTouchDown( TouchEventArgs e )
         {
@@ -694,6 +874,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnPreviewTouchDown( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnPreviewTouchUp( TouchEventArgs e )
         {
@@ -704,9 +885,17 @@ namespace AwesomiumSharp.Windows.Controls
             awe_webview_inject_mouse_up( Instance, MouseButton.Left );
             base.OnPreviewTouchUp( e );
         }
+
+        /** @} */
         #endregion
 
         #region Focus
+        /** @name Focus Overrides
+         * Focus event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override void OnGotFocus( RoutedEventArgs e )
         {
@@ -718,6 +907,7 @@ namespace AwesomiumSharp.Windows.Controls
             base.OnGotFocus( e );
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override void OnLostFocus( RoutedEventArgs e )
         {
@@ -729,21 +919,40 @@ namespace AwesomiumSharp.Windows.Controls
 
             base.OnLostFocus( e );
         }
+
+        /** @} */
         #endregion
 
         #region HitTest
+        /** @name HitTest Overrides
+         * HitTest event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override HitTestResult HitTestCore( PointHitTestParameters hitTestParameters )
         {
             // Eliminates the need to paint a background to capture input.
             return new PointHitTestResult( this, Mouse.PrimaryDevice.GetPosition( this ) );
         }
+
+        /** @} */
         #endregion
 
         #region Measure/Arrange
+        /** @name Measure/Arrange Overrides
+         * Measure/Arrange event triggers overriden from <see cref="FrameworkElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override Size MeasureOverride( Size availableSize )
         {
+            if ( controlLayer != null )
+                controlLayer.Measure( availableSize );
+
             var size = base.MeasureOverride( availableSize );
 
             if ( IsLive )
@@ -770,17 +979,29 @@ namespace AwesomiumSharp.Windows.Controls
             return size;
         }
 
+        /// @internal
         /// <inheritdoc />
         protected override Size ArrangeOverride( Size arrangeBounds )
         {
+            if ( controlLayer != null )
+                controlLayer.Arrange( new Rect( new Point(), arrangeBounds ) );
+
             if ( IsLive )
                 Update();
 
             return base.ArrangeOverride( arrangeBounds );
         }
+
+        /** @} */
         #endregion
 
         #region Render
+        /** @name Rendering Overrides
+         * Rendering event triggers overriden from <see cref="UIElement"/> .
+         */
+        /** @{ */
+
+        /// @internal
         /// <inheritdoc />
         protected override void OnRender( DrawingContext drawingContext )
         {
@@ -789,6 +1010,8 @@ namespace AwesomiumSharp.Windows.Controls
             else
                 base.OnRender( drawingContext );
         }
+
+        /** @} */
         #endregion
 
         #endregion
@@ -801,7 +1024,11 @@ namespace AwesomiumSharp.Windows.Controls
         private void VerifyLive()
         {
             if ( !IsLive )
-                throw new InvalidOperationException( "The WebControl is not initialized." );
+#if USING_MONO
+throw new InvalidOperationException( "The control is disabled either manually or it has been destroyed." );
+#else
+                throw new InvalidOperationException( AwesomiumSharp.Resources.ERR_WebControlDisabled );
+#endif
         }
         #endregion
 
@@ -928,6 +1155,26 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
+        #region GetUrl
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern IntPtr awe_webview_get_url( IntPtr request );
+
+        private string GetUrl()
+        {
+            return StringHelper.ConvertAweString( awe_webview_get_url( Instance ) );
+        }
+        #endregion
+
+        #region GetZoom
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static int awe_webview_get_zoom( IntPtr webview );
+
+        private int GetZoom()
+        {
+            return awe_webview_get_zoom( Instance );
+        }
+        #endregion
+
 
         #region Update
         private void Update()
@@ -947,6 +1194,26 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern IntPtr awe_webview_render( IntPtr webview );
 
+        /// <summary>
+        /// Renders this <see cref="WebControl"/> into an offscreen pixel buffer and clears the dirty state.
+        /// </summary>
+        /// <remarks>
+        /// For maximum efficiency, you should only call this when the <see cref="WebControl"/> is dirty 
+        /// (see <see cref="IsDirty"/>).
+        /// @note
+        /// The most appropriate time to call this method, is from within your <see cref="IsDirtyChanged"/> handler.
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
+        /// <returns>
+        /// An instance of the <see cref="RenderBuffer"/> that this <see cref="WebControl"/> was rendered to. 
+        /// This value may change between renders and may return null if the <see cref="WebControl"/> has crashed
+        /// (see <see cref="IsCrashed"/>).
+        /// </returns>
         protected RenderBuffer Render()
         {
             return new RenderBuffer( awe_webview_render( Instance ) );
@@ -958,10 +1225,19 @@ namespace AwesomiumSharp.Windows.Controls
         private static extern void awe_webview_pause_rendering( IntPtr webview );
 
         /// <summary>
+        /// Temporarily pauses internal asynchronous rendering.
+        /// </summary>
+        /// <remarks>
         /// All rendering is actually done asynchronously in a separate process
         /// and so the page is usually continuously rendering even if you never call
-        /// WebView.Render. Call this to temporarily pause rendering.
-        /// </summary>
+        /// <see cref="WebControl.Render"/>. Call this to temporarily pause rendering.
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void PauseRendering()
         {
             awe_webview_pause_rendering( Instance );
@@ -973,8 +1249,16 @@ namespace AwesomiumSharp.Windows.Controls
         private static extern void awe_webview_resume_rendering( IntPtr webview );
 
         /// <summary>
-        /// Resume rendering after a call to WebView.PauseRendering
+        /// Resume rendering after a call to <see cref="WebControl.PauseRendering"/>.
         /// </summary>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void ResumeRendering()
         {
             awe_webview_resume_rendering( Instance );
@@ -985,6 +1269,23 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_mouse_move( IntPtr webview, int x, int y );
 
+        /// <summary>
+        /// Injects a mouse-move event in local coordinates.
+        /// </summary>
+        /// <param name="x">
+        /// The absolute x-coordinate of the mouse (relative to the <see cref="WebControl"/> itself).
+        /// </param>
+        /// <param name="y">
+        /// The absolute y-coordinate of the mouse (relative to the <see cref="WebControl"/> itself).
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectMouseMove( int x, int y )
         {
             awe_webview_inject_mouse_move( Instance, x, y );
@@ -995,6 +1296,20 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_mouse_down( IntPtr webview, MouseButton mouseButton );
 
+        /// <summary>
+        /// Injects a mouse-down event.
+        /// </summary>
+        /// <param name="mouseButton">
+        /// The mouse button that was pressed.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectMouseDown( MouseButton mouseButton )
         {
             awe_webview_inject_mouse_down( Instance, mouseButton );
@@ -1005,6 +1320,20 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_mouse_up( IntPtr webview, MouseButton mouseButton );
 
+        /// <summary>
+        /// Injects a mouse-up event.
+        /// </summary>
+        /// <param name="mouseButton">
+        /// The mouse button that was released.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectMouseUp( MouseButton mouseButton )
         {
             awe_webview_inject_mouse_up( Instance, mouseButton );
@@ -1015,6 +1344,23 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_mouse_wheel( IntPtr webview, int scroll_amount_vert, int scroll_amount_horz );
 
+        /// <summary>
+        /// Injects a mouse-wheel event.
+        /// </summary>
+        /// <param name="scrollAmountVert">
+        /// The relative amount of pixels to scroll vertically.
+        /// </param>
+        /// <param name="scrollAmountHorz">
+        /// The relative amount of pixels to scroll horizontally.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectMouseWheel( int scrollAmountVert, int scrollAmountHorz = 0 )
         {
             awe_webview_inject_mouse_wheel( Instance, scrollAmountVert, scrollAmountHorz );
@@ -1025,6 +1371,21 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_keyboard_event( IntPtr webview, WebKeyboardEvent key_event );
 
+        /// <summary>
+        /// Injects a keyboard event.
+        /// </summary>
+        /// <param name="keyEvent">
+        /// The keyboard event to inject. You'll need to initialize the members of the passed
+        /// <see cref="WebKeyboardEvent"/>, yourself.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectKeyboardEvent( WebKeyboardEvent keyEvent )
         {
             awe_webview_inject_keyboard_event( Instance, keyEvent );
@@ -1035,6 +1396,37 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_inject_keyboard_event_win( IntPtr webview, int msg, int wparam, int lparam );
 
+        /// <summary>
+        /// Injects a keyboard event by translating the respective Windows Messages.
+        /// </summary>
+        /// <param name="msg">
+        /// The Windows keyboard message (usually WM_KEYDOWN, WM_KEYUP and WM_CHAR). 
+        /// </param>
+        /// <param name="wparam">
+        /// The first parameter of the message as intercepted by the window procedure.
+        /// </param>
+        /// <param name="lparam">
+        /// The second parameter of the message as intercepted by the window procedure.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        /// <remarks>
+        /// This is usually easier to use than <see cref="InjectKeyboardEvent"/>. All you have to
+        /// do is hook into the window procedure of this view's host, intercept WM_KEYDOWN, WM_KEYUP and WM_CHAR
+        /// and inject them to the view by using this method.
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// Beware that in WPF, only the parent Window has a window procedure. Make sure
+        /// that you only inject messages when the actual host (if it's a child element)
+        /// has the focus, and that you do not hook into the same procedure multiple times.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void InjectKeyboardEventWin( int msg, int wparam, int lparam )
         {
             awe_webview_inject_keyboard_event_win( Instance, msg, wparam, lparam );
@@ -1051,17 +1443,34 @@ namespace AwesomiumSharp.Windows.Controls
             int repaint_timeout_ms );
 
         /// <summary>
-        /// Resizes this WebView to certain dimensions. This operation can fail
-        /// if another resize is already pending (see WebView.isResizing) or if
+        /// Resizes this <see cref="WebControl"/> to certain dimensions. This operation can fail
+        /// if another resize is already pending (see <see cref="WebControl.IsResizing"/>) or if
         /// the repaint timeout was exceeded.
         /// </summary>
-        /// <param name="width">The width in pixels to resize to</param>
-        /// <param name="height">The height in pixels to resize to</param>
-        /// <param name="waitForRepaint">Whether or not to wait for the WebView
-        /// to finish repainting to avoid flicker (default is true).</param>
-        /// <param name="repaintTimeoutMs">The max amount of time to wait for
-        /// a repaint, in milliseconds</param>
-        /// <returns>Returns true if the resize was successful.</returns>
+        /// <param name="width">
+        /// The width in pixels to resize to.
+        /// </param>
+        /// <param name="height">
+        /// The height in pixels to resize to.
+        /// </param>
+        /// <param name="waitForRepaint">
+        /// Whether or not to wait for the <see cref="WebControl"/> to finish repainting to avoid flicker
+        /// (default is true).
+        /// </param>
+        /// <param name="repaintTimeoutMs">
+        /// The max amount of time to wait for a repaint, in milliseconds.
+        /// </param>
+        /// <returns>
+        /// True if the resize was successful. False otherwise.
+        /// </returns>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected bool Resize( int width, int height, bool waitForRepaint = true, int repaintTimeoutMs = 300 )
         {
             return awe_webview_resize( Instance, width, height, waitForRepaint, repaintTimeoutMs );
@@ -1072,6 +1481,17 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_unfocus( IntPtr webview );
 
+        /// <summary>
+        /// Notifies the current page that it has lost focus.
+        /// </summary>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void UnfocusView()
         {
             awe_webview_unfocus( Instance );
@@ -1083,10 +1503,20 @@ namespace AwesomiumSharp.Windows.Controls
         private static extern void awe_webview_focus( IntPtr webview );
 
         /// <summary>
-        /// Notifies the current page that it has gained focus. You will need to
-        /// call this to gain textbox focus, among other things. (If you fail to
-        /// ever see a blinking caret when typing text, this is why.)
+        /// Notifies the current page that it has gained focus.
         /// </summary>
+        /// <remarks>
+        /// You will need to call this to gain text-box focus, among other things. 
+        /// (If you fail to ever see a blinking caret when typing text, this is why.)
+        /// </remarks>
+        /// <remarks>
+        /// @note
+        /// <see cref="WebControl"/> handles this internally. Inheritors do not need to call this method unless
+        /// they implement custom logic.
+        /// @warning
+        /// For performance reasons, no validity check is performed when calling protected members.
+        /// Inheritors should perform any such checks (see <see cref="IsLive"/>), before calling these members.
+        /// </remarks>
         protected void FocusView()
         {
             awe_webview_focus( Instance );
@@ -1104,6 +1534,25 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_load_url( IntPtr webview, IntPtr url, IntPtr frame_name, IntPtr username, IntPtr password );
 
+        /// <summary>
+        /// Loads a URL into the <see cref="WebControl"/> asynchronously.
+        /// </summary>
+        /// <param name="url">
+        /// The URL to load.
+        /// </param>
+        /// <param name="frameName">
+        /// The name of the frame to load the URL in; leave this blank to load in the main frame.
+        /// </param>
+        /// <param name="username">
+        /// If the URL requires authentication, the username to authorize as, otherwise just pass an empty string.
+        /// </param>
+        /// <param name="password">
+        /// If the URL requires authentication, the password to use, otherwise just pass an empty string.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void LoadURL( string url, string frameName = "", string username = "", string password = "" )
         {
             VerifyLive();
@@ -1121,6 +1570,24 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_load_html( IntPtr webview, IntPtr html, IntPtr frame_name );
 
+        /// <summary>
+        /// Loads a string of HTML into the <see cref="WebControl"/> asynchronously.
+        /// </summary>
+        /// <param name="html">
+        /// The HTML string (ASCII) to load.
+        /// </param>
+        /// <param name="frameName">
+        /// The name of the frame to load the HTML in.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// Any assets requires by the specified HTML (images etc.), should exist 
+        /// within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void LoadHTML( string html, string frameName = "" )
         {
             VerifyLive();
@@ -1136,6 +1603,23 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_load_file( IntPtr webview, IntPtr file, IntPtr frame_name );
 
+        /// <summary>
+        /// Loads a local file into the <see cref="WebControl"/> asynchronously.
+        /// </summary>
+        /// <param name="file">
+        /// The name of the file to load.
+        /// </param>
+        /// <param name="frameName">
+        /// The name of the frame to load the file in.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// The file should exist within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void LoadFile( string file, string frameName = "" )
         {
             VerifyLive();
@@ -1151,6 +1635,16 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_go_to_history_offset( IntPtr webview, int offset );
 
+        /// <summary>
+        /// Navigates back/forward in history via a relative offset.
+        /// </summary>
+        /// <param name="offset">
+        /// The relative offset in history to navigate to. (Can be negative)
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void GoToHistoryOffset( int offset )
         {
             VerifyLive();
@@ -1159,6 +1653,13 @@ namespace AwesomiumSharp.Windows.Controls
         #endregion
 
         #region GoBack
+        /// <summary>
+        /// Navigates one step back in history.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void GoBack()
         {
             GoToHistoryOffset( -1 );
@@ -1166,6 +1667,13 @@ namespace AwesomiumSharp.Windows.Controls
         #endregion
 
         #region GoForward
+        /// <summary>
+        /// Navigates one step forward in history.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void GoForward()
         {
             GoToHistoryOffset( 1 );
@@ -1176,6 +1684,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_stop( IntPtr webview );
 
+        /// <summary>
+        /// Stops the current navigation.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Stop()
         {
             VerifyLive();
@@ -1187,6 +1702,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_reload( IntPtr webview );
 
+        /// <summary>
+        /// Reloads the current page.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Reload()
         {
             VerifyLive();
@@ -1202,9 +1724,13 @@ namespace AwesomiumSharp.Windows.Controls
         /// Executes a string of Javascript in the context of the current page
         /// asynchronously.
         /// </summary>
-        /// <param name="javascript">The string of Javascript to execute</param>
+        /// <param name="javascript">The string of Javascript to execute.</param>
         /// <param name="frameName">Optional; the name of the frame to execute in,
         /// leave this blank to execute in the main frame.</param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ExecuteJavascript( string javascript, string frameName = "" )
         {
             VerifyLive();
@@ -1222,18 +1748,22 @@ namespace AwesomiumSharp.Windows.Controls
 
         /// <summary>
         /// Executes a string of Javascript in the context of the current page
-        /// synchronously with a result.
+        /// synchronously, and returns the result.
         /// </summary>
-        /// <param name="javascript">The string of Javascript to execute</param>
+        /// <param name="javascript">The string of Javascript to execute.</param>
         /// <param name="frameName">Optional; the name of the frame to execute in,
         /// leave this blank to execute in the main frame.</param>
         /// <param name="timeoutMs">Optional; the maximum time to wait for the result
         /// to be computed. Leave this 0 to wait forever (may hang if Javascript is 
         /// invalid!)</param>
-        /// <returns>Returns the result as a JSValue. Please note that the returned
+        /// <returns>Returns the result as a <see cref="JSValue"/>. Please note that the returned
         /// result is only a shallow, read-only copy of the original object. This
         /// method does not return system-defined Javascript objects (such as "window",
         /// "document", or any DOM elements).</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public JSValue ExecuteJavascriptWithResult( string javascript, string frameName = "", int timeoutMs = 0 )
         {
             VerifyLive();
@@ -1242,7 +1772,6 @@ namespace AwesomiumSharp.Windows.Controls
             StringHelper frameNameStr = new StringHelper( frameName );
 
             IntPtr temp = awe_webview_execute_javascript_with_result( Instance, javascriptStr.Value, frameNameStr.Value, timeoutMs );
-
             JSValue result = new JSValue( temp ) { ownsInstance = true };
 
             return result;
@@ -1257,7 +1786,27 @@ namespace AwesomiumSharp.Windows.Controls
             IntPtr arguments,
             IntPtr frame_name );
 
-        public void CallJavascriptFunction( string objectName, string function, params JSValue[] arguments )
+        /// <summary>
+        /// Calls a certain function defined in Javascript, directly.
+        /// </summary>
+        /// <param name="objectName">
+        /// The name of the object that contains the function, pass an empty string if the function is defined in the global scope.
+        /// </param>
+        /// <param name="function">
+        /// The name of the function.
+        /// </param>
+        /// <param name="frameName">
+        /// Optional; the name of the frame to execute in,
+        /// leave this blank to execute in the main frame.
+        /// </param>
+        /// <param name="arguments">
+        /// The arguments to pass to the function.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void CallJavascriptFunction( string objectName, string function, string frameName = "", params JSValue[] arguments )
         {
             VerifyLive();
 
@@ -1279,12 +1828,19 @@ namespace AwesomiumSharp.Windows.Controls
 
         /// <summary>
         /// Creates a new global Javascript object that will persist throughout
-        /// the lifetime of this WebView. This is useful for exposing your application's
+        /// the lifetime of this <see cref="WebControl"/>. This is useful for exposing your application's
         /// data and events to Javascript. This object is managed directly by Awesomium
         /// so you can modify its properties and bind callback functions via
-        /// WebView.SetObjectProperty and WebView.SetObjectCallback, respectively.
+        /// <see cref="WebControl.SetObjectProperty"/> and <see cref="WebControl.SetObjectCallback"/>, 
+        /// respectively.
         /// </summary>
-        /// <param name="objectName"></param>
+        /// <param name="objectName">
+        /// The name of the object.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void CreateObject( string objectName )
         {
             VerifyLive();
@@ -1298,6 +1854,16 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_destroy_object( IntPtr webview, IntPtr object_name );
 
+        /// <summary>
+        /// Destroys a Javascript object previously created with <see cref="WebControl.CreateObject"/>.
+        /// </summary>
+        /// <param name="objectName">
+        /// The name of the object to destroy.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void DestroyObject( string objectName )
         {
             VerifyLive();
@@ -1312,20 +1878,32 @@ namespace AwesomiumSharp.Windows.Controls
         private extern static void awe_webview_set_object_property( IntPtr webview, IntPtr object_name, IntPtr property_name, IntPtr val );
 
         /// <summary>
-        /// Sets a property of a Javascript object previously created by WebView.CreateObject.
+        /// Sets a property of a Javascript object previously created with <see cref="WebControl.CreateObject"/>.
+        /// </summary>
+        /// <example>
         /// An example of usage:
-        /// <pre>
+        /// <code>
         /// webView.CreateObject("MyObject");
         /// webView.SetObjectProperty("MyObject", "color", "blue");
         /// 
         /// // You can now access this object's property via Javascript on any 
-        /// // page loaded into this WebView:
+        /// // page loaded into this WebControl:
         /// var myColor = MyObject.color; // value would be "blue"
-        /// </pre>
-        /// </summary>
-        /// <param name="objectName"></param>
-        /// <param name="propertyName"></param>
-        /// <param name="val"></param>
+        /// </code>
+        /// </example>
+        /// <param name="objectName">
+        /// The name of the Javascript object.
+        /// </param>
+        /// <param name="propertyName">
+        /// The name of the property to create.
+        /// </param>
+        /// <param name="val">
+        /// The initial javascript-value of the property.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetObjectProperty( string objectName, string propertyName, JSValue val )
         {
             VerifyLive();
@@ -1342,27 +1920,40 @@ namespace AwesomiumSharp.Windows.Controls
         private extern static void awe_webview_set_object_callback( IntPtr webview, IntPtr object_name, IntPtr callback_name );
 
         /// <summary>
-        /// Binds a callback function to a Javascript object previously created by WebView.CreateObject.
+        /// Binds a callback function to a Javascript object previously created with <see cref="WebControl.CreateObject"/>.
+        /// This is very useful for passing events from Javascript to your application.
+        /// </summary>
+        /// <example>
         /// An example of usage:
-        /// <pre>
+        /// <code>
         /// public void OnSelectItem(object sender, JSCallbackEventArgs e)
         /// {
-        ///     System.Console.WriteLine("Player selected item: " + e.args[0].ToString());
+        ///     System.Console.WriteLine( "Player selected item: " + e.args[0].ToString() );
         /// }
         /// 
-        /// public void initWebView()
+        /// public void initWebControl()
         /// {
         ///     webView.CreateObject("MyObject");
-        ///     webView.SetObjectCallback("MyObject", "selectItem", OnSelectItem);
+        ///     webView.SetObjectCallback("MyObject", "SelectItem", OnSelectItem);
         /// }
         /// 
         /// // You can now call the function "OnSelectItem" from Javascript:
-        /// MyObject.selectItem("shotgun");
-        /// </pre>
-        /// </summary>
-        /// <param name="objectName"></param>
-        /// <param name="callbackName"></param>
-        /// <param name="callback"></param>
+        /// MyObject.SelectItem("shotgun");
+        /// </code>
+        /// </example>
+        /// <param name="objectName">
+        /// The name of the Javascript object.
+        /// </param>
+        /// <param name="callbackName">
+        /// The name of the Javascript function that will call the callback.
+        /// </param>
+        /// <param name="callback">
+        /// Reference to a <see cref="JSCallback"/> implementation.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetObjectCallback( string objectName, string callbackName, JSCallback callback )
         {
             VerifyLive();
@@ -1382,31 +1973,18 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
-        #region GetDirtyBounds
-        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
-        private static extern AweRect awe_webview_get_dirty_bounds( IntPtr webview );
-
-        public AweRect GetDirtyBounds()
-        {
-            VerifyLive();
-
-            AweRect bounds = awe_webview_get_dirty_bounds( Instance );
-            AweRect result = new AweRect
-            {
-                X = bounds.X,
-                Y = bounds.Y,
-                Width = bounds.Width,
-                Height = bounds.Height
-            };
-
-            return result;
-        }
-        #endregion
-
         #region Cut
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_cut( IntPtr webview );
 
+        /// <summary>
+        /// Cuts the text currently selected in this <see cref="WebControl"/>, when it has keyboard focus
+        /// (usually in a text-box), using the system clipboard.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Cut()
         {
             VerifyLive();
@@ -1418,6 +1996,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_copy( IntPtr webview );
 
+        /// <summary>
+        /// Copies the text currently selected in this <see cref="WebControl"/>, to the system clipboard.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Copy()
         {
             VerifyLive();
@@ -1429,6 +2014,14 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_paste( IntPtr webview );
 
+        /// <summary>
+        /// Pastes the text currently in the system clipboard, to this <see cref="WebControl"/>,
+        /// when it has keyboard focus (usually in a text-box).
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Paste()
         {
             VerifyLive();
@@ -1440,6 +2033,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_select_all( IntPtr webview );
 
+        /// <summary>
+        /// Selects all content on the current page.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SelectAll()
         {
             VerifyLive();
@@ -1448,10 +2048,39 @@ namespace AwesomiumSharp.Windows.Controls
         #endregion
 
         #region ResetZoom
+        /// <summary>
+        /// Resets the zoom level.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ResetZoom()
         {
             VerifyLive();
             this.ClearValue( WebControl.ZoomProperty );
+        }
+        #endregion
+
+        #region GetZoomForHost
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static int awe_webview_get_zoom_for_host( IntPtr webview, IntPtr host );
+
+        /// <summary>
+        /// Gets the zoom factor (percent of page) saved for a certain hostname.
+        /// </summary>
+        /// <param name="host">
+        /// The hostname whose saved zoom setting will be retrieved.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void GetZoomForHost( string host )
+        {
+            VerifyLive();
+            StringHelper hostStr = new StringHelper( host );
+            awe_webview_choose_file( Instance, hostStr.Value );
         }
         #endregion
 
@@ -1461,9 +2090,15 @@ namespace AwesomiumSharp.Windows.Controls
 
         /// <summary>
         /// Sets whether or not pages should be rendered with transparency
-        /// preserved (for ex, for pages with style="background-color:transparent")
+        /// preserved (for ex, for pages with style="background-color: transparent;")
         /// </summary>
-        /// <param name="isTransparent"></param>
+        /// <param name="isTransparent">
+        /// Whether or not this <see cref="WebControl"/> is transparent.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetTransparent( bool isTransparent )
         {
             VerifyLive();
@@ -1475,6 +2110,16 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_set_url_filtering_mode( IntPtr webview, URLFilteringMode filteringMode );
 
+        /// <summary>
+        /// Sets the current URL Filtering Mode to use.
+        /// </summary>
+        /// <param name="filteringMode">
+        /// The URL Filtering Mode to use. Default is <see cref="URLFilteringMode.None"/>.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetURLFilteringMode( URLFilteringMode filteringMode )
         {
             VerifyLive();
@@ -1486,9 +2131,28 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_add_url_filter( IntPtr webview, IntPtr filter );
 
+        /// <summary>
+        /// Adds a new URL Filter rule.
+        /// </summary>
+        /// <param name="filter">
+        /// A string with optional wildcards that describes a certain URL.
+        /// </param>
+        /// <example>
+        /// For example, to match all URLs from the domain "google.com", your filter string can be: http://google.com/*
+        /// </example>
+        /// <remarks> 
+        /// @note
+        /// You may also use the "local://" scheme prefix to describe the URL to the base directory
+        /// (set via <see cref="WebCore.SetBaseDirectory"/>).
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void AddURLFilter( string filter )
         {
             VerifyLive();
+
             StringHelper filterStr = new StringHelper( filter );
             awe_webview_add_url_filter( Instance, filterStr.Value );
         }
@@ -1498,6 +2162,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_clear_all_url_filters( IntPtr webview );
 
+        /// <summary>
+        /// Clears all URL Filter rules previously added with <see cref="AddURLFilter"/>.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ClearAllURLFilters()
         {
             VerifyLive();
@@ -1513,6 +2184,19 @@ namespace AwesomiumSharp.Windows.Controls
             IntPtr[] field_names,
             IntPtr[] field_values );
 
+        /// <summary>
+        /// Defines a new Header Definition or updates it if it already exists.
+        /// </summary>
+        /// <param name="name">
+        /// The unique name of the Header Definition; this is used to refer to it later in <see cref="AddHeaderRewriteRule"/> and related methods.
+        /// </param>
+        /// <param name="fields">
+        /// A name/value collection representing field names and their respective values.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetHeaderDefinition( string name, NameValueCollection fields )
         {
             VerifyLive();
@@ -1525,21 +2209,16 @@ namespace AwesomiumSharp.Windows.Controls
 
             for ( int i = 0; i < count; i++ )
             {
-                byte[] utf16string;
-
-                utf16string = Encoding.Unicode.GetBytes( fields.GetKey( i ) );
-                keys[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.GetKey( i ).Length );
-
-                utf16string = Encoding.Unicode.GetBytes( fields.Get( i ) );
-                values[ i ] = StringHelper.awe_string_create_from_utf16( utf16string, (uint)fields.Get( i ).Length );
+                keys[ i ] = StringHelper.GetAweString( fields.GetKey( i ) );
+                values[ i ] = StringHelper.GetAweString( fields.Get( i ) );
             }
 
             awe_webview_set_header_definition( Instance, nameStr.Value, (uint)count, keys, values );
 
             for ( uint i = 0; i < count; i++ )
             {
-                StringHelper.awe_string_destroy( keys[ i ] );
-                StringHelper.awe_string_destroy( values[ i ] );
+                StringHelper.DestroyAweString( keys[ i ] );
+                StringHelper.DestroyAweString( values[ i ] );
             }
         }
         #endregion
@@ -1548,6 +2227,22 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_add_header_rewrite_rule( IntPtr webview, IntPtr rule, IntPtr name );
 
+        /// <summary>
+        /// Adds a new a header re-write rule. 
+        /// All requests whose URL matches the specified rule will have its HTTP headers re-written 
+        /// with the specified header definition before sending it to the server.
+        /// </summary>
+        /// <param name="rule">
+        /// A string with optional wildcards (*, ?) that matches the URL(s) that will have their headers 
+        /// re-written with the specified header definition.
+        /// </param>
+        /// <param name="name">
+        /// The name of the header definition (specified in <see cref="SetHeaderDefinition"/>).
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void AddHeaderRewriteRule( string rule, string name )
         {
             VerifyLive();
@@ -1563,6 +2258,17 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_remove_header_rewrite_rule( IntPtr webview, IntPtr rule );
 
+        /// <summary>
+        /// Removes a header re-write rule previously added with <see cref="AddHeaderRewriteRule"/>.
+        /// </summary>
+        /// <param name="rule">
+        /// The rule to remove (should match the string specified in for the "rule" parameter 
+        /// in <see cref="AddHeaderRewriteRule"/>, exactly).
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void RemoveHeaderRewriteRule( string rule )
         {
             VerifyLive();
@@ -1576,6 +2282,18 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_remove_header_rewrite_rules_by_definition_name( IntPtr webview, IntPtr name );
 
+        /// <summary>
+        /// Removes all header re-write rules that are using a certain header definition.
+        /// </summary>
+        /// <param name="name">
+        /// The name of the header definition (specified in <see cref="WebControl.SetHeaderDefinition"/>).
+        /// @note
+        /// Specify an empty string, to remove all header re-write rules.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void RemoveHeaderRewriteRulesByDefinition( string name )
         {
             VerifyLive();
@@ -1589,9 +2307,27 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_choose_file( IntPtr webview, IntPtr file_path );
 
+        /// <summary>
+        /// Call this in response to a <see cref="SelectLocalFiles"/> event,
+        /// to indicate the file to be uploaded.
+        /// </summary>
+        /// <param name="filePath">
+        /// The full path to the file that was selected.
+        /// </param>
+        /// <remarks>
+        /// @note
+        /// Alternatively, if you opened a modal dialog from within your <see cref="SelectLocalFiles"/> handler,
+        /// you can define the files to be uploaded by using the <see cref="SelectLocalFilesEventArgs.SelectedFiles"/>
+        /// property.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ChooseFile( string filePath )
         {
             VerifyLive();
+
             StringHelper filePathStr = new StringHelper( filePath );
             awe_webview_choose_file( Instance, filePathStr.Value );
         }
@@ -1602,9 +2338,17 @@ namespace AwesomiumSharp.Windows.Controls
         private static extern void awe_webview_print( IntPtr webview );
 
         /// <summary>
-        /// Print the current page. To suppress the printer selection dialog
-        /// and print immediately using OS defaults, see WebCore.setSuppressPrinterDialog
+        /// Prints the current page.
         /// </summary>
+        /// <remarks>
+        /// To suppress the printer selection dialog
+        /// and print immediately using OS defaults, 
+        /// see <see cref="WebCore.SuppressPrinterDialog"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Print()
         {
             VerifyLive();
@@ -1616,9 +2360,23 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_request_scroll_data( IntPtr webview, IntPtr frame_name );
 
+        /// <summary>
+        /// Request the page dimensions and scroll position of the page.
+        /// </summary>
+        /// <remarks>
+        /// You can retrieve the response by handling the <see cref="ScrollDataReceived"/> event.
+        /// </remarks>
+        /// <param name="frameName">
+        /// The frame's scroll data to retrieve. Leave blank to get the main frame's scroll data.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void RequestScrollData( string frameName = "" )
         {
             VerifyLive();
+
             StringHelper frameNameStr = new StringHelper( frameName );
             awe_webview_request_scroll_data( Instance, frameNameStr.Value );
         }
@@ -1636,14 +2394,26 @@ namespace AwesomiumSharp.Windows.Controls
         private FindData findRequest;
 
         /// <summary>
-        /// Start finding a certain string on the current web-page. All matches
-        /// of the string will be highlighted on the page and you can jump to different 
+        /// Start finding a certain string on the current web-page.
+        /// </summary>
+        /// <remarks>
+        /// All matches of the string will be highlighted on the page and you can jump to different 
         /// instances of the string by using the <see cref="FindNext"/> method.
         /// To get actual stats about a certain query, please see <see cref="FindResultsReceived"/>.
-        /// </summary>
-        /// <param name="searchStr">The string to search for.</param>
-        /// <param name="forward">Whether or not we should search forward, down the page.</param>
-        /// <param name="caseSensitive">Whether or not this search is case-sensitive.</param>
+        /// </remarks>
+        /// <param name="searchStr">
+        /// The string to search for.
+        /// </param>
+        /// <param name="forward">
+        /// True to search forward, down the page. False otherwise. The default is true.
+        /// </param>
+        /// <param name="caseSensitive">
+        /// True to perform a case sensitive search. False otherwise. The default is false.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void Find( string searchStr, bool forward = true, bool caseSensitive = false )
         {
             VerifyLive();
@@ -1662,8 +2432,12 @@ namespace AwesomiumSharp.Windows.Controls
         /// Jump to the next match of a previously successful search.
         /// </summary>
         /// <param name="forward">
-        /// Whether or not we should search forward, down the page.
+        /// True to search forward, down the page. False otherwise. The default is true.
         /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void FindNext( bool forward = true )
         {
             VerifyLive();
@@ -1679,11 +2453,20 @@ namespace AwesomiumSharp.Windows.Controls
         #region StopFind
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_stop_find( IntPtr webview, bool clear_selection );
+
         /// <summary>
-        /// Stop finding. This will un-highlight all matches of a previous call to WebView.Find
+        /// Stops the last active search (started with <see cref="WebControl.Find"/>).
         /// </summary>
-        /// <param name="clearSelection">Whether or not we should also deselect the 
-        /// currently-selected string instance</param>
+        /// <remarks>
+        /// This will un-highlight all matches of a previous call to <see cref="WebControl.Find"/>.
+        /// </remarks>
+        /// <param name="clearSelection">
+        /// True to also deselect the currently selected string. False otherwise.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void StopFind( bool clearSelection )
         {
             VerifyLive();
@@ -1695,12 +2478,23 @@ namespace AwesomiumSharp.Windows.Controls
         #region TranslatePage
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_translate_page( IntPtr webview, IntPtr source_language, IntPtr target_language );
+
         /// <summary>
-        /// Attempt automatic translation of the current page via Google
-        /// Translate. All language codes are ISO 639-2.
+        /// Attempt automatic translation of the current page via Google Translate.
         /// </summary>
-        /// <param name="sourceLanguage">The language to translate from (for ex. "en" for English)</param>
-        /// <param name="targetLanguage">The language to translate to (for ex. "fr" for French)</param>
+        /// <remarks>
+        /// The defined language codes are ISO 639-2.
+        /// </remarks>
+        /// <param name="sourceLanguage">
+        /// The language to translate from (for ex. "en" for English).
+        /// </param>
+        /// <param name="targetLanguage">
+        /// The language to translate to (for ex. "fr" for French).
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void TranslatePage( string sourceLanguage, string targetLanguage )
         {
             VerifyLive();
@@ -1717,12 +2511,18 @@ namespace AwesomiumSharp.Windows.Controls
         private extern static void awe_webview_activate_ime( IntPtr webview, bool activate );
 
         /// <summary>
-        /// Call this method to the let the WebView know you will be passing
+        /// Call this method to let the <see cref="WebControl"/> know you will be passing
         /// text input via IME and will need to be notified of any IME-related
-        /// events (such as caret position, user unfocusing textbox, etc.).
-        /// Please see WebView.OnUpdateIME
+        /// events (such as caret position, user un-focusing text-box, etc.).
         /// </summary>
-        /// <param name="activate"></param>
+        /// <param name="activate">
+        /// True to activate IME support. False otherwise.
+        /// </param>
+        /// <seealso cref="WebControl.ImeUpdated"/>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ActivateIME( bool activate )
         {
             VerifyLive();
@@ -1739,12 +2539,16 @@ namespace AwesomiumSharp.Windows.Controls
             int target_end );
 
         /// <summary>
-        /// Create or Update the current IME text composition.
+        /// Create or update the current IME text composition.
         /// </summary>
-        /// <param name="inputStr">The string generated by your IME</param>
+        /// <param name="inputStr">The string generated by your IME.</param>
         /// <param name="cursorPos">The current cursor position in your IME composition.</param>
         /// <param name="targetStart">The position of the beginning of the selection.</param>
         /// <param name="targetEnd">The position of the end of the selection.</param>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void SetIMEComposition( string inputStr, int cursorPos, int targetStart, int targetEnd )
         {
             VerifyLive();
@@ -1758,6 +2562,10 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_confirm_ime_composition( IntPtr webview, IntPtr input_string );
 
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void ConfirmIMEComposition( string inputStr )
         {
             VerifyLive();
@@ -1771,6 +2579,13 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_cancel_ime_composition( IntPtr webview );
 
+        /// <summary>
+        /// Cancels IME text composition.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
         public void CancelIMEComposition()
         {
             VerifyLive();
@@ -1784,7 +2599,9 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Properties
 
-        #region IsLive
+        #region Internal
+        internal IntPtr Instance { get; private set; }
+
         /// <summary>
         /// Gets if the control is live and the view is instantiated.
         /// </summary>
@@ -1792,16 +2609,12 @@ namespace AwesomiumSharp.Windows.Controls
         {
             get
             {
-                return ( Instance != IntPtr.Zero ) &&
-                    !DesignerProperties.GetIsInDesignMode( this ) &&
-                    !IsCrashed;
+                this.CoerceValue( WebControl.IsEnabledProperty );
+                return IsEnabled;
             }
         }
         #endregion
 
-        #region Instance
-        internal IntPtr Instance { get; private set; }
-        #endregion
 
         #region IsDirty
         [return: MarshalAs( UnmanagedType.I1 )]
@@ -1809,20 +2622,30 @@ namespace AwesomiumSharp.Windows.Controls
         private static extern bool awe_webview_is_dirty( IntPtr webview );
 
         /// <summary>
-        /// Gets whether or not this WebControl needs to be rendered again.
+        /// Gets whether or not this <see cref="WebControl"/> needs to be rendered again.
         /// </summary>
+        /// <remarks>
+        /// Internal changes to this property fire the <see cref="IsDirtyChanged"/>
+        /// and <see cref="INotifyPropertyChanged.PropertyChanged"/> events,
+        /// only if <see cref="WebCore.IsAutoUpdateEnabled"/> is true.
+        /// </remarks>
+        /// <seealso cref="WebControl.IsDirtyChanged"/>
+        /// <seealso cref="WebCore.Update"/>
         public bool IsDirty
         {
             get { return (bool)this.GetValue( WebControl.IsDirtyProperty ); }
             internal set
             {
-                VerifyLive();
+                if ( !IsLive )
+                    return;
+
                 SetValue( WebControl.IsDirtyPropertyKey, value );
 
                 // Insist on firing while True.
                 if ( value )
                 {
                     OnPropertyChanged( new DependencyPropertyChangedEventArgs( WebControl.IsDirtyProperty, false, true ) );
+                    CoerceValue( WebControl.DirtyBoundsProperty );
                     Update();
                     OnIsDirtyChanged( this, EventArgs.Empty );
                 }
@@ -1834,6 +2657,9 @@ namespace AwesomiumSharp.Windows.Controls
                                 typeof( bool ), typeof( WebControl ),
                                 new FrameworkPropertyMetadata( false, IsDirtyPropChanged ) );
 
+        /// <summary>
+        /// Identifies the <see cref="IsDirty"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty IsDirtyProperty =
             IsDirtyPropertyKey.DependencyProperty;
 
@@ -1844,6 +2670,7 @@ namespace AwesomiumSharp.Windows.Controls
 
             if ( owner.IsLive && !value )
             {
+                owner.CoerceValue( WebControl.DirtyBoundsProperty );
                 owner.Update();
                 owner.OnIsDirtyChanged( owner, EventArgs.Empty );
             }
@@ -1858,8 +2685,10 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Checks whether or not there is a resize operation pending.
         /// </summary>
-        /// <returns>Returns true if we are waiting for the WebView process to
-        /// return acknowledgment of a pending resize operation.</returns>
+        /// <returns>
+        /// True if we are waiting for the <see cref="WebControl"/> process to
+        /// return acknowledgment of a pending resize operation. False otherwise.
+        /// </returns>
         public bool IsResizing
         {
             get { return (bool)this.GetValue( WebControl.IsResizingProperty ); }
@@ -1870,6 +2699,9 @@ namespace AwesomiumSharp.Windows.Controls
                                 typeof( bool ), typeof( WebControl ),
                                 new FrameworkPropertyMetadata( false, null, CoerceIsResizing ) );
 
+        /// <summary>
+        /// Identifies the <see cref="IsResizing"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty IsResizingProperty =
             IsResizingPropertyKey.DependencyProperty;
 
@@ -1889,6 +2721,9 @@ namespace AwesomiumSharp.Windows.Controls
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern bool awe_webview_is_loading_page( IntPtr webview );
 
+        /// <summary>
+        /// Gets if a page is currently loading in the <see cref="WebControl"/>.
+        /// </summary>
         public bool IsLoadingPage
         {
             get { return (bool)this.GetValue( WebControl.IsLoadingPageProperty ); }
@@ -1899,6 +2734,9 @@ namespace AwesomiumSharp.Windows.Controls
                                 typeof( bool ), typeof( WebControl ),
                                 new FrameworkPropertyMetadata( false, null, CoerceIsLoadingPage ) );
 
+        /// <summary>
+        /// Identifies the <see cref="IsLoadingPage"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty IsLoadingPageProperty =
             IsLoadingPagePropertyKey.DependencyProperty;
 
@@ -1913,7 +2751,119 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
+        #region DirtyBounds
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern AweRect awe_webview_get_dirty_bounds( IntPtr webview );
+
+        /// <summary>
+        /// Gets the bounds of the area that has changed since the last rendering.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="AweRect"/> representing the bounds of the area that has changed 
+        /// since the last rendering.
+        /// </returns>
+        public AweRect DirtyBounds
+        {
+            get { return (AweRect)this.GetValue( WebControl.DirtyBoundsProperty ); }
+        }
+
+        private static readonly DependencyPropertyKey DirtyBoundsPropertyKey =
+            DependencyProperty.RegisterReadOnly( "DirtyBounds",
+            typeof( AweRect ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( new AweRect(), null, CoerceDirtyBounds ) );
+
+        /// <summary>
+        /// Identifies the <see cref="DirtyBounds"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty DirtyBoundsProperty =
+            DirtyBoundsPropertyKey.DependencyProperty;
+
+        private static object CoerceDirtyBounds( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+
+            if ( !owner.IsLive )
+                return new AweRect();
+
+            AweRect bounds = awe_webview_get_dirty_bounds( owner.Instance );
+            AweRect result = new AweRect
+            {
+                X = bounds.X,
+                Y = bounds.Y,
+                Width = bounds.Width,
+                Height = bounds.Height
+            };
+
+            return result;
+        }
+        #endregion
+
+        #region HistoryBackCount
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static int awe_webview_get_history_back_count( IntPtr webview );
+
+        /// <summary>
+        /// Gets the available number of steps back in history.
+        /// </summary>
+        public int HistoryBackCount
+        {
+            get { return (int)this.GetValue( WebControl.HistoryBackCountProperty ); }
+        }
+
+        private static readonly DependencyPropertyKey HistoryBackCountPropertyKey =
+            DependencyProperty.RegisterReadOnly( "HistoryBackCount",
+            typeof( int ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( 0, null, CoerceHistoryBackCount ) );
+
+        public static readonly DependencyProperty HistoryBackCountProperty =
+            HistoryBackCountPropertyKey.DependencyProperty;
+
+        private static object CoerceHistoryBackCount( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+
+            if ( !owner.IsLive )
+                return 0;
+
+            return awe_webview_get_history_back_count( owner.Instance );
+        }
+        #endregion
+
+        #region HistoryForwardCount
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static int awe_webview_get_history_forward_count( IntPtr webview );
+
+        /// <summary>
+        /// Gets the available number of steps forward in history.
+        /// </summary>
+        public int HistoryForwardCount
+        {
+            get { return (int)this.GetValue( WebControl.HistoryForwardCountProperty ); }
+        }
+
+        private static readonly DependencyPropertyKey HistoryForwardCountPropertyKey =
+            DependencyProperty.RegisterReadOnly( "HistoryForwardCount",
+            typeof( int ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( 0, null, CoerceHistoryForwardCount ) );
+
+        public static readonly DependencyProperty HistoryForwardCountProperty =
+            HistoryForwardCountPropertyKey.DependencyProperty;
+
+        private static object CoerceHistoryForwardCount( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+
+            if ( !owner.IsLive )
+                return 0;
+
+            return awe_webview_get_history_forward_count( owner.Instance );
+        }
+        #endregion
+
         #region Title
+        /// <summary>
+        /// Gets the title of the page currently loaded in this <see cref="WebControl"/>.
+        /// </summary>
         public string Title
         {
             get { return (string)this.GetValue( WebControl.TitleProperty ); }
@@ -1925,11 +2875,17 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( string ), typeof( WebControl ),
             new FrameworkPropertyMetadata( null ) );
 
+        /// <summary>
+        /// Identifies the <see cref="Title"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty TitleProperty =
             TitlePropertyKey.DependencyProperty;
         #endregion
 
         #region HasKeyboardFocus
+        /// <summary>
+        /// Gets if this <see cref="WebControl"/> currently has keyboard focus.
+        /// </summary>
         public bool HasKeyboardFocus
         {
             get { return (bool)this.GetValue( WebControl.HasKeyboardFocusProperty ); }
@@ -1941,11 +2897,18 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( bool ), typeof( WebControl ),
             new FrameworkPropertyMetadata( false ) );
 
+        /// <summary>
+        /// Identifies the <see cref="HasKeyboardFocus"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty HasKeyboardFocusProperty =
             HasKeyboardFocusPropertyKey.DependencyProperty;
         #endregion
 
         #region TargetURL
+        /// <summary>
+        /// Gets the target URL indicated by the <see cref="WebControl"/>,
+        /// usually as a result of hovering over a link on the page.
+        /// </summary>
         public string TargetURL
         {
             get { return (string)this.GetValue( WebControl.TargetURLProperty ); }
@@ -1957,11 +2920,17 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( string ), typeof( WebControl ),
             new FrameworkPropertyMetadata( null ) );
 
+        /// <summary>
+        /// Identifies the <see cref="TargetURL"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty TargetURLProperty =
             TargetURLPropertyKey.DependencyProperty;
         #endregion
 
         #region IsCrashed
+        /// <summary>
+        /// Gets if the renderer of this <see cref="WebControl"/> (which is isolated in a separate process) has crashed.
+        /// </summary>
         public bool IsCrashed
         {
             get { return (bool)this.GetValue( WebControl.IsCrashedProperty ); }
@@ -1973,11 +2942,17 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( bool ), typeof( WebControl ),
             new FrameworkPropertyMetadata( false ) );
 
+        /// <summary>
+        /// Identifies the <see cref="IsCrashed"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty IsCrashedProperty =
             IsCrashedPropertyKey.DependencyProperty;
         #endregion
 
         #region PageContents
+        /// <summary>
+        /// Gets the textual representation of the contents of the page currently loaded.
+        /// </summary>
         public string PageContents
         {
             get { return (string)this.GetValue( WebControl.PageContentsProperty ); }
@@ -1989,11 +2964,20 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( string ), typeof( WebControl ),
             new FrameworkPropertyMetadata( null ) );
 
+        /// <summary>
+        /// Identifies the <see cref="PageContents"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty PageContentsProperty =
             PageContentsPropertyKey.DependencyProperty;
         #endregion
 
         #region IsDomReady
+        /// <summary>
+        /// Gets if DOM (Document Object Model) for the page being loaded, is ready.
+        /// </summary>
+        /// <remarks>
+        /// This is very useful for executing Javascript on a page before its content has finished loading.
+        /// </remarks>
         public bool IsDomReady
         {
             get { return (bool)this.GetValue( WebControl.IsDomReadyProperty ); }
@@ -2005,6 +2989,9 @@ namespace AwesomiumSharp.Windows.Controls
             typeof( bool ), typeof( WebControl ),
             new FrameworkPropertyMetadata( null ) );
 
+        /// <summary>
+        /// Identifies the <see cref="IsDomReady"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty IsDomReadyProperty =
             IsDomReadyPropertyKey.DependencyProperty;
         #endregion
@@ -2014,6 +3001,8 @@ namespace AwesomiumSharp.Windows.Controls
         private extern static void awe_webview_set_zoom( IntPtr webview, int zoom_percent );
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_reset_zoom( IntPtr webview );
+
+        private int actualZoom;
 
         /// <summary>
         /// Gets or sets the zoom percentage. The default is 100.
@@ -2025,6 +3014,9 @@ namespace AwesomiumSharp.Windows.Controls
             set { SetValue( ZoomProperty, value ); }
         }
 
+        /// <summary>
+        /// Identifies the <see cref="Zoom"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty ZoomProperty =
             DependencyProperty.Register( "Zoom",
             typeof( int ), typeof( WebControl ),
@@ -2045,24 +3037,53 @@ namespace AwesomiumSharp.Windows.Controls
 
             if ( value == 100 )
                 awe_webview_reset_zoom( owner.Instance );
-            else
+            else if ( owner.actualZoom != value )
+            {
+                owner.actualZoom = value;
                 awe_webview_set_zoom( owner.Instance, value );
+            }
         }
         #endregion
 
         #region Source
         private string actualSource;
 
+        /// <summary>
+        /// Gets or sets the current URL presented by this <see cref="WebControl"/>.
+        /// </summary>
+        /// <returns>
+        /// An absolute <see cref="Uri"/> representing the current URL presented 
+        /// by this <see cref="WebControl"/>.
+        /// </returns>
+        /// <seealso cref="LoadURL"/>
         public Uri Source
         {
             get { return (Uri)this.GetValue( SourceProperty ); }
             set { SetValue( SourceProperty, value ); }
         }
 
+        /// <summary>
+        /// Identifies the <see cref="Source"/> dependency property.
+        /// </summary>
         public static readonly DependencyProperty SourceProperty =
             DependencyProperty.Register( "Source",
             typeof( Uri ), typeof( WebControl ),
-            new FrameworkPropertyMetadata( null, SourceChanged ) );
+            new FrameworkPropertyMetadata( null, SourceChanged, CoerceSource ) );
+
+        private static object CoerceSource( DependencyObject d, object baseValue )
+        {
+            Uri value = (Uri)baseValue;
+
+            if ( value != null )
+            {
+                if ( !value.IsAbsoluteUri )
+                    return new Uri( "http://" + value.ToString() );
+            }
+            else
+                return new Uri( "about:blank" );
+
+            return baseValue;
+        }
 
         private static void SourceChanged( DependencyObject d, DependencyPropertyChangedEventArgs e )
         {
@@ -2142,14 +3163,14 @@ namespace AwesomiumSharp.Windows.Controls
                     case "LoadURL":
                         if ( e.Parameter != null )
                         {
-                            this.LoadURL( e.Parameter is Uri ? ( (Uri)e.Parameter ).AbsoluteUri : e.Parameter.ToString() );
+                            this.Source = e.Parameter is Uri ?  (Uri)e.Parameter : new Uri(e.Parameter.ToString());
                         }
                         break;
 
                     case "LoadFile":
                         if ( e.Parameter != null )
                         {
-                            this.LoadFile( e.Parameter is Uri ? ( (Uri)e.Parameter ).AbsoluteUri : e.Parameter.ToString() );
+                            this.LoadFile( e.Parameter is Uri ? ( (Uri)e.Parameter ).ToString() : e.Parameter.ToString() );
                         }
                         break;
 
@@ -2169,7 +3190,15 @@ namespace AwesomiumSharp.Windows.Controls
 
                     case "ChooseFile":
                         if ( e.Parameter != null )
-                            this.ChooseFile( e.Parameter.ToString() );
+                        {
+                            if ( e.Parameter is string )
+                                this.ChooseFile( e.Parameter.ToString() );
+                            else if ( e.Parameter is string[] )
+                            {
+                                foreach ( string f in (string[])e.Parameter )
+                                    this.ChooseFile( f );
+                            }
+                        }
                         break;
 
                     case "ClearAllURLFilters":
@@ -2205,12 +3234,52 @@ namespace AwesomiumSharp.Windows.Controls
 
         private void CanExecuteCommand( object sender, CanExecuteRoutedEventArgs e )
         {
-            e.CanExecute = this.IsLive;
+            if ( IsLive )
+            {
+                bool canExecute = true;
+                RoutedCommand command = (RoutedCommand)e.Command;
+
+                switch ( command.Name )
+                {
+                    case "BrowseForward":
+                        canExecute = this.HistoryForwardCount > 0;
+                        break;
+
+                    case "BrowseBack":
+                        canExecute = this.HistoryBackCount > 0;
+                        break;
+
+                    case "LoadURL":
+                        canExecute = ( e.Parameter != null ) && ( String.Compare( e.Parameter.ToString(), GetUrl(), true ) != 0 );
+                        break;
+
+                    case "Paste":
+                        canExecute = Clipboard.ContainsText();
+                        break;
+
+                    case "Find":
+                    case "Zoom":
+                    case "LoadFile":
+                    case "ActivateIME":
+                    case "AddURLFilter":
+                    case "ChooseFile":
+                    case "ConfirmIMEComposition":
+                    case "CreateObject":
+                    case "DestroyObject":
+                        canExecute = ( e.Parameter != null );
+                        break;
+
+                }
+
+                e.CanExecute = canExecute;
+            }
+            else
+                e.CanExecute = false;
         }
         #endregion
 
 
-        #region Loaded
+        #region Loaded / Enabled
         // In WPF, the Loaded/Unloaded events may be fired more than once
         // in the lifetime of a control. Such as when the control is hidden/shown
         // or when the control is completely covered by another control and
@@ -2236,6 +3305,33 @@ namespace AwesomiumSharp.Windows.Controls
         private void OnUnloaded( object sender, RoutedEventArgs e )
         {
             PauseRendering();
+        }
+
+        private static object CoerceIsEnabled( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+            bool value = (bool)baseValue;
+
+            return value &&
+                ( owner.Instance != IntPtr.Zero ) &&
+                !DesignerProperties.GetIsInDesignMode( owner ) &&
+                !owner.IsCrashed;
+        }
+
+        private void OnIsEnabledChanged( Object sender, DependencyPropertyChangedEventArgs e )
+        {
+            bool value = (bool)e.NewValue;
+
+            // Add handling.
+            if ( !value )
+                this.AddVisualChild( controlLayer );
+            else
+            {
+                this.RemoveVisualChild( controlLayer );
+                this.InvalidateMeasure();
+                this.InvalidateArrange();
+                this.InvalidateVisual();
+            }
         }
         #endregion
 
@@ -2275,10 +3371,13 @@ namespace AwesomiumSharp.Windows.Controls
 
             actualSource = e.Url;
 
-            this.IsDomReady = false;
             this.Source = new Uri( e.Url );
             this.CoerceValue( WebControl.IsLoadingPageProperty );
+            this.CoerceValue( WebControl.HistoryBackCountProperty );
+            this.CoerceValue( WebControl.HistoryForwardCountProperty );
             this.OnBeginNavigation( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2297,10 +3396,17 @@ namespace AwesomiumSharp.Windows.Controls
                 StringHelper.ConvertAweString( mime_type ) );
 
             actualSource = e.Url;
+            actualZoom = GetZoom();
 
+            this.IsDomReady = false; // Reset
             this.Source = new Uri( e.Url );
+            this.Zoom = actualZoom;
             this.CoerceValue( WebControl.IsLoadingPageProperty );
+            this.CoerceValue( WebControl.HistoryBackCountProperty );
+            this.CoerceValue( WebControl.HistoryForwardCountProperty );
             this.OnBeginLoading( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2315,8 +3421,17 @@ namespace AwesomiumSharp.Windows.Controls
 
         private void internalFinishLoadingCallback( IntPtr caller )
         {
+            actualSource = GetUrl();
+            actualZoom = GetZoom();
+
             this.CoerceValue( WebControl.IsLoadingPageProperty );
+            this.CoerceValue( WebControl.HistoryBackCountProperty );
+            this.CoerceValue( WebControl.HistoryForwardCountProperty );
+            this.Source = new Uri( actualSource );
+            this.Zoom = actualZoom;
             this.OnLoadCompleted( this, EventArgs.Empty );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2336,6 +3451,8 @@ namespace AwesomiumSharp.Windows.Controls
 
             if ( JSCallbackCalled != null )
                 JSCallbackCalled( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2354,6 +3471,8 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.Title = e.Title;
             this.OnTitleReceived( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2366,19 +3485,21 @@ namespace AwesomiumSharp.Windows.Controls
 
         private void internalChangeTooltipCallback( IntPtr caller, IntPtr tooltip )
         {
-            ChangeTooltipEventArgs e = new ChangeTooltipEventArgs( StringHelper.ConvertAweString( tooltip ) );
+            ChangeToolTipEventArgs e = new ChangeToolTipEventArgs( StringHelper.ConvertAweString( tooltip ) );
 
-            if ( String.IsNullOrEmpty( e.Tooltip ) )
+            if ( String.IsNullOrEmpty( e.ToolTip ) )
             {
                 toolTip.IsOpen = false;
             }
             else
             {
-                toolTip.Content = e.Tooltip;
+                toolTip.Content = e.ToolTip;
                 toolTip.IsOpen = true;
             }
 
-            this.OnTooltipChanged( this, e );
+            this.OnToolTipChanged( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2395,6 +3516,8 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.Cursor = Utilities.GetCursor( e.CursorType );
             this.OnCursorChanged( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2423,6 +3546,8 @@ namespace AwesomiumSharp.Windows.Controls
                 NavigationCommands.BrowseBack.InputGestures.Add( browseBackGesture );
 
             this.OnKeyboardFocusChanged( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2439,6 +3564,8 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.TargetURL = e.Url;
             this.OnTargetUrlChanged( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2456,6 +3583,8 @@ namespace AwesomiumSharp.Windows.Controls
                 StringHelper.ConvertAweString( source ) );
 
             this.OnOpenExternalLink( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2470,6 +3599,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
             this.OnDownload( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2484,6 +3615,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             this.IsCrashed = true;
             this.OnCrashed( this, EventArgs.Empty );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2498,6 +3631,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             PluginCrashedEventArgs e = new PluginCrashedEventArgs( StringHelper.ConvertAweString( plugin_name ) );
             this.OnPluginCrashed( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2512,6 +3647,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             MoveEventArgs e = new MoveEventArgs( x, y );
             this.OnMove( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2534,6 +3671,8 @@ namespace AwesomiumSharp.Windows.Controls
             this.CoerceValue( WebControl.IsLoadingPageProperty );
             this.PageContents = e.Contents;
             this.OnPageContentsReceived( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2548,6 +3687,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             this.IsDomReady = true;
             this.OnDomReady( this, EventArgs.Empty );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2572,6 +3713,8 @@ namespace AwesomiumSharp.Windows.Controls
                 foreach ( string f in e.SelectedFiles )
                     this.ChooseFile( f );
             }
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2586,6 +3729,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             ScrollDataEventArgs e = new ScrollDataEventArgs( new ScrollData( contentWidth, contentHeight, preferredWidth, scrollX, scrollY ) );
             this.OnScrollDataReceived( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2604,6 +3749,8 @@ namespace AwesomiumSharp.Windows.Controls
                 StringHelper.ConvertAweString( source ) );
 
             this.OnJSConsoleMessageAdded( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2623,6 +3770,8 @@ namespace AwesomiumSharp.Windows.Controls
                 finalUpdate );
 
             this.OnFindResultsReceived( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2637,6 +3786,8 @@ namespace AwesomiumSharp.Windows.Controls
         {
             UpdateImeEventArgs e = new UpdateImeEventArgs( (IMEState)state, caret_rect );
             this.OnImeUpdated( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2655,6 +3806,7 @@ namespace AwesomiumSharp.Windows.Controls
             if ( ResourceRequest != null )
             {
                 ResourceResponse response = this.OnResourceRequest( this, e );
+                CommandManager.InvalidateRequerySuggested();
 
                 if ( response != null )
                     return response.getInstance();
@@ -2684,6 +3836,8 @@ namespace AwesomiumSharp.Windows.Controls
                 StringHelper.ConvertAweString( mimeType ) );
 
             this.OnResourceResponse( this, e );
+
+            CommandManager.InvalidateRequerySuggested();
         }
         #endregion
 
@@ -2704,20 +3858,6 @@ namespace AwesomiumSharp.Windows.Controls
 
 
         #region IWebView Members
-        void IWebView.PrepareForShutdown()
-        {
-            if ( Instance != IntPtr.Zero )
-            {
-                resourceRequestCallback = null;
-                awe_webview_set_callback_resource_request( Instance, null );
-
-                resourceResponseCallback = null;
-                awe_webview_set_callback_resource_response( Instance, null );
-
-                this.Destroy( true );
-            }
-        }
-
         IntPtr IWebView.Instance
         {
             get

@@ -12,7 +12,7 @@ namespace AwesomiumSharp
 #endif
 {
     /// <summary>
-    /// JSObject represents an Object type in Javascript (similar to a Dictionary in C#).
+    /// Represents an Object type in Javascript (similar to a Dictionary in C#).
     /// You can get and set properties (key/value pairs).
     /// </summary>
     public class JSObject : IDisposable
@@ -24,6 +24,9 @@ namespace AwesomiumSharp
         #endregion
 
         #region Ctor/Dtor
+        /// <summary>
+        /// Creates an instance of <see cref="JSObject"/>.
+        /// </summary>
         public JSObject()
         {
             instance = awe_jsobject_create();
@@ -41,6 +44,9 @@ namespace AwesomiumSharp
             Dispose();
         }
 
+        /// <summary>
+        /// Disposes and destroys this object.
+        /// </summary>
         public void Dispose()
         {
             if ( !isDisposed && ownsInstance )
@@ -57,6 +63,16 @@ namespace AwesomiumSharp
 
 
         #region Methods
+        /// <summary>
+        /// Gets if this object has a certain named property.
+        /// </summary>
+        /// <param name="propertyName">
+        /// The name of the property to search for.
+        /// </param>
+        /// <returns>
+        /// True if this object has the specified named property. 
+        /// False otherwise.
+        /// </returns>
         public bool HasProperty( string propertyName )
         {
             StringHelper propertyNameStr = new StringHelper( propertyName );
@@ -65,6 +81,9 @@ namespace AwesomiumSharp
         #endregion
 
         #region Properties
+        /// <summary>
+        /// Indicates if this object is already disposed and destroyed.
+        /// </summary>
         public bool IsDisposed
         {
             get
@@ -73,6 +92,15 @@ namespace AwesomiumSharp
             }
         }
 
+        /// <summary>
+        /// Gets or sets the value of the specified named property.
+        /// </summary>
+        /// <param name="propertyName">
+        /// The name of the property whose value will be set or retrieved.
+        /// </param>
+        /// <returns>
+        /// A <see cref="JSValue"/> representing the value of the specified named property.
+        /// </returns>
         [IndexerName( "Property" )]
         public JSValue this[ string propertyName ]
         {
@@ -96,6 +124,9 @@ namespace AwesomiumSharp
             }
         }
 
+        /// <summary>
+        /// Gets an array of keys representing the available named properties of this <see cref="JSObject"/>.
+        /// </summary>
         public string[] Keys
         {
             get

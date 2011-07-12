@@ -6,8 +6,17 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// Represents the method that will handle the <see cref="WebView.ImeUpdated"/> and 
+    /// <see cref="Windows.Controls.WebControl.ImeUpdated"/> events.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An <see cref="UpdateImeEventArgs"/> that contains the event data.</param>
     public delegate void ImeUpdatedEventHandler( object sender, UpdateImeEventArgs e );
 
+    /// <summary>
+    /// Provides data for the <see cref="WebView.ImeUpdated"/> and <see cref="Windows.Controls.WebControl.ImeUpdated"/> events.
+    /// </summary>
     public class UpdateImeEventArgs : EventArgs
     {
         public UpdateImeEventArgs( IMEState state, AweRect caretRect )

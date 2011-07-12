@@ -1,4 +1,3 @@
-
 #ignore thumbnails created by windows
 Thumbs.db
 #Ignore files build by Visual Studio
@@ -9,6 +8,8 @@ Thumbs.db
 *.aps
 *.pch
 *.vspscc
+*.scc
+*.vssscc
 *_i.c
 *_p.c
 *.ncb
@@ -27,3 +28,5 @@ Thumbs.db
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+AwesomiumSharp.suo
+TabbedBrowserSample/Thumbs.db

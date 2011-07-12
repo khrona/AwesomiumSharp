@@ -6,8 +6,18 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// Represents the method that will handle the <see cref="WebView.ResourceResponse"/> and 
+    /// <see cref="Windows.Controls.WebControl.ResourceResponse"/> events.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An <see cref="ResourceResponseEventArgs"/> that contains the event data.</param>
     public delegate void ResourceResponseEventHandler( object sender, ResourceResponseEventArgs e );
 
+    /// <summary>
+    /// Provides data for the <see cref="WebView.ResourceResponse"/> and 
+    /// <see cref="Windows.Controls.WebControl.ResourceResponse"/> events.
+    /// </summary>
     public class ResourceResponseEventArgs : UrlEventArgs
     {
         public ResourceResponseEventArgs( string url, 

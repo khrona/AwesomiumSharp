@@ -133,6 +133,15 @@ namespace AwesomiumSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This WebView instance is invalid. It has either been destroyed or it was never properly instantiated..
+        /// </summary>
+        internal static string ERR_InvalidWebView {
+            get {
+                return ResourceManager.GetString("ERR_InvalidWebView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Load File.
         /// </summary>
         internal static string LoadFile {
@@ -165,6 +174,15 @@ namespace AwesomiumSharp {
         internal static string StopFind {
             get {
                 return ResourceManager.GetString("StopFind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The control is disabled either manually or it has been destroyed..
+        /// </summary>
+        internal static string ERR_WebControlDisabled {
+            get {
+                return ResourceManager.GetString("ERR_WebControlDisabled", resourceCulture);
             }
         }
     }

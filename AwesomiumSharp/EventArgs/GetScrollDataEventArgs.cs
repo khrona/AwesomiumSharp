@@ -6,9 +6,18 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    /// <summary>
+    /// Represents the method that will handle the <see cref="WebView.ScrollDataReceived"/> and 
+    /// <see cref="Windows.Controls.WebControl.ScrollDataReceived"/> events.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An <see cref="ScrollDataEventArgs"/> that contains the event data.</param>
     public delegate void ScrollDataReceivedEventHandler( object sender, ScrollDataEventArgs e );
 
     #region ScrollData
+    /// <summary>
+    /// Contains the page dimensions and scroll position of the page.
+    /// </summary>
     public struct ScrollData
     {
         private int contentWidth, contentHeight, preferredWidth, scrollX, scrollY;
@@ -106,6 +115,10 @@ namespace AwesomiumSharp
     }
     #endregion
 
+    /// <summary>
+    /// Provides data for the <see cref="WebView.ScrollDataReceived"/> and 
+    /// <see cref="Windows.Controls.WebControl.ScrollDataReceived"/> events.
+    /// </summary>
     public class ScrollDataEventArgs : EventArgs
     {
         private ScrollData scrollData;

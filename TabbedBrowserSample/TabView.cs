@@ -73,7 +73,7 @@ namespace TabbedBrowserSample
             webView.BeginNavigation += onBeginNavigation;
             webView.BeginLoading += onBeginLoading;
             webView.CursorChanged += onChangeCursor;
-            webView.TooltipChanged += onChangeTooltip;
+            webView.ToolTipChanged += onChangeTooltip;
             webView.LoadCompleted += onFinishLoading;
             webView.OpenExternalLink += onOpenExternalLink;
             webView.TitleReceived += onReceiveTitle;
@@ -88,7 +88,12 @@ namespace TabbedBrowserSample
         ~TabView()
         {
             webView.IsDirtyChanged -= OnIsDirtyChanged;
-            webView.Dispose();
+            webView.Close();
+        }
+
+        public void Close()
+        {
+            webView.Close();
         }
 
         public void focus()
@@ -132,13 +137,13 @@ namespace TabbedBrowserSample
         public void zoomOut()
         {
             if ( zoomPercent > 10 )
-                webView.SetZoom( zoomPercent -= 20 );
+                webView.Zoom = ( zoomPercent -= 20 );
         }
 
         public void zoomIn()
         {
             if ( zoomPercent < 500 )
-                webView.SetZoom( zoomPercent += 20 );
+                webView.Zoom = ( zoomPercent += 20 );
         }
 
         void mainWindowMouseWheel( object sender, MouseWheelEventArgs e )
@@ -250,11 +255,11 @@ namespace TabbedBrowserSample
                 tab.Cursor = Cursors.Arrow;
         }
 
-        private void onChangeTooltip( object sender, ChangeTooltipEventArgs e )
+        private void onChangeTooltip( object sender, ChangeToolTipEventArgs e )
         {
-            if ( e.Tooltip.Length > 0 )
+            if ( e.ToolTip.Length > 0 )
             {
-                tip.Content = e.Tooltip;
+                tip.Content = e.ToolTip;
                 tip.IsOpen = true;
                 tip.IsEnabled = true;
             }
@@ -286,7 +291,7 @@ namespace TabbedBrowserSample
                 OnUpdateTitle( this, null );
         }
 
-        private void onWebviewCrashed( object sender,EventArgs e )
+        private void onWebviewCrashed( object sender, EventArgs e )
         {
             tab.Content = "Oh no! Something broke-- this tab has crashed.";
         }

@@ -1,4 +1,21 @@
-﻿using System;
+﻿/*******************************************************************************
+ *    Project : AwesomiumSharp
+ *    File    : WebControlLayer.cs
+ *    Version : 1.0.0.0 
+ *    Date    : 07/03/2011
+ *    Author  : Perikles C. Stephanidis (AmaDeuS)
+ *    Contact : perikles@stephanidis.net
+ *-------------------------------------------------------------------------------
+ *
+ *    Notes   :
+ *
+ *    Helper class used internally by the new WebView.Find and WebControl.Find
+ *    logic.
+ *    
+ * 
+ ********************************************************************************/
+
+using System;
 
 #if USING_MONO
 namespace AwesomiumMono

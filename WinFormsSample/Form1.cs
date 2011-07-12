@@ -52,7 +52,7 @@ namespace WinFormsSample
         void WebForm_FormClosed( object sender, FormClosedEventArgs e )
         {
             webView.IsDirtyChanged -= OnIsDirtyChanged;
-            webView.Dispose();
+            webView.Close();
             WebCore.Shutdown();
         }
 
@@ -130,7 +130,7 @@ namespace WinFormsSample
 
         void WebForm_KeyDown( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyDown, VirtualKeyCode = (int)e.KeyCode };
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyDown, VirtualKeyCode = (VirtualKey)e.KeyCode };
 
             if ( !webView.IsDisposed )
                 webView.InjectKeyboardEvent( keyEvent );
@@ -138,7 +138,7 @@ namespace WinFormsSample
 
         void WebForm_KeyUp( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyUp, VirtualKeyCode = (int)e.KeyCode };
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyUp, VirtualKeyCode = (VirtualKey)e.KeyCode };
 
             if ( !webView.IsDisposed )
                 webView.InjectKeyboardEvent( keyEvent );

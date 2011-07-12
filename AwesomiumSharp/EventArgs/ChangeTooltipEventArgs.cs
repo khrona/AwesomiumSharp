@@ -6,17 +6,27 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
-    public delegate void TooltipChangedEventHandler( object sender, ChangeTooltipEventArgs e );
+    /// <summary>
+    /// Represents the method that will handle the <see cref="WebView.ToolTipChanged"/> and 
+    /// <see cref="Windows.Controls.WebControl.ToolTipChanged"/> events.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="e">An <see cref="ChangeToolTipEventArgs"/> that contains the event data.</param>
+    public delegate void ToolTipChangedEventHandler( object sender, ChangeToolTipEventArgs e );
 
-    public class ChangeTooltipEventArgs : EventArgs
+    /// <summary>
+    /// Provides data for the <see cref="WebView.ToolTipChanged"/> and 
+    /// <see cref="Windows.Controls.WebControl.ToolTipChanged"/> events.
+    /// </summary>
+    public class ChangeToolTipEventArgs : EventArgs
     {
-        public ChangeTooltipEventArgs( string tooltip )
+        public ChangeToolTipEventArgs( string tooltip )
         {
             this.tooltip = tooltip;
         }
 
         private string tooltip;
-        public string Tooltip
+        public string ToolTip
         {
             get
             {
