@@ -1037,7 +1037,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #region InitializeCore
         private void InitializeCore()
         {
-            this.Instance = WebCore.CreateWebviewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this );
+            this.Instance = WebCore.CreateWebViewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this );
             this.Focus();
 
             if ( Application.Current.MainWindow != null )

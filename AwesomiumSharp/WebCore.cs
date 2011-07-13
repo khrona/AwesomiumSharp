@@ -276,12 +276,12 @@ namespace AwesomiumSharp
     /// <para>
     /// If you do not initialize <see cref="WebCore"/>, the core will automatically
     /// start, using default configuration, when you create the first view by either calling
-    /// <see cref="WebCore.CreateWebview"/> or by instantiating a <see cref="Windows.Controls.WebControl"/>.
+    /// <see cref="WebCore.CreateWebView"/> or by instantiating a <see cref="Windows.Controls.WebControl"/>.
     /// </para>
     /// @warning
     /// <para>
     /// Do not call any of the members of this class (other than <see cref="WebCore.Initialize"/>
-    /// or <see cref="WebCore.CreateWebview"/>) before starting the core.
+    /// or <see cref="WebCore.CreateWebView"/>) before starting the core.
     /// </para>
     /// @warning
     /// <para>
@@ -392,7 +392,7 @@ namespace AwesomiumSharp
         /// @note
         /// <para>
         /// If you do not call this method, the <see cref="WebCore"/> will start automatically,
-        /// using default configuration settings, when you first create a view through <see cref="CreateWebview"/>
+        /// using default configuration settings, when you first create a view through <see cref="CreateWebView"/>
         /// or by instantiating a <see cref="Windows.Controls.WebControl"/>.
         /// </para>
         /// <para>
@@ -496,7 +496,7 @@ namespace AwesomiumSharp
         /// created by this <see cref="WebCore"/>, is still live and visible. 
         /// This method will destroy all views created by this <see cref="WebCore"/>.
         /// Any attempt to access them or any member of this class (other than <see cref="Initialize"/>
-        /// and <see cref="CreateWebview"/>) after calling this method,
+        /// and <see cref="CreateWebView"/>) after calling this method,
         /// may throw a <see cref="InvalidOperationException"/>.
         /// </remarks>
 #if !USING_MONO
@@ -658,7 +658,7 @@ namespace AwesomiumSharp
         }
         #endregion
 
-        #region CreateWebview
+        #region CreateWebView
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern IntPtr awe_webcore_create_webview( int width, int height, bool viewSource );
 
@@ -679,7 +679,7 @@ namespace AwesomiumSharp
         /// If you call this method before initializing the <see cref="WebCore"/>, the Awesomium
         /// process will automatically start with default configuration settings.
         /// </remarks>
-        public static WebView CreateWebview( int width, int height, bool viewSource = false )
+        public static WebView CreateWebView( int width, int height, bool viewSource = false )
         {
             if ( !isRunning )
                 Start();
@@ -692,7 +692,7 @@ namespace AwesomiumSharp
         }
 
         // Used by WebControl.
-        internal static IntPtr CreateWebviewInstance( int width, int height, IWebView host )
+        internal static IntPtr CreateWebViewInstance( int width, int height, IWebView host )
         {
             if ( !isRunning )
                 Start();
@@ -1082,7 +1082,7 @@ namespace AwesomiumSharp
  * 
  * Here's a simple example of using the API to render a page once:
  * <code>
- *   using ( webView = WebCore.CreateWebview( 800, 600 ) )
+ *   using ( webView = WebCore.CreateWebView( 800, 600 ) )
  *   {
  *       webView.LoadURL( "http://www.google.com" );
  *

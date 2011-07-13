@@ -26,7 +26,7 @@ namespace Basic
             // WebView implements IDisposable. You can dispose and destroy
             // the view by calling WebView.Close(). Here we demonstrate
             // wrapping it in a using statement.
-            using ( WebView webView = WebCore.CreateWebview( 800, 600 ) )
+            using ( WebView webView = WebCore.CreateWebView( 800, 600 ) )
             {
                 webView.LoadURL( "http://www.google.com" );
                 webView.LoadCompleted += OnFinishLoading;

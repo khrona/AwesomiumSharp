@@ -78,7 +78,7 @@ namespace AwesomiumSharp
     /// </summary>
     /// <remarks>
     /// @note
-    /// You can create a WebView using <see cref="WebCore.CreateWebview"/>. If you have not initialized
+    /// You can create a WebView using <see cref="WebCore.CreateWebView"/>. If you have not initialized
     /// the <see cref="WebCore"/> (see <see cref="WebCore.Initialize"/>) before creating a <see cref="WebView"/>,
     /// the core will be initialized using default configuration settings and automatically be started
     /// before creating the view.

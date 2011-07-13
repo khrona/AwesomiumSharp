@@ -31,7 +31,7 @@ namespace WinFormsSample
             WebCoreConfig config = new WebCoreConfig { EnablePlugins = true };
             WebCore.Initialize( config );
 
-            webView = WebCore.CreateWebview( webViewBitmap.Width, webViewBitmap.Height );
+            webView = WebCore.CreateWebView( webViewBitmap.Width, webViewBitmap.Height );
             webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.LoadURL( "http://www.google.com" );
             webView.Focus();

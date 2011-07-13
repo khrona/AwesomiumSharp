@@ -133,7 +133,7 @@ namespace AwesomiumSharp
 
         private void LoadWebView(int width, int height)
         {
-            _webview = WebCore.CreateWebview(width, height);
+            _webview = WebCore.CreateWebView(width, height);
             _webview.LoadURL(Source);
             _webview.Focus();
             _webview.LoadCompleted += OnFinishLoading;

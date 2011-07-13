@@ -60,7 +60,7 @@ namespace TabbedBrowserSample
             img.Source = src;
             tab.Content = img;
             myRect = new Int32Rect( 0, 0, (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
-            webView = WebCore.CreateWebview( (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
+            webView = WebCore.CreateWebView( (int)tabControl.Width, (int)tabControl.Height - (int)tab.Height - 2 );
             webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.Focus();
 
