@@ -72,6 +72,16 @@
  *    07/12/2011:
  *    
  *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
+ *    
+ *    07/13/2011: (Adam J. Simmons)
+ *    
+ *    - Made the resize operation asynchronous to MeasureOverride (so that
+ *      we don't needlessly spam the WebView with resize requests if there is
+ *      already a resize operation in queue) and made it so the 'bitmap' 
+ *      member is only resized when the RenderBuffer is resized (we can't 
+ *      guarantee the resize operation will happen immediately so this is 
+ *      done as a precaution; RenderBuffer.CopyToBitmap will throw an exception
+ *      if both source/destination dimensions don't match).
  * 
  ********************************************************************************/
 #endregion
@@ -131,6 +141,8 @@ namespace AwesomiumSharp.Windows.Controls
         private ToolTip toolTip;
         private Random findRequestRandomizer;
         private WebControlInvalidLayer controlLayer;
+        private Boolean needsResize;
+        private int resizeWidth, resizeHeight;
 
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
 
@@ -603,6 +615,8 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.Loaded += OnLoaded;
             this.Unloaded += OnUnloaded;
+
+            needsResize = false;
         }
         #endregion
 
@@ -955,25 +969,13 @@ namespace AwesomiumSharp.Windows.Controls
 
             var size = base.MeasureOverride( availableSize );
 
-            if ( IsLive )
+            if (IsLive)
             {
-                try
-                {
-                    deviceTransform = PresentationSource.FromVisual( this ).CompositionTarget.TransformToDevice;
+                deviceTransform = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice;
 
-                    var width = (int)( availableSize.Width * deviceTransform.M11 );
-                    var height = (int)( availableSize.Height * deviceTransform.M22 );
-
-                    awe_webview_resize( Instance, width, height, true, 300 );
-                    bitmap = new WriteableBitmap( width, height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.WebPaletteTransparent );
-                }
-                catch { /* */ }
-                finally
-                {
-                    GC.Collect();
-                }
-
-                Update();
+                resizeWidth = (int)(availableSize.Width * deviceTransform.M11);
+                resizeHeight = (int)(availableSize.Height * deviceTransform.M22);
+                needsResize = true;
             }
 
             return size;
@@ -1179,13 +1181,31 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #region Update
         private void Update()
         {
-            if ( bitmap != null )
+            if (needsResize && !awe_webview_is_resizing(Instance))
             {
-                RenderBuffer buffer = Render();
-                if ( buffer != null )
+                awe_webview_resize(Instance, resizeWidth, resizeHeight, true, 300);
+                needsResize = false;
+            }
+
+            RenderBuffer buffer = Render();
+
+            if (buffer != null)
+            {
+                if (bitmap == null || bitmap.Width != buffer.Width || bitmap.Height != buffer.Height)
                 {
-                    buffer.CopyToBitmap( bitmap );
+                    try
+                    {
+                        bitmap = new WriteableBitmap(buffer.Width, buffer.Height, 96, 96, PixelFormats.Bgra32,
+                            BitmapPalettes.WebPaletteTransparent);
+                    }
+                    catch { /* */ }
+                    finally
+                    {
+                        GC.Collect();
+                    }
                 }
+
+                buffer.CopyToBitmap(bitmap);
             }
         }
         #endregion
