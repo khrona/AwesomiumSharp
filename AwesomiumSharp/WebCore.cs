@@ -293,6 +293,8 @@ namespace AwesomiumSharp
         #region Fields
 #if DEBUG_AWESOMIUM
         internal const string DLLName = "Awesomium_d";
+#elif MONO_MACOSX
+        internal const string DLLName = "@executable_path/../Frameworks/Awesomium.framework/Versions/A/Awesomium";
 #else
         internal const string DLLName = "Awesomium";
 #endif
