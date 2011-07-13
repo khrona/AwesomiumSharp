@@ -167,7 +167,9 @@ namespace AwesomiumSharp
         /// </summary>
         public bool DisableSameOriginPolicy { get; set; }
         /// <summary>
-        /// Indicates 
+        /// Indicates whether or not we should automatically pump Windows messages during
+        /// a call to WebCore.Update. You may wish to set this to true if you are already
+        /// pumping messages (Peek/Dispatch). Default is false.
         /// </summary>
         public bool DisableWinMessagePump { get; set; }
         /// <summary>

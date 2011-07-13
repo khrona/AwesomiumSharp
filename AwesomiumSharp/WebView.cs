@@ -2448,7 +2448,9 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
         /// <summary>
         /// Gets or sets the zoom factor (page percentage) for the current hostname.
-        /// Valid range is from 10% to 500%.
+        /// Valid range is from 10% to 500%. Please note that this operation is
+        /// asynchronous: the value may not change for several milliseconds after
+        /// you set the value.
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// The member is called on an invalid <see cref="WebView"/> instance

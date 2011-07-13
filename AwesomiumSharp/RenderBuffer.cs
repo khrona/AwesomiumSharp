@@ -210,8 +210,12 @@ namespace AwesomiumSharp
                                          IntPtr renderbuffer);
 
         /// <summary>
-        /// The raw block of pixel data, BGRA format.
+        /// The raw block of pixel data, BGRA format. 
         /// </summary>
+        /// <remarks>If WebView.SetTransparent is not enabled, you may need to flush the alpha
+        /// channel of this buffer (eg, set every 4th bit to 255) before displaying it. This is
+        /// because Flash on Windows will sometimes corrupt our alpha channel and so you may 
+        /// see weird text in Flash if you forget to do this.</remarks>
         public IntPtr Buffer
         {
             get
