@@ -54,6 +54,7 @@ namespace AwesomiumSharp
             PluginPath = "";
             LogPath = "";
             LogLevel = LogLevel.Normal;
+            ChildProcessPath = "";
             EnableAutoDetectEncoding = true;
             AcceptLanguageOverride = "";
             DefaultCharsetOverride = "";
@@ -75,6 +76,11 @@ namespace AwesomiumSharp
         /// </summary>
         public bool EnableJavascript { get; set; }
         /// <summary>
+        /// Indicates whether or not local HTML5 databases are enabled. (Will create a 
+        /// databases folder in the user data path if this is enabled). The default is false.
+        /// </summary>
+        public bool EnableDatabases { get; set; }
+        /// <summary>
         /// Indicates the path to the directory that will be used to store cache, cookies, and other data. 
         /// If an empty string is specified, this path defaults to "./Default".
         /// </summary>
@@ -95,6 +101,15 @@ namespace AwesomiumSharp
         /// The default is <see cref="LogLevel.Normal"/>.
         /// </summary>
         public LogLevel LogLevel { get; set; }
+        /// <summary>
+        /// Indicates whether or not all WebViews and should be forced to render inside
+		/// the main process (we typically launch a separate child-process to
+		/// render each WebView and plugin safely). This mode currently only works
+		/// on Windows and automatically disables plugins and local databases.
+        /// The default is false.
+        /// </summary>
+        public bool ForceSingleProcess { get; set; }
+        public string ChildProcessPath { get; set; }
         public bool EnableAutoDetectEncoding { get; set; }
         public string AcceptLanguageOverride { get; set; }
         public string DefaultCharsetOverride { get; set; }

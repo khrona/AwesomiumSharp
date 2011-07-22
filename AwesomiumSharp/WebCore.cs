@@ -362,10 +362,13 @@ namespace AwesomiumSharp
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webcore_initialize( bool enable_plugins,
             bool enable_javascript,
+            bool enable_databases,
             IntPtr user_data_path,
             IntPtr plugin_path,
             IntPtr log_path,
             LogLevel log_level,
+            bool force_single_process,
+			IntPtr child_process_path,
             bool enable_auto_detect_encoding,
             IntPtr accept_language_override,
             IntPtr default_charset_override,
@@ -437,6 +440,7 @@ namespace AwesomiumSharp
                 StringHelper userDataPathStr = new StringHelper( config.UserDataPath );
                 StringHelper pluginPathStr = new StringHelper( config.PluginPath );
                 StringHelper logPathStr = new StringHelper( config.LogPath );
+                StringHelper childProcessPathStr = new StringHelper( config.ChildProcessPath );
                 StringHelper acceptLanguageStr = new StringHelper( config.AcceptLanguageOverride );
                 StringHelper defaultCharsetStr = new StringHelper( config.DefaultCharsetOverride );
                 StringHelper userAgentOverrideStr = new StringHelper( config.UserAgentOverride );
@@ -447,10 +451,13 @@ namespace AwesomiumSharp
 
                 awe_webcore_initialize( config.EnablePlugins,
                     config.EnableJavascript,
+                    config.EnableDatabases,
                     userDataPathStr.Value,
                     pluginPathStr.Value,
                     logPathStr.Value,
                     config.LogLevel,
+                    config.ForceSingleProcess,
+                    childProcessPathStr.Value,
                     config.EnableAutoDetectEncoding,
                     acceptLanguageStr.Value,
                     defaultCharsetStr.Value,

@@ -152,6 +152,19 @@ namespace AwesomiumSharp
         }
         #endregion
 
+        #region FlushAlpha
+        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void awe_renderbuffer_flush_alpha(IntPtr renderbuffer);
+
+        /// <summary>
+        /// Flushes the alpha channel of this render buffer to completely opaque values.
+        /// </summary>
+        public void FlushAlpha()
+        {
+            awe_renderbuffer_flush_alpha(renderbuffer);
+        }
+        #endregion
+
         #endregion
 
         #region Properties
