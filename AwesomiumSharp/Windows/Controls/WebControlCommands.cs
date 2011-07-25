@@ -107,6 +107,14 @@ namespace AwesomiumSharp.Windows.Controls
         /// Gets a command that invokes <see cref="WebControl.StopFind"/> when targeting a <see cref="WebControl"/>.
         /// </summary>
         public static RoutedUICommand StopFind { get; private set; }
+        /// <summary>
+        /// Gets a command that invokes <see cref="WebControl.CopyHTML"/> when targeting a <see cref="WebControl"/>.
+        /// </summary>
+        public static RoutedUICommand CopyHTML { get; private set; }
+        /// <summary>
+        /// Gets a command that invokes <see cref="WebControl.CopyLinkAddress"/> when targeting a <see cref="WebControl"/>.
+        /// </summary>
+        public static RoutedUICommand CopyLinkAddress { get; private set; }
 
         static WebControlCommands()
         {
@@ -122,6 +130,8 @@ namespace AwesomiumSharp.Windows.Controls
             DestroyObject = new RoutedUICommand( Resources.DestroyObject, "DestroyObject", typeof( WebControlCommands ) );
             ResetZoom = new RoutedUICommand( Resources.ResetZoom, "ResetZoom", typeof( WebControlCommands ) );
             StopFind = new RoutedUICommand( Resources.StopFind, "StopFind", typeof( WebControlCommands ) );
+            CopyHTML = new RoutedUICommand( Resources.CopyHTML, "CopyHTML", typeof( WebControlCommands ) );
+            CopyLinkAddress = new RoutedUICommand( Resources.CopyLinkAddress, "CopyLinkAddress", typeof( WebControlCommands ) );
         }
 
     }

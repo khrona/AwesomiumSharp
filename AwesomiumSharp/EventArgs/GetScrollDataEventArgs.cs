@@ -96,20 +96,22 @@ namespace AwesomiumSharp
         #region Operators
         public static bool operator ==( ScrollData sd1, ScrollData sd2 )
         {
-            return sd1.ContentHeight == sd2.ContentHeight &&
-                sd1.ContentWidth == sd2.ContentWidth &&
-                sd1.PreferredWidth == sd2.PreferredWidth &&
-                sd1.ScrollX == sd2.ScrollX &&
-                sd1.ScrollY == sd2.ScrollY;
+            if ( Object.ReferenceEquals( sd1, null ) )
+                return Object.ReferenceEquals( sd2, null );
+
+            if ( Object.ReferenceEquals( sd2, null ) )
+                return Object.ReferenceEquals( sd1, null );
+
+            return ( sd1.ContentHeight == sd2.ContentHeight ) &&
+                ( sd1.ContentWidth == sd2.ContentWidth ) &&
+                ( sd1.PreferredWidth == sd2.PreferredWidth ) &&
+                ( sd1.ScrollX == sd2.ScrollX ) &&
+                ( sd1.ScrollY == sd2.ScrollY );
         }
 
         public static bool operator !=( ScrollData sd1, ScrollData sd2 )
         {
-            return sd1.ContentHeight != sd2.ContentHeight ||
-                sd1.ContentWidth != sd2.ContentWidth ||
-                sd1.PreferredWidth != sd2.PreferredWidth ||
-                sd1.ScrollX != sd2.ScrollX ||
-                sd1.ScrollY != sd2.ScrollY;
+            return !( sd1 == sd2 );
         }
         #endregion
     }

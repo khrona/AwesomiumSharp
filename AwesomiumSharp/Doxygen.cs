@@ -40,7 +40,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// also updates the value of <see cref="IsEnabled"/>.
         /// @note
         /// There is no way to revive a <see cref="WebControl"/> whose underlying view has been destroyed.
-        /// When you are done with reporting any errors to the user, close it and release any references to it 
+        /// When you are done with reporting to the user, close it and release any references to it 
         /// to avoid memory leaks.
         /// @warning
         /// While disabled (either because the view is destroyed or because you manually set this property)
@@ -49,6 +49,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// </para>
         /// </remarks>
         /// <seealso cref="IsLive"/>
+        /// <seealso cref="IsCrashed"/>
         public bool IsEnabled { get; set; }
     }
 }

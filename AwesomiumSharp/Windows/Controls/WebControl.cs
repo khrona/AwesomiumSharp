@@ -27,14 +27,14 @@
  *      the developer to easily bind to properties and monitor their 
  *      status in triggers etc.
  *    
- *    - WebControl is a now a FrameworkElement as it should be. This means
+ *    - WebControl is now a FrameworkElement as it should be. This means
  *      styling is possible but templating is not. No useless elements in 
  *      the visual tree and no children such as images. We render directly 
  *      on the element's surface and override our own events' triggers.
  *    
  *    - WebControl includes an internal auto updater just as the one added 
  *      in WebCore. It monitors WebCore's auto updater and starts or stops
- *      as needed.
+ *      as needed. (Not needed and removed since 07/06/2011)
  *    
  *    - Part of the Find logic is now handled by this class making it
  *      more straightforward. FindNext is added.
@@ -45,7 +45,7 @@
  *    - Most of the control's methods can be called using routed commands.
  *      We bind to many of the already available Application and Navigation
  *      commands, and we cover more functionality by providing our own 
- *      commands through WebControlCommands. This makes it easy for the UI
+ *      commands through WebControlCommands. This makes it's easy for the UI
  *      developer to manipulate the control directly from XAML. See 
  *      InitializeCommandBindings() to get an idea of what we support.
  *    
@@ -82,16 +82,55 @@
  *      guarantee the resize operation will happen immediately so this is 
  *      done as a precaution; RenderBuffer.CopyToBitmap will throw an exception
  *      if both source/destination dimensions don't match).
+ *      
+ *    07/18/2011 (Perikles C. Stephanidis)
+ *      
+ *    - We now also handle NavigationCommands.BrowseHome (see also: 
+ *      WebCore.HomeURL). Added the GoToHome method.
+ *      
+ *    - Added the IsNavigating property that covers the whole period from
+ *      BeginNavigation to LoadCompleted. Ideal for spinners (see 
+ *      TabbedWPFSample).
+ *      
+ *    - The control now handles the re-creation of its underlying view when
+ *      this is crashed. For details, see IsCrashed.
+ *      
+ *    - Added the internal IsSourceControl property that allows the creation
+ *      of a WebControl that displays the HTML source of pages (see
+ *      WebSourceControl).
+ *      
+ *    - We now properly handle the TAB, HOME and END keys that were not
+ *      injected until now, due to major changes on how WPF handles and 
+ *      dispatches window messages. For details, see OnThreadFilterMessage.
+ *      
+ *    - Added support for the new RenderBuffer.FlashAlpha. Tests have shown
+ *      that adding this feature to WebControl by default, does not affect
+ *      performance. Nevertheless, a property (FlashAlpha) has been added
+ *      to this control and allows developers to disable the feature.
+ *      It is enabled by default.
+ *      
+ *    - We added e temporary model of getting current selection in both
+ *      Text and HTML form. The model uses Javascript objects, callbacks
+ *      and injected code. This model will be removed when we get a native way 
+ *      to access current selection changes and properties. You can see the
+ *      logic in the SelectionHelper and Selection classes, as well as in the
+ *      "Temporary Selection Logic" region, at the bottom of this code file.
+ *      
+ *    - Created and styled a default context menu providing access to 
+ *      elementary commands. The context menu can be overriden by using
+ *      the static ContextMenuResourceKey property. Also added resource
+ *      keys for all of the independent groups of the context menu, that
+ *      allow the context menu to be partially overriden or extended.
+ *    
  * 
  ********************************************************************************/
 #endregion
 
 #region Using
 using System;
-using System.Text;
 using System.Linq;
 using System.Windows;
-using System.Threading;
+using System.Collections;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.ComponentModel;
@@ -101,7 +140,7 @@ using System.Collections.Generic;
 using System.Windows.Media.Imaging;
 using System.Runtime.InteropServices;
 using System.Collections.Specialized;
-using System.Collections;
+using System.IO;
 #endregion
 
 namespace AwesomiumSharp.Windows.Controls
@@ -122,9 +161,14 @@ namespace AwesomiumSharp.Windows.Controls
     /// Note that it is safe to use this control in a design environment for layout and configuration
     /// purposes. <see cref="WebCore"/> and the underlying web view are only instantiated during runtime.
     /// </para>
+    /// @note
+    /// <para>
+    /// When crashed, this control will attempt to recreate its underlying view.
+    /// For details, see: <see cref="IsCrashed"/>.
+    /// </para>
     /// </remarks>
     /// @author Perikles C. Stephanidis (perikles@stephanidis.net)
-    /// @version 1.1
+    /// @version 1.2
     /// @date 2011
     [System.Drawing.ToolboxBitmap( typeof( WebControl ) )]
     public class WebControl : FrameworkElement, IWebView
@@ -134,6 +178,10 @@ namespace AwesomiumSharp.Windows.Controls
         private const int WM_KEYUP = 0x0101;
         private const int WM_CHAR = 0x0102;
 
+        private const int VK_TAB = 0x09;
+        private const int VK_END = 0x23;
+        private const int VK_HOME = 0x24;
+
         private static KeyGesture browseBackGesture;
 
         private Matrix deviceTransform;
@@ -141,10 +189,12 @@ namespace AwesomiumSharp.Windows.Controls
         private ToolTip toolTip;
         private Random findRequestRandomizer;
         private WebControlInvalidLayer controlLayer;
-        private Boolean needsResize;
+        private Boolean needsResize, flashAplha;
         private int resizeWidth, resizeHeight;
 
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
+
+        private SelectionHelper selectionHelper;
 
         private CallbackBeginLoadingCallback beginLoadingCallback;
         private CallbackBeginNavigationCallback beginNavigationCallback;
@@ -465,7 +515,7 @@ namespace AwesomiumSharp.Windows.Controls
         public event SelectLocalFilesEventHandler SelectLocalFiles;
 
         /// <summary>
-        /// Raises the <see cref="FileChooserRequest"/> event.
+        /// Raises the <see cref="SelectLocalFiles"/> event.
         /// </summary>
         protected virtual void OnSelectLocalFiles( object sender, SelectLocalFilesEventArgs e )
         {
@@ -524,10 +574,26 @@ namespace AwesomiumSharp.Windows.Controls
         }
         #endregion
 
+        #region SelectionChanged
+        /// <summary>
+        /// This event occurs when the selection in the current page, changes.
+        /// </summary>
+        public event WebSelectionChangedHandler SelectionChanged;
+
+        /// <summary>
+        /// Raises the <see cref="SelectionChanged"/> event.
+        /// </summary>
+        protected virtual void OnSelectionChanged( object sender, WebSelectionEventArgs e )
+        {
+            if ( SelectionChanged != null )
+                SelectionChanged( sender, e );
+        }
+        #endregion
+
         #region ImeUpdated
         /// <summary>
         /// This event occurs whenever the user does something that changes the 
-        /// position or visiblity of the IME Widget. This event is only active when 
+        /// position or visibility of the IME Widget. This event is only active when 
         /// IME is activated (please see <see cref="WebControl.ActivateIME"/>).
         /// </summary>
         public event ImeUpdatedEventHandler ImeUpdated;
@@ -606,6 +672,7 @@ namespace AwesomiumSharp.Windows.Controls
                 return;
 
             toolTip = new ToolTip();
+            selectionHelper = new SelectionHelper( this, OnWebSelectionChanged );
 
             InitializeCore();
             InitializeDelegates( this.Instance );
@@ -617,6 +684,7 @@ namespace AwesomiumSharp.Windows.Controls
             this.Unloaded += OnUnloaded;
 
             needsResize = false;
+            flashAplha = true;
         }
         #endregion
 
@@ -654,7 +722,12 @@ namespace AwesomiumSharp.Windows.Controls
                         source.RemoveHook( HandleMessages );
                         hookAdded = false;
                     }
+
+                    ComponentDispatcher.ThreadFilterMessage -= OnThreadFilterMessage;
                 }
+
+                selectionHelper.Dispose();
+                selectionHelper = null;
 
                 this.Loaded -= OnLoaded;
                 this.Unloaded -= OnUnloaded;
@@ -712,10 +785,9 @@ namespace AwesomiumSharp.Windows.Controls
         /** @} */
         #endregion
 
-
         #region Mouse
         /** @name Mouse Overrides
-         * Mouse event triggers overriden from <see cref="UIElement"/> .
+         * Mouse event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -742,6 +814,10 @@ namespace AwesomiumSharp.Windows.Controls
                 return;
 
             this.Focus();
+
+            // Clear internal selection info before injecting.
+            selectionHelper.ClearSelection();
+
             awe_webview_inject_mouse_down( Instance, MouseButton.Left );
             base.OnPreviewMouseLeftButtonDown( e );
         }
@@ -800,7 +876,16 @@ namespace AwesomiumSharp.Windows.Controls
             if ( !IsLive )
                 return;
 
-            awe_webview_inject_mouse_move( Instance, -1, -1 );
+            // Moving mouse capture to child elements such as the context menu,
+            // fires a MouseLeave event. The following logic ensures we will
+            // inject a mouse leave, only when the mouse really leaves the 
+            // surface of the view.
+            Point pt = Mouse.GetPosition( this );
+            Rect r = new Rect( this.RenderSize );
+
+            if ( !r.Contains(pt) )
+                awe_webview_inject_mouse_move( Instance, -1, -1 );
+
             base.OnMouseLeave( e );
         }
 
@@ -809,7 +894,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Stylus
         /** @name Stylus Overrides
-         * Stylus event triggers overriden from <see cref="UIElement"/> .
+         * Stylus event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -857,7 +942,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Touch
         /** @name Touch Overrides
-         * Touch event triggers overriden from <see cref="UIElement"/> .
+         * Touch event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -905,7 +990,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Focus
         /** @name Focus Overrides
-         * Focus event triggers overriden from <see cref="UIElement"/> .
+         * Focus event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -939,7 +1024,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region HitTest
         /** @name HitTest Overrides
-         * HitTest event triggers overriden from <see cref="UIElement"/> .
+         * HitTest event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -956,7 +1041,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Measure/Arrange
         /** @name Measure/Arrange Overrides
-         * Measure/Arrange event triggers overriden from <see cref="FrameworkElement"/> .
+         * Measure/Arrange event triggers overriden from <see cref="FrameworkElement"/>.
          */
         /** @{ */
 
@@ -969,12 +1054,13 @@ namespace AwesomiumSharp.Windows.Controls
 
             var size = base.MeasureOverride( availableSize );
 
-            if (IsLive)
+            if ( IsLive )
             {
-                deviceTransform = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice;
+                deviceTransform = PresentationSource.FromVisual( this ).CompositionTarget.TransformToDevice;
 
-                resizeWidth = (int)(availableSize.Width * deviceTransform.M11);
-                resizeHeight = (int)(availableSize.Height * deviceTransform.M22);
+                resizeWidth = (int)( availableSize.Width * deviceTransform.M11 );
+                resizeHeight = (int)( availableSize.Height * deviceTransform.M22 );
+
                 needsResize = true;
             }
 
@@ -999,7 +1085,7 @@ namespace AwesomiumSharp.Windows.Controls
 
         #region Render
         /** @name Rendering Overrides
-         * Rendering event triggers overriden from <see cref="UIElement"/> .
+         * Rendering event triggers overriden from <see cref="UIElement"/>.
          */
         /** @{ */
 
@@ -1034,13 +1120,51 @@ throw new InvalidOperationException( "The control is disabled either manually or
         }
         #endregion
 
+        #region EnsureView
+        private bool isRecreatingView;
+
+        private bool EnsureView()
+        {
+            if ( IsLive )
+                return true;
+
+            if ( CanRecreateView )
+            {
+                isRecreatingView = true;
+
+                try
+                {
+                    WebCore.DestroyView( this );
+                }
+                catch { }
+                finally
+                {
+                    Instance = IntPtr.Zero;
+                }
+
+                InitializeCore();
+
+                if ( this.Instance != null )
+                {
+                    this.IsCrashed = false;
+                    InitializeDelegates( Instance );
+                    return true;
+                }
+
+                isRecreatingView = false;
+            }
+
+            return false;
+        }
+        #endregion
+
         #region InitializeCore
         private void InitializeCore()
         {
-            this.Instance = WebCore.CreateWebViewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this );
+            this.Instance = WebCore.CreateWebViewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this, IsSourceControl );
             this.Focus();
 
-            if ( Application.Current.MainWindow != null )
+            if ( !isRecreatingView && ( Application.Current.MainWindow != null ) )
                 Application.Current.MainWindow.Closing += ShutdownCore;
         }
 
@@ -1122,8 +1246,13 @@ throw new InvalidOperationException( "The control is disabled either manually or
             resourceResponseCallback = internalResourceResponseCallback;
             awe_webview_set_callback_resource_response( webview, resourceResponseCallback );
 
-            jsObjectCallbackMap = new Dictionary<string, JSCallback>();
-            this.JSCallbackCalled += handleJSCallback;
+            if ( jsObjectCallbackMap == null )
+                jsObjectCallbackMap = new Dictionary<string, JSCallback>();
+
+            if ( this.JSCallbackCalled == null )
+                this.JSCallbackCalled += handleJSCallback;
+
+            selectionHelper.RegisterSelectionHelper();
         }
         #endregion
 
@@ -1135,6 +1264,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
             this.CommandBindings.Add( new CommandBinding( ApplicationCommands.Paste, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( ApplicationCommands.SelectAll, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( ApplicationCommands.Find, OnCommandExecuted, CanExecuteCommand ) );
+            this.CommandBindings.Add( new CommandBinding( ApplicationCommands.Print, OnCommandExecuted, CanExecuteCommand ) );
+            this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseHome, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseBack, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseForward, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( NavigationCommands.BrowseStop, OnCommandExecuted, CanExecuteCommand ) );
@@ -1154,6 +1285,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
             this.CommandBindings.Add( new CommandBinding( WebControlCommands.LoadURL, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( WebControlCommands.ResetZoom, OnCommandExecuted, CanExecuteCommand ) );
             this.CommandBindings.Add( new CommandBinding( WebControlCommands.StopFind, OnCommandExecuted, CanExecuteCommand ) );
+            this.CommandBindings.Add( new CommandBinding( WebControlCommands.CopyHTML, OnCommandExecuted, CanExecuteCommand ) );
+            this.CommandBindings.Add( new CommandBinding( WebControlCommands.CopyLinkAddress, OnCommandExecuted, CanExecuteCommand ) );
         }
         #endregion
 
@@ -1181,22 +1314,27 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #region Update
         private void Update()
         {
-            if (needsResize && !awe_webview_is_resizing(Instance))
+            if ( needsResize && !awe_webview_is_resizing( Instance ) )
             {
-                awe_webview_resize(Instance, resizeWidth, resizeHeight, true, 300);
+                awe_webview_resize( Instance, resizeWidth, resizeHeight, true, 300 );
                 needsResize = false;
             }
 
             RenderBuffer buffer = Render();
 
-            if (buffer != null)
+            if ( buffer != null )
             {
-                if (bitmap == null || bitmap.Width != buffer.Width || bitmap.Height != buffer.Height)
+                if ( bitmap == null || bitmap.Width != buffer.Width || bitmap.Height != buffer.Height )
                 {
                     try
                     {
-                        bitmap = new WriteableBitmap(buffer.Width, buffer.Height, 96, 96, PixelFormats.Bgra32,
-                            BitmapPalettes.WebPaletteTransparent);
+                        bitmap = new WriteableBitmap(
+                            buffer.Width,
+                            buffer.Height,
+                            96,
+                            96,
+                            PixelFormats.Bgra32,
+                            BitmapPalettes.WebPaletteTransparent );
                     }
                     catch { /* */ }
                     finally
@@ -1205,7 +1343,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
                     }
                 }
 
-                buffer.CopyToBitmap(bitmap);
+                if ( flashAplha )
+                    buffer.FlushAlpha();
+
+                buffer.CopyToBitmap( bitmap );
             }
         }
         #endregion
@@ -1547,6 +1688,20 @@ throw new InvalidOperationException( "The control is disabled either manually or
 
         #region Public
 
+        #region GoToHome
+        /// <summary>
+        /// Navigates to the Home URL as defined in <see cref="WebCore.HomeURL"/>.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void GoToHome()
+        {
+            this.LoadURL( WebCore.HomeURL );
+        }
+        #endregion
+
         #region LoadURL
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_set_resource_interceptor(/*To do?*/);
@@ -1569,13 +1724,13 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <param name="password">
         /// If the URL requires authentication, the password to use, otherwise just pass an empty string.
         /// </param>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called on an invalid <see cref="WebControl"/> instance
-        /// (see <see cref="IsEnabled"/>).
-        /// </exception>
-        public void LoadURL( string url, string frameName = "", string username = "", string password = "" )
+        /// <returns>
+        /// True if the view is alive and the command was successfully sent. False otherwise.
+        /// </returns>
+        public bool LoadURL( string url, string frameName = "", string username = "", string password = "" )
         {
-            VerifyLive();
+            if ( !EnsureView() )
+                return false;
 
             StringHelper urlStr = new StringHelper( url );
             StringHelper frameNameStr = new StringHelper( frameName );
@@ -1583,6 +1738,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
             StringHelper passwordStr = new StringHelper( password );
 
             awe_webview_load_url( Instance, urlStr.Value, frameNameStr.Value, usernameStr.Value, passwordStr.Value );
+
+            return true;
         }
         #endregion
 
@@ -1599,23 +1756,25 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <param name="frameName">
         /// The name of the frame to load the HTML in.
         /// </param>
+        /// <returns>
+        /// True if the view is alive and the command was successfully sent. False otherwise.
+        /// </returns>
         /// <remarks>
         /// @note
         /// Any assets requires by the specified HTML (images etc.), should exist 
         /// within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called on an invalid <see cref="WebControl"/> instance
-        /// (see <see cref="IsEnabled"/>).
-        /// </exception>
-        public void LoadHTML( string html, string frameName = "" )
+        public bool LoadHTML( string html, string frameName = "" )
         {
-            VerifyLive();
+            if ( !EnsureView() )
+                return false;
 
             StringHelper htmlStr = new StringHelper( html );
             StringHelper frameNameStr = new StringHelper( frameName );
 
             awe_webview_load_html( Instance, htmlStr.Value, frameNameStr.Value );
+
+            return true;
         }
         #endregion
 
@@ -1632,22 +1791,24 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <param name="frameName">
         /// The name of the frame to load the file in.
         /// </param>
+        /// <returns>
+        /// True if the view is alive and the command was successfully sent. False otherwise.
+        /// </returns>
         /// <remarks>
         /// @note
         /// The file should exist within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called on an invalid <see cref="WebControl"/> instance
-        /// (see <see cref="IsEnabled"/>).
-        /// </exception>
-        public void LoadFile( string file, string frameName = "" )
+        public bool LoadFile( string file, string frameName = "" )
         {
-            VerifyLive();
+            if ( !EnsureView() )
+                return false;
 
             StringHelper fileStr = new StringHelper( file );
             StringHelper frameNameStr = new StringHelper( frameName );
 
             awe_webview_load_file( Instance, fileStr.Value, frameNameStr.Value );
+
+            return true;
         }
         #endregion
 
@@ -1725,14 +1886,17 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <summary>
         /// Reloads the current page.
         /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called on an invalid <see cref="WebControl"/> instance
-        /// (see <see cref="IsEnabled"/>).
-        /// </exception>
-        public void Reload()
+        /// <returns>
+        /// True if the view is alive and the command was successfully sent. False otherwise.
+        /// </returns>
+        public bool Reload()
         {
-            VerifyLive();
-            awe_webview_reload( Instance );
+            if ( IsLive )
+                awe_webview_reload( Instance );
+            else
+                return this.LoadURL( Source.ToString() );
+
+            return true;
         }
         #endregion
 
@@ -2027,6 +2191,40 @@ throw new InvalidOperationException( "The control is disabled either manually or
         {
             VerifyLive();
             awe_webview_copy( Instance );
+        }
+        #endregion
+
+        #region CopyHTML
+        /// <summary>
+        /// Copies the HTML content currently selected in this <see cref="WebControl"/>, to the system clipboard.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void CopyHTML()
+        {
+            VerifyLive();
+
+            if ( HasSelection )
+                Clipboard.SetText( this.Selection.HTML );
+        }
+        #endregion
+
+        #region CopyLinkAddress
+        /// <summary>
+        /// Copies the target URL of the link currently under the cursor.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void CopyLinkAddress()
+        {
+            VerifyLive();
+
+            if ( HasTargetURL )
+                Clipboard.SetText( this.TargetURL );
         }
         #endregion
 
@@ -2633,6 +2831,222 @@ throw new InvalidOperationException( "The control is disabled either manually or
                 return IsEnabled;
             }
         }
+
+        /// <summary>
+        /// Gets if this control wraps a previously crashed
+        /// view that can be recreated.
+        /// </summary>
+        internal bool CanRecreateView
+        {
+            get
+            {
+                return ( Instance != IntPtr.Zero ) &&
+                    !DesignerProperties.GetIsInDesignMode( this ) &&
+                    IsCrashed;
+            }
+        }
+
+        /// <summary>
+        /// Gets if this control displays the HTML source of any web-page loaded.
+        /// </summary>
+        internal virtual bool IsSourceControl
+        {
+            get { return false; }
+        }
+        #endregion
+
+        #region Static
+        /** @name Static Resource Keys
+         * Recource keys of the context menu of a <see cref="WebControl"/> and its items.
+         */
+        /** @{ */
+
+        #region ContextMenuResourceKey
+        private static ComponentResourceKey contextMenuKey;
+        /// <summary>
+        /// Gets the resource key for the context menu of a <see cref="WebControl"/>.
+        /// </summary>
+        /// <remarks>
+        /// This can be used to override the default context menu.
+        /// </remarks>
+        public static ComponentResourceKey ContextMenuResourceKey
+        {
+            get
+            {
+                if ( contextMenuKey == null )
+                    contextMenuKey = new ComponentResourceKey( typeof( WebControl ), "WebControlContextMenu" );
+
+                return contextMenuKey;
+            }
+        }
+        #endregion
+
+        #region ContextMenuPageItemsArrayRecourceKey
+        private static ComponentResourceKey contextMenuPageItemsArrayRecourceKey;
+
+        /// <summary>
+        /// Gets the resource key for an array of items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when you right-click on a 
+        /// page that has no selection and no keyboard focus.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// You can use this resource key to override the items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when you right-click on a 
+        /// page that has no selection and no keyboard focus.
+        /// </para>
+        /// @note
+        /// <para>
+        /// If you only wish to add items to the predefined ones, keep in mind that you
+        /// have to redefine all the items of the array.
+        /// </para>
+        /// <para>
+        /// The default-predefined array in XAML is:
+        /// <code>
+        /// <x:Array x:Key="{x:Static local:WebControl.ContextMenuPageItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+        ///     <MenuItem Command="BrowseBack" CommandTarget="{Binding}" />
+        ///     <MenuItem Command="BrowseForward" CommandTarget="{Binding}" />        
+        ///     <MenuItem Command="Refresh" CommandTarget="{Binding}" />
+        ///     <Separator />
+        ///     <MenuItem Command="Print" CommandTarget="{Binding}" />
+        /// </x:Array>
+        /// </code>
+        /// </para>
+        /// </remarks>
+        public static ComponentResourceKey ContextMenuPageItemsArrayRecourceKey
+        {
+            get
+            {
+                if ( contextMenuPageItemsArrayRecourceKey == null )
+                    contextMenuPageItemsArrayRecourceKey = new ComponentResourceKey( typeof( WebControl ), "ContextMenuPageItemsArray" );
+
+                return contextMenuPageItemsArrayRecourceKey;
+            }
+        }
+        #endregion
+
+        #region ContextMenuInputItemsArrayRecourceKey
+        private static ComponentResourceKey contextMenuInputItemsArrayRecourceKey;
+
+        /// <summary>
+        /// Gets the resource key for an array of items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when the control has keyboard focus.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// You can use this resource key to override the items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when the control has keyboard focus.
+        /// </para>
+        /// @note
+        /// <para>
+        /// If you only wish to add items to the predefined ones, keep in mind that you
+        /// have to redefine all the items of the array.
+        /// </para>
+        /// <para>
+        /// The default-predefined array in XAML is:
+        /// <code>
+        /// <x:Array x:Key="{x:Static local:WebControl.ContextMenuInputItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+        ///     <MenuItem Command="Copy" CommandTarget="{Binding}" />
+        ///     <MenuItem Command="Cut" CommandTarget="{Binding}" />        
+        ///     <MenuItem Command="Paste" CommandTarget="{Binding}" />
+        /// </x:Array>
+        /// </code>
+        /// </para>
+        /// </remarks>
+        public static ComponentResourceKey ContextMenuInputItemsArrayRecourceKey
+        {
+            get
+            {
+                if ( contextMenuInputItemsArrayRecourceKey == null )
+                    contextMenuInputItemsArrayRecourceKey = new ComponentResourceKey( typeof( WebControl ), "ContextMenuInputItemsArray" );
+
+                return contextMenuInputItemsArrayRecourceKey;
+            }
+        }
+        #endregion
+
+        #region ContextMenuSelectionItemsArrayRecourceKey
+        private static ComponentResourceKey contextMenuSelectionItemsArrayRecourceKey;
+
+        /// <summary>
+        /// Gets the resource key for an array of items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when a range of content in the page 
+        /// is currently selected.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// You can use this resource key to override the items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when a range of content in the page 
+        /// is currently selected.
+        /// </para>
+        /// @note
+        /// <para>
+        /// If you only wish to add items to the predefined ones, keep in mind that you
+        /// have to redefine all the items of the array.
+        /// </para>
+        /// <para>
+        /// The default-predefined array in XAML is:
+        /// <code>
+        /// <x:Array x:Key="{x:Static local:WebControl.ContextMenuSelectionItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+        ///     <MenuItem Command="Copy" CommandTarget="{Binding}" />
+        ///     <MenuItem Command="{x:Static local:WebControlCommands.CopyHTML}" CommandTarget="{Binding}" />
+        ///     <Separator />
+        /// </x:Array>
+        /// </code>
+        /// </para>
+        /// </remarks>
+        public static ComponentResourceKey ContextMenuSelectionItemsArrayRecourceKey
+        {
+            get
+            {
+                if ( contextMenuSelectionItemsArrayRecourceKey == null )
+                    contextMenuSelectionItemsArrayRecourceKey = new ComponentResourceKey( typeof( WebControl ), "ContextMenuSelectionItemsArray" );
+
+                return contextMenuSelectionItemsArrayRecourceKey;
+            }
+        }
+        #endregion
+
+        #region ContextMenuLinkItemsArrayRecourceKey
+        private static ComponentResourceKey contextMenuLinkItemsArrayRecourceKey;
+
+        /// <summary>
+        /// Gets the resource key for an array of items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when you right-click on a link in a page.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// You can use this resource key to override the items in the context menu of a 
+        /// <see cref="WebControl"/>, that are visible when you right-click on a link in a page.
+        /// </para>
+        /// @note
+        /// <para>
+        /// If you only wish to add items to the predefined ones, keep in mind that you
+        /// have to redefine all the items of the array.
+        /// </para>
+        /// <para>
+        /// The default-predefined array in XAML is:
+        /// <code>
+        /// <x:Array x:Key="{x:Static local:WebControl.ContextMenuLinkItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+        ///     <MenuItem Command="{x:Static local:WebControlCommands.CopyLinkAddress}" CommandTarget="{Binding}" />
+        ///     <Separator />
+        /// </x:Array>
+        /// </code>
+        /// </para>
+        /// </remarks>
+        public static ComponentResourceKey ContextMenuLinkItemsArrayRecourceKey
+        {
+            get
+            {
+                if ( contextMenuLinkItemsArrayRecourceKey == null )
+                    contextMenuLinkItemsArrayRecourceKey = new ComponentResourceKey( typeof( WebControl ), "ContextMenuLinkItemsArray" );
+
+                return contextMenuLinkItemsArrayRecourceKey;
+            }
+        }
+        #endregion
+
+        /** @} */
         #endregion
 
 
@@ -2642,7 +3056,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private static extern bool awe_webview_is_dirty( IntPtr webview );
 
         /// <summary>
-        /// Gets whether or not this <see cref="WebControl"/> needs to be rendered again.
+        /// Gets of this <see cref="WebControl"/> needs to be rendered again.
         /// </summary>
         /// <remarks>
         /// Internal changes to this property fire the <see cref="IsDirtyChanged"/>
@@ -2703,10 +3117,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private static extern bool awe_webview_is_resizing( IntPtr webview );
 
         /// <summary>
-        /// Checks whether or not there is a resize operation pending.
+        /// Gets if there is a resize operation pending.
         /// </summary>
         /// <returns>
-        /// True if we are waiting for the <see cref="WebControl"/> process to
+        /// True if we are waiting for the <see cref="WebControl"/> to
         /// return acknowledgment of a pending resize operation. False otherwise.
         /// </returns>
         public bool IsResizing
@@ -2769,6 +3183,33 @@ throw new InvalidOperationException( "The control is disabled either manually or
 
             return awe_webview_is_loading_page( owner.Instance );
         }
+        #endregion
+
+        #region IsNavigating
+        /// <summary>
+        /// Gets if the <see cref="WebControl"/> is currently navigating to a Url.
+        /// </summary>
+        /// <remarks>
+        /// Unlike <see cref="IsLoadingPage"/> that updates when the actual contents
+        /// of a page are being downloaded, this property is updated when navigation
+        /// starts and updates again when loading completes.
+        /// </remarks>
+        public bool IsNavigating
+        {
+            get { return (bool)this.GetValue( WebControl.IsNavigatingProperty ); }
+            protected set { SetValue( WebControl.IsNavigatingPropertyKey, value ); }
+        }
+
+        private static readonly DependencyPropertyKey IsNavigatingPropertyKey =
+                                DependencyProperty.RegisterReadOnly( "IsNavigating",
+                                typeof( bool ), typeof( WebControl ),
+                                new FrameworkPropertyMetadata( false ) );
+
+        /// <summary>
+        /// Identifies the <see cref="IsNavigating"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty IsNavigatingProperty =
+            IsNavigatingPropertyKey.DependencyProperty;
         #endregion
 
         #region DirtyBounds
@@ -2924,6 +3365,35 @@ throw new InvalidOperationException( "The control is disabled either manually or
             HasKeyboardFocusPropertyKey.DependencyProperty;
         #endregion
 
+        #region HasTargetURL
+        /// <summary>
+        /// Gets if this <see cref="WebControl"/> is currently indicating a target URL,
+        /// usually as a result of hovering over a link on the page.
+        /// </summary>
+        public bool HasTargetURL
+        {
+            get { return (bool)this.GetValue( WebControl.HasTargetURLProperty ); }
+        }
+
+        private static readonly DependencyPropertyKey HasTargetURLPropertyKey =
+            DependencyProperty.RegisterReadOnly( "HasTargetURL",
+            typeof( bool ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( false, null, CoerceHasTargetURL ) );
+
+        public static readonly DependencyProperty HasTargetURLProperty =
+            HasTargetURLPropertyKey.DependencyProperty;
+
+        private static object CoerceHasTargetURL( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+
+            if ( !owner.IsLive )
+                return false;
+
+            return !String.IsNullOrWhiteSpace( owner.TargetURL );
+        }
+        #endregion
+
         #region TargetURL
         /// <summary>
         /// Gets the target URL indicated by the <see cref="WebControl"/>,
@@ -2951,6 +3421,20 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <summary>
         /// Gets if the renderer of this <see cref="WebControl"/> (which is isolated in a separate process) has crashed.
         /// </summary>
+        /// <remarks>
+        /// @note
+        /// When crashed, this control will attempt to recreate its underlying view when any of the following
+        /// methods or properties is called:
+        /// - <see cref="GoToHome"/>
+        /// - <see cref="LoadURL"/>
+        /// - <see cref="LoadHTML"/>
+        /// - <see cref="LoadFile"/>
+        /// - <see cref="Reload"/>
+        /// - <see cref="Source"/>
+        /// .
+        /// It is suggested that you avoid using <see cref="Reload"/> since what was there in the current
+        /// page that caused the crash, may crash the view again.
+        /// </remarks>
         public bool IsCrashed
         {
             get { return (bool)this.GetValue( WebControl.IsCrashedProperty ); }
@@ -3016,6 +3500,85 @@ throw new InvalidOperationException( "The control is disabled either manually or
             IsDomReadyPropertyKey.DependencyProperty;
         #endregion
 
+        #region FlashAlpha
+        /// <summary>
+        /// Gets or sets if we should flush the alpha channel to completely opaque values, during rendering.
+        /// </summary>
+        public bool FlashAlpha
+        {
+            get { return (bool)this.GetValue( FlashAlphaProperty ); }
+            set { SetValue( FlashAlphaProperty, value ); }
+        }
+
+        public static readonly DependencyProperty FlashAlphaProperty =
+            DependencyProperty.Register( "FlashAlpha",
+            typeof( bool ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( true, FlashAlphaChanged ) );
+
+        private static void FlashAlphaChanged( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            WebControl owner = (WebControl)d;
+            bool value = (bool)e.NewValue;
+
+            // Performance is important when we access this
+            // so we also persist the value to a simple local
+            // variable that can be accessed faster.
+            owner.flashAplha = value;
+        }
+        #endregion
+
+        #region HasSelection
+        /// <summary>
+        /// Gets if the user has selected content in the current page.
+        /// </summary>
+        public bool HasSelection
+        {
+            get { return (bool)this.GetValue( WebControl.HasSelectionProperty ); }
+        }
+
+        private static readonly DependencyPropertyKey HasSelectionPropertyKey =
+            DependencyProperty.RegisterReadOnly( "HasSelection",
+            typeof( bool ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( false, null, CoerceHasSelection ) );
+
+        public static readonly DependencyProperty HasSelectionProperty =
+            HasSelectionPropertyKey.DependencyProperty;
+
+        private static object CoerceHasSelection( DependencyObject d, object baseValue )
+        {
+            WebControl owner = (WebControl)d;
+            return owner.Selection != Selection.Empty;
+        }
+        #endregion
+
+        #region Selection
+        /// <summary>
+        /// Gets a <see cref="Selection"/> providing information about the current selection range.
+        /// </summary>
+        public Selection Selection
+        {
+            get { return (Selection)this.GetValue( WebControl.SelectionProperty ); }
+            protected set { this.SetValue( WebControl.SelectionPropertyKey, value ); }
+        }
+
+        private static readonly DependencyPropertyKey SelectionPropertyKey =
+            DependencyProperty.RegisterReadOnly( "Selection",
+            typeof( Selection ), typeof( WebControl ),
+            new FrameworkPropertyMetadata( Selection.Empty, OnSelectionChanged ) );
+
+        public static readonly DependencyProperty SelectionProperty =
+            SelectionPropertyKey.DependencyProperty;
+
+        private static void OnSelectionChanged( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            WebControl owner = (WebControl)d;
+            Selection value = (Selection)e.NewValue;
+
+            owner.CoerceValue( WebControl.HasSelectionProperty );
+            owner.OnSelectionChanged( owner, new WebSelectionEventArgs( value ) );
+        }
+        #endregion
+
         #region Zoom
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_set_zoom( IntPtr webview, int zoom_percent );
@@ -3025,9 +3588,16 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private int actualZoom;
 
         /// <summary>
-        /// Gets or sets the zoom percentage. The default is 100.
-        /// Valid range is from 10 to 500.
+        /// Gets or sets the zoom factor (page percentage).
         /// </summary>
+        /// <returns>
+        /// An integer value representing the zoom factor (page percentage)
+        /// for the current hostname. The default is 100.
+        /// </returns>
+        /// <remarks>
+        /// @note
+        /// Valid range is from 10 to 500.
+        /// </remarks>
         public int Zoom
         {
             get { return (int)this.GetValue( ZoomProperty ); }
@@ -3110,7 +3680,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
             WebControl owner = (WebControl)d;
             Uri value = (Uri)e.NewValue;
 
-            if ( !owner.IsLive )
+            if ( !owner.EnsureView() )
                 return;
 
             if ( String.Compare( owner.actualSource, value.AbsoluteUri, true ) != 0 )
@@ -3126,6 +3696,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #region Internal Event Handlers
 
         #region Command Handlers
+
+        #region OnCommandExecuted
         private void OnCommandExecuted( object sender, ExecutedRoutedEventArgs e )
         {
             if ( e.Command is RoutedCommand )
@@ -3136,6 +3708,14 @@ throw new InvalidOperationException( "The control is disabled either manually or
                 {
                     case "Copy":
                         this.Copy();
+                        break;
+
+                    case "CopyHTML":
+                        this.CopyHTML();
+                        break;
+
+                    case "CopyLinkAddress":
+                        this.CopyLinkAddress();
                         break;
 
                     case "Cut":
@@ -3155,6 +3735,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
                             this.Find( e.Parameter.ToString() );
                         break;
 
+                    case "BrowseHome":
+                        this.GoToHome();
+                        break;
+
                     case "BrowseForward":
                         this.GoForward();
                         break;
@@ -3171,6 +3755,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
                         this.Reload();
                         break;
 
+                    case "Print":
+                        this.Print();
+                        break;
+
                     case "Zoom":
                         if ( e.Parameter != null )
                             this.Zoom = (int)e.Parameter;
@@ -3183,7 +3771,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
                     case "LoadURL":
                         if ( e.Parameter != null )
                         {
-                            this.Source = e.Parameter is Uri ?  (Uri)e.Parameter : new Uri(e.Parameter.ToString());
+                            this.Source = e.Parameter is Uri ? (Uri)e.Parameter : new Uri( e.Parameter.ToString() );
                         }
                         break;
 
@@ -3251,16 +3839,41 @@ throw new InvalidOperationException( "The control is disabled either manually or
                 }
             }
         }
+        #endregion
 
+        #region CanExecuteCommand
         private void CanExecuteCommand( object sender, CanExecuteRoutedEventArgs e )
         {
+            bool canExecute = true;
+            RoutedCommand command = (RoutedCommand)e.Command;
+
             if ( IsLive )
             {
-                bool canExecute = true;
-                RoutedCommand command = (RoutedCommand)e.Command;
-
                 switch ( command.Name )
                 {
+                    case "Copy":
+                        canExecute = !String.IsNullOrEmpty( this.Selection.Text );
+                        break;
+
+                    case "CopyHTML":
+                        canExecute = !String.IsNullOrEmpty( this.Selection.HTML );
+                        break;
+
+                    case "CopyLinkAddress":
+                        canExecute = HasTargetURL;
+                        break;
+
+                    case "Cut":
+                        canExecute = !String.IsNullOrEmpty( this.Selection.Text );
+                        break;
+
+                    case "Paste":
+                        canExecute = Clipboard.ContainsText();
+                        break;
+
+                    case "BrowseHome":
+                        break;
+
                     case "BrowseForward":
                         canExecute = this.HistoryForwardCount > 0;
                         break;
@@ -3271,10 +3884,6 @@ throw new InvalidOperationException( "The control is disabled either manually or
 
                     case "LoadURL":
                         canExecute = ( e.Parameter != null ) && ( String.Compare( e.Parameter.ToString(), GetUrl(), true ) != 0 );
-                        break;
-
-                    case "Paste":
-                        canExecute = Clipboard.ContainsText();
                         break;
 
                     case "Find":
@@ -3294,29 +3903,32 @@ throw new InvalidOperationException( "The control is disabled either manually or
                 e.CanExecute = canExecute;
             }
             else
-                e.CanExecute = false;
+                e.CanExecute = ( command.Name.Equals( "BrowseHome" ) || command.Name.Equals( "Refresh" ) ) ? CanRecreateView : false;
         }
+        #endregion
+
         #endregion
 
 
         #region Loaded / Enabled
+        private bool hookAdded;
+
         // In WPF, the Loaded/Unloaded events may be fired more than once
         // in the lifetime of a control. Such as when the control is hidden/shown
         // or when the control is completely covered by another control and
         // then appears again (through a change in Panel.ZIndex for example).
-
-        private bool hookAdded;
-
         private void OnLoaded( object sender, RoutedEventArgs e )
         {
-            if ( hookAdded )
-                return;
-
-            HwndSource source = (HwndSource)PresentationSource.FromVisual( this );
-            if ( source != null )
+            if ( !hookAdded )
             {
-                source.AddHook( HandleMessages );
-                hookAdded = true;
+                HwndSource source = (HwndSource)PresentationSource.FromVisual( this );
+                if ( source != null )
+                {
+                    // See OnThreadFilterMessage.
+                    ComponentDispatcher.ThreadFilterMessage += OnThreadFilterMessage;
+                    source.AddHook( HandleMessages );
+                    hookAdded = true;
+                }
             }
 
             ResumeRendering();
@@ -3356,18 +3968,64 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #endregion
 
         #region HandleMessages
+        // Believe it or not, unlike what you may think, HwndSourceHook will not
+        // be called for all window messages. Though it seems like it, it is not
+        // equivalent to WinForm's WndPrc. The CLR will call HwndSourceHook hooks
+        // in the order they were registered through HwndSource.AddHook and if
+        // any of them sets handled to true, the rest are not called. Another major
+        // difference is that unlike WinForms, a WPF application first calls events
+        // and then calls HwndSourceHook! Additionally, the WPF application internally
+        // filters some messages that never reach the HwndSourceHook! These messages
+        // include the TAB, HOME and END keys that are processed to control TAB Navigation.
+        // In order to capture these messages and inject them to the view, we need
+        // to handle ComponentDispatcher.ThreadFilterMessage. However, this handle
+        // only works well for messages about to be filtered by the WPF application;
+        // thus, we still need the HwndSourceHook below to handle normal text, arrows etc.
+        private void OnThreadFilterMessage( ref MSG msg, ref bool handled )
+        {
+            if ( !IsLive )
+                return;
+
+            int message = ( msg.message & 65535 );
+
+            if ( ( message == WM_KEYDOWN || message == WM_KEYUP ) && IsFocused )
+            {
+                switch ( (int)msg.wParam )
+                {
+                    case VK_TAB:
+                    case VK_HOME:
+                    case VK_END:
+                        awe_webview_inject_keyboard_event_win( Instance, msg.message, (int)msg.wParam, (int)msg.lParam );
+                        handled = true;
+                        break;
+                }
+            }
+        }
+
+        // See Also: OnThreadFilterMessage.
         private IntPtr HandleMessages( IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled )
         {
+            if ( !IsLive )
+                return IntPtr.Zero;
+
             int message = ( msg & 65535 );
 
             if ( ( message == WM_KEYDOWN || message == WM_KEYUP || message == WM_CHAR ) && IsFocused )
             {
-                awe_webview_inject_keyboard_event_win( Instance, msg, (int)wParam, (int)lParam );
-                handled = true;
-            }
-            else
-            {
-                handled = false;
+                switch ( (int)wParam )
+                {
+                    case VK_TAB:
+                    case VK_HOME:
+                    case VK_END:
+                        // Though these will never reach here, we add this to be sure.
+                        // See OnThreadFilterMessage.
+                        break;
+
+                    default:
+                        awe_webview_inject_keyboard_event_win( Instance, msg, (int)wParam, (int)lParam );
+                        handled = true;
+                        break;
+                }
             }
 
             return IntPtr.Zero;
@@ -3389,9 +4047,17 @@ throw new InvalidOperationException( "The control is disabled either manually or
             BeginNavigationEventArgs e = new BeginNavigationEventArgs( StringHelper.ConvertAweString( url ),
                 StringHelper.ConvertAweString( frame_name ) );
 
+            if ( String.IsNullOrEmpty( e.Url ) )
+            {
+                this.Title = AwesomiumSharp.Resources.TITLE_Error;
+                return;
+            }
+
             actualSource = e.Url;
 
+            this.Title = AwesomiumSharp.Resources.TITLE_Navigating;
             this.Source = new Uri( e.Url );
+            this.IsNavigating = true;
             this.CoerceValue( WebControl.IsLoadingPageProperty );
             this.CoerceValue( WebControl.HistoryBackCountProperty );
             this.CoerceValue( WebControl.HistoryForwardCountProperty );
@@ -3410,13 +4076,17 @@ throw new InvalidOperationException( "The control is disabled either manually or
 
         private void internalBeginLoadingCallback( IntPtr caller, IntPtr url, IntPtr frame_name, int status_code, IntPtr mime_type )
         {
-            BeginLoadingEventArgs e = new BeginLoadingEventArgs( StringHelper.ConvertAweString( url ),
+            BeginLoadingEventArgs e = new BeginLoadingEventArgs(
+                StringHelper.ConvertAweString( url ),
                 StringHelper.ConvertAweString( frame_name ),
                 status_code,
                 StringHelper.ConvertAweString( mime_type ) );
 
             actualSource = e.Url;
             actualZoom = GetZoom();
+
+            if ( String.Compare( this.Title, AwesomiumSharp.Resources.TITLE_Error, false ) != 0 )
+                this.Title = AwesomiumSharp.Resources.TITLE_Loading;
 
             this.IsDomReady = false; // Reset
             this.Source = new Uri( e.Url );
@@ -3435,9 +4105,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         internal delegate void CallbackFinishLoadingCallback( IntPtr caller );
 
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
-        private static extern void awe_webview_set_callback_finish_loading(
-                            IntPtr webview,
-                            CallbackFinishLoadingCallback callback );
+        private extern static void awe_webview_set_callback_finish_loading( IntPtr webview, CallbackFinishLoadingCallback callback );
 
         private void internalFinishLoadingCallback( IntPtr caller )
         {
@@ -3448,6 +4116,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
             this.CoerceValue( WebControl.HistoryBackCountProperty );
             this.CoerceValue( WebControl.HistoryForwardCountProperty );
             this.Source = new Uri( actualSource );
+            this.IsNavigating = false;
             this.Zoom = actualZoom;
             this.OnLoadCompleted( this, EventArgs.Empty );
 
@@ -3467,7 +4136,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
         {
             JSValue[] args = JSArrayHelper.getArray( arguments );
 
-            JSCallbackEventArgs e = new JSCallbackEventArgs( StringHelper.ConvertAweString( object_name ), StringHelper.ConvertAweString( callback_name ), args );
+            JSCallbackEventArgs e = new JSCallbackEventArgs(
+                StringHelper.ConvertAweString( object_name ),
+                StringHelper.ConvertAweString( callback_name ),
+                args );
 
             if ( JSCallbackCalled != null )
                 JSCallbackCalled( this, e );
@@ -3583,6 +4255,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( url ) );
 
             this.TargetURL = e.Url;
+            this.CoerceValue( WebControl.HasTargetURLProperty );
             this.OnTargetUrlChanged( this, e );
 
             CommandManager.InvalidateRequerySuggested();
@@ -3618,6 +4291,19 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private void internalRequestDownloadCallback( IntPtr caller, IntPtr download )
         {
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
+
+            Uri uriTest;
+            Uri.TryCreate( e.Url, UriKind.Absolute, out uriTest );
+            // This is here temporarily to fix an issue where download requests are fired for no obvious
+            // reason containing empty strings or characters like: "*", as Url.
+            if ( String.IsNullOrWhiteSpace( e.Url ) ||
+                ( uriTest == null ) ||
+                !uriTest.IsAbsoluteUri ||
+                ( e.Url.IndexOfAny( Path.GetInvalidPathChars() ) != -1 ) ||
+                String.IsNullOrWhiteSpace( Path.GetFileName( e.Url ) ) ||
+                ( Path.GetFileName( e.Url ).IndexOfAny( Path.GetInvalidFileNameChars() ) != -1 ) )
+                return;
+
             this.OnDownload( this, e );
 
             CommandManager.InvalidateRequerySuggested();
@@ -3634,6 +4320,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private void internalWebviewCrashedCallback( IntPtr caller )
         {
             this.IsCrashed = true;
+            this.CoerceValue( WebControl.IsEnabledProperty );
             this.OnCrashed( this, EventArgs.Empty );
 
             CommandManager.InvalidateRequerySuggested();
@@ -3709,6 +4396,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
             this.OnDomReady( this, EventArgs.Empty );
 
             CommandManager.InvalidateRequerySuggested();
+
+            selectionHelper.InjectSelectionHandlers();
         }
         #endregion
 
@@ -3900,6 +4589,16 @@ throw new InvalidOperationException( "The control is disabled either manually or
             {
                 this.IsDirty = value;
             }
+        }
+        #endregion
+
+        #region Temporary Selection Logic
+        /// <summary>
+        /// Helper callback.
+        /// </summary>
+        private void OnWebSelectionChanged( object sender, WebSelectionEventArgs e )
+        {
+            this.Selection = e.Selection;
         }
         #endregion
     }

@@ -15,10 +15,18 @@
  *    07/12/2011:
  *    
  *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
+ *    
+ *    07/22/2011:
+ *    
+ *    - Synchronized with Awesomium r159 (1.6.2 Pre-Release)
+ *    
+ *    - Added EnableVisualStyles property used to apply visual styles to the
+ *      Print dialog. Read details in remarks section of EnableThemingInScope.
  * 
  ********************************************************************************/
 
 using System;
+using System.ComponentModel;
 
 #if USING_MONO
 namespace AwesomiumMono
@@ -54,7 +62,7 @@ namespace AwesomiumSharp
             PluginPath = "";
             LogPath = "";
             LogLevel = LogLevel.Normal;
-            ChildProcessPath = "";
+            _ChildProcessPath = ""; // See notes in property setter.
             EnableAutoDetectEncoding = true;
             AcceptLanguageOverride = "";
             DefaultCharsetOverride = "";
@@ -64,6 +72,11 @@ namespace AwesomiumSharp
             AuthServerWhitelist = "";
             CustomCSS = "";
             AutoUpdatePeriod = 20;
+
+#if !USING_MONO
+            homeURL = "about:blank";
+            EnableVisualStyles = true;
+#endif
         }
 
         /// <summary>
@@ -103,13 +116,27 @@ namespace AwesomiumSharp
         public LogLevel LogLevel { get; set; }
         /// <summary>
         /// Indicates whether or not all WebViews and should be forced to render inside
-		/// the main process (we typically launch a separate child-process to
-		/// render each WebView and plugin safely). This mode currently only works
-		/// on Windows and automatically disables plugins and local databases.
+        /// the main process (we typically launch a separate child-process to
+        /// render each WebView and plugin safely). This mode currently only works
+        /// on Windows and automatically disables plugins and local databases.
         /// The default is false.
         /// </summary>
         public bool ForceSingleProcess { get; set; }
-        public string ChildProcessPath { get; set; }
+
+        private string _ChildProcessPath;
+        [EditorBrowsable( EditorBrowsableState.Never )]
+        public string ChildProcessPath
+        {
+            get
+            {
+                return _ChildProcessPath;
+            }
+            set
+            {
+                // Left empty until completely implemented in .NET
+            }
+        }
+
         public bool EnableAutoDetectEncoding { get; set; }
         public string AcceptLanguageOverride { get; set; }
         public string DefaultCharsetOverride { get; set; }
@@ -183,7 +210,7 @@ namespace AwesomiumSharp
         public bool DisableSameOriginPolicy { get; set; }
         /// <summary>
         /// Indicates whether or not we should automatically pump Windows messages during
-        /// a call to WebCore.Update. You may wish to set this to true if you are already
+        /// a call to <see cref="WebCore.Update"/>. You may wish to set this to true if you are already
         /// pumping messages (Peek/Dispatch). Default is false.
         /// </summary>
         public bool DisableWinMessagePump { get; set; }
@@ -194,13 +221,62 @@ namespace AwesomiumSharp
         public string CustomCSS { get; set; }
 
 
-        // The following are added and refer to the wrapper.
+        // The following are used by the wrapper.
         // Properties are also added for these in WebCore.
 
+        #region AutoUpdatePeriod
         /// <summary>
         /// Indicates the time interval between invocations of WebCore's update, in milliseconds.
         /// The default is 20.
         /// </summary>
         public int AutoUpdatePeriod { get; set; }
+        #endregion
+
+#if !USING_MONO
+        #region HomeURL
+        private string homeURL;
+        /// <summary>
+        /// Gets or sets the URL that will be used as the Home URL
+        /// for <see cref="WebControl"/>s.
+        /// </summary>
+        /// <remarks>
+        /// This setting is used by <see cref="WebControl"/>s to automatically
+        /// handle the <see cref="NavigationCommands.BrowseHome"/> command.
+        /// The default is: "about:blank".
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// A null reference or an empty string defined.
+        /// </exception>
+        public string HomeURL
+        {
+            get
+            {
+                return homeURL;
+            }
+            set
+            {
+                if ( String.Compare( homeURL, value, false ) == 0 )
+                    return;
+
+                if ( String.IsNullOrWhiteSpace( value ) )
+                    throw new ArgumentNullException();
+
+                homeURL = value;
+            }
+        }
+        #endregion
+
+        #region EnableVisualStyles
+        /// <summary>
+        /// Gets or sets if default Windows visual styles should be applied to common dialogs shown by views.
+        /// Default is true.
+        /// </summary>
+        /// <remarks>
+        /// Currently, this is used to apply visual styles to the Print dialog.
+        /// </remarks>
+        public bool EnableVisualStyles { get; set; }
+        #endregion
+#endif
+
     };
 }

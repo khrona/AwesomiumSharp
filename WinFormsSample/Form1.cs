@@ -3,6 +3,7 @@ using AwesomiumSharp;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
+using AwesomiumSharp.Windows.Forms;
 
 namespace WinFormsSample
 {
@@ -33,25 +34,32 @@ namespace WinFormsSample
 
             webView = WebCore.CreateWebView( webViewBitmap.Width, webViewBitmap.Height );
             webView.IsDirtyChanged += OnIsDirtyChanged;
+            webView.SelectLocalFiles += OnSelectLocalFiles;
+            webView.CursorChanged += OnCursorChanged;
             webView.LoadURL( "http://www.google.com" );
             webView.Focus();
         }
 
         void WebForm_Activated( object sender, EventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.Focus();
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.Focus();
         }
 
         void WebForm_Deactivate( object sender, EventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.Unfocus();
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.Unfocus();
         }
 
         void WebForm_FormClosed( object sender, FormClosedEventArgs e )
         {
             webView.IsDirtyChanged -= OnIsDirtyChanged;
+            webView.SelectLocalFiles -= OnSelectLocalFiles;
             webView.Close();
             WebCore.Shutdown();
         }
@@ -71,9 +79,33 @@ namespace WinFormsSample
                 Render();
         }
 
+        private void OnCursorChanged( object sender, ChangeCursorEventArgs e )
+        {
+            Cursor = Utilities.GetCursor( e.CursorType );
+        }
+
+        private void OnSelectLocalFiles( object sender, SelectLocalFilesEventArgs e )
+        {
+            using ( OpenFileDialog dialog = new OpenFileDialog()
+            {
+                InitialDirectory = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments ),
+                CheckFileExists = true,
+                Multiselect = e.SelectMultipleFiles
+            } )
+            {
+                if ( dialog.ShowDialog( this ) == DialogResult.OK )
+                {
+                    if ( dialog.FileNames.Length > 0 )
+                    {
+                        e.SelectedFiles = dialog.FileNames;
+                    }
+                }
+            }
+        }
+
         void Render()
         {
-            if ( webView.IsDisposed )
+            if ( !webView.IsEnabled )
                 return;
 
             RenderBuffer rBuffer = webView.Render();
@@ -88,9 +120,9 @@ namespace WinFormsSample
                 frameBuffer = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
             }
 
-            BitmapData bits = frameBuffer.LockBits( new Rectangle( 0, 0, rBuffer.Width, rBuffer.Height ),
-                                ImageLockMode.ReadWrite, frameBuffer.PixelFormat );
-
+            BitmapData bits = frameBuffer.LockBits( 
+                new Rectangle( 0, 0, rBuffer.Width, rBuffer.Height ),
+                ImageLockMode.ReadWrite, frameBuffer.PixelFormat );
 
             unsafe
             {
@@ -116,56 +148,67 @@ namespace WinFormsSample
 
         void WebForm_Resize( object sender, EventArgs e )
         {
+            if ( !webView.IsEnabled )
+                return;
+
             if ( webViewBitmap.Width != 0 && webViewBitmap.Height != 0 )
                 needsResize = true;
         }
 
         void WebForm_KeyPress( object sender, KeyPressEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.Char, Text = new ushort[] { e.KeyChar, 0, 0, 0 } };
+            if ( !webView.IsEnabled )
+                return;
 
-            if ( !webView.IsDisposed )
-                webView.InjectKeyboardEvent( keyEvent );
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( e ) );
         }
 
         void WebForm_KeyDown( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyDown, VirtualKeyCode = (VirtualKey)e.KeyCode };
+            if ( !webView.IsEnabled )
+                return;
 
-            if ( !webView.IsDisposed )
-                webView.InjectKeyboardEvent( keyEvent );
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyDown, e ) );
         }
 
         void WebForm_KeyUp( object sender, KeyEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { Type = WebKeyType.KeyUp, VirtualKeyCode = (VirtualKey)e.KeyCode };
+            if ( !webView.IsEnabled )
+                return;
 
-            if ( !webView.IsDisposed )
-                webView.InjectKeyboardEvent( keyEvent );
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyUp, e ) );
         }
 
         void WebForm_MouseUp( object sender, MouseEventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.InjectMouseUp( MouseButton.Left );
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseUp( MouseButton.Left );
         }
 
         void WebForm_MouseDown( object sender, MouseEventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.InjectMouseDown( MouseButton.Left );
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseDown( MouseButton.Left );
         }
 
         void WebForm_MouseMove( object sender, MouseEventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.InjectMouseMove( e.X, e.Y );
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseMove( e.X, e.Y );
         }
 
         void WebForm_MouseWheel( object sender, MouseEventArgs e )
         {
-            if ( !webView.IsDisposed )
-                webView.InjectMouseWheel( e.Delta );
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseWheel( e.Delta );
         }
     }
 }

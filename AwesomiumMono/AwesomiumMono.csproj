@@ -101,6 +101,9 @@
     <Compile Include="..\AwesomiumSharp\EventArgs\UrlEventArgs.cs">
       <Link>EventArgs\UrlEventArgs.cs</Link>
     </Compile>
+    <Compile Include="..\AwesomiumSharp\EventArgs\WebSelectionEventArgs.cs">
+      <Link>EventArgs\WebSelectionEventArgs.cs</Link>
+    </Compile>
     <Compile Include="..\AwesomiumSharp\FindData.cs">
       <Link>FindData.cs</Link>
     </Compile>
@@ -127,6 +130,12 @@
     </Compile>
     <Compile Include="..\AwesomiumSharp\ResourceResponse.cs">
       <Link>ResourceResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\Selection.cs">
+      <Link>Selection.cs</Link>
+    </Compile>
+    <Compile Include="..\AwesomiumSharp\SelectionHelper.cs">
+      <Link>SelectionHelper.cs</Link>
     </Compile>
     <Compile Include="..\AwesomiumSharp\StringHelper.cs">
       <Link>StringHelper.cs</Link>

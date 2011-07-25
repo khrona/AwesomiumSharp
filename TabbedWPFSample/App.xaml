@@ -1,0 +1,30 @@
+﻿<Application 
+    x:Class="TabbedWPFSample.App" 
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:awe="http://schemas.awesomium.com/winfx"
+    xmlns:local="clr-namespace:TabbedWPFSample">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/TabbedWPFSample;component/Themes/Button.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <PopupAnimation x:Key="{x:Static SystemParameters.MenuPopupAnimationKey}">None</PopupAnimation>
+
+            <x:Array x:Key="{x:Static awe:WebControl.ContextMenuLinkItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+                <MenuItem 
+                    Command="{x:Static local:MainWindow.OpenInTab}"
+                    CommandParameter="{Binding TargetURL}" />
+                <MenuItem 
+                    Command="{x:Static local:MainWindow.OpenInWindow}"
+                    CommandParameter="{Binding TargetURL}" />
+                <MenuItem 
+                    Command="{x:Static awe:WebControlCommands.CopyLinkAddress}" 
+                    CommandTarget="{Binding}"/>
+                <Separator />
+            </x:Array>
+            
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

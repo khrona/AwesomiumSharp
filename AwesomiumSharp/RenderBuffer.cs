@@ -153,15 +153,15 @@ namespace AwesomiumSharp
         #endregion
 
         #region FlushAlpha
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_renderbuffer_flush_alpha(IntPtr renderbuffer);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_renderbuffer_flush_alpha( IntPtr renderbuffer );
 
         /// <summary>
         /// Flushes the alpha channel of this render buffer to completely opaque values.
         /// </summary>
         public void FlushAlpha()
         {
-            awe_renderbuffer_flush_alpha(renderbuffer);
+            awe_renderbuffer_flush_alpha( renderbuffer );
         }
         #endregion
 
@@ -219,16 +219,17 @@ namespace AwesomiumSharp
 
         #region Buffer
         [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr awe_renderbuffer_get_buffer(
-                                         IntPtr renderbuffer);
+        private extern static IntPtr awe_renderbuffer_get_buffer( IntPtr renderbuffer );
 
         /// <summary>
         /// The raw block of pixel data, BGRA format. 
         /// </summary>
-        /// <remarks>If WebView.SetTransparent is not enabled, you may need to flush the alpha
+        /// <remarks>
+        /// If <see cref="WebView.SetTransparent"/> is not enabled, you may need to flush the alpha
         /// channel of this buffer (eg, set every 4th bit to 255) before displaying it. This is
         /// because Flash on Windows will sometimes corrupt our alpha channel and so you may 
-        /// see weird text in Flash if you forget to do this.</remarks>
+        /// see weird text in Flash if you forget to do this.
+        /// </remarks>
         public IntPtr Buffer
         {
             get

@@ -44,9 +44,26 @@
  *      
  *    - Few fixes and renaming of members.
  *    
+ *    
  *    07/12/2011:
  *    
  *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
+ *    
+ *    
+ *    07/18/2011 (Perikles C. Stephanidis)
+ *      
+ *    - Added support for the new RenderBuffer.FlashAlpha. Tests have shown
+ *      that adding this feature to WebView by default, does not affect
+ *      performance. Nevertheless, a property (FlashAlpha) has been added
+ *      to the view and allows developers to disable the feature.
+ *      It is enabled by default.
+ *      
+ *    - Added e temporary model of getting current selection in both
+ *      Text and HTML form. The model uses Javascript objects, callbacks
+ *      and injected code. This model will be removed when we get a native way 
+ *      to access current selection changes and properties. You can see the
+ *      logic in the SelectionHelper and Selection classes, as well as in the
+ *      "Temporary Selection Logic" region, at the bottom of this code file.
  * 
  *-------------------------------------------------------------------------------
  *
@@ -61,8 +78,10 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.IO;
 #if !USING_MONO
 using System.Linq;
+using System.Windows;
 #endif
 #endregion
 
@@ -91,6 +110,7 @@ namespace AwesomiumSharp
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
 
         private Random findRequestRandomizer;
+        private SelectionHelper selectionHelper;
 
         private CallbackBeginLoadingCallback beginLoadingCallback;
         private CallbackBeginNavigationCallback beginNavigationCallback;
@@ -469,6 +489,22 @@ namespace AwesomiumSharp
         }
         #endregion
 
+        #region SelectionChanged
+        /// <summary>
+        /// This event occurs when the selection in the current page, changes.
+        /// </summary>
+        public event WebSelectionChangedHandler SelectionChanged;
+
+        /// <summary>
+        /// Raises the <see cref="SelectionChanged"/> event.
+        /// </summary>
+        protected virtual void OnSelectionChanged( object sender, WebSelectionEventArgs e )
+        {
+            if ( SelectionChanged != null )
+                SelectionChanged( sender, e );
+        }
+        #endregion
+
         #region ImeUpdated
         /// <summary>
         /// This event occurs whenever the user does something that changes the 
@@ -606,6 +642,9 @@ namespace AwesomiumSharp
             jsObjectCallbackMap = new Dictionary<string, JSCallback>();
             this.JSCallbackCalled += handleJSCallback;
 
+            selectionHelper = new SelectionHelper( this, OnWebSelectionChanged );
+            selectionHelper.RegisterSelectionHelper();
+
             RaisePropertyChanged( "IsEnabled" );
         }
         #endregion
@@ -643,6 +682,10 @@ namespace AwesomiumSharp
 
                 resourceResponseCallback = null;
                 awe_webview_set_callback_resource_response( Instance, null );
+
+                selectionHelper.Dispose();
+                selectionHelper = null;
+                selection = Selection.Empty;
 
                 WebCore.DestroyView( this );
                 Instance = IntPtr.Zero;
@@ -824,7 +867,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
             GoToHistoryOffset( 1 );
         }
         #endregion
-        
+
         #region Stop
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private static extern void awe_webview_stop( IntPtr webview );
@@ -1143,7 +1186,12 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         public RenderBuffer Render()
         {
             VerifyValid();
-            return new RenderBuffer( awe_webview_render( Instance ) );
+            RenderBuffer buffer = new RenderBuffer( awe_webview_render( Instance ) );
+
+            if ( flashAlpha && ( buffer != null ) )
+                buffer.FlushAlpha();
+
+            return buffer;
         }
         #endregion
 
@@ -1229,6 +1277,10 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         public void InjectMouseDown( MouseButton mouseButton )
         {
             VerifyValid();
+
+            if ( mouseButton == MouseButton.Left )
+                selectionHelper.ClearSelection();
+
             awe_webview_inject_mouse_down( Instance, mouseButton );
         }
         #endregion
@@ -1375,6 +1427,49 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
             VerifyValid();
             awe_webview_copy( Instance );
         }
+        #endregion
+
+        #region CopyHTML
+        // For now, we unfortunately need to deny this to Mono.
+        // .NET has 2 Clipboards. One in Windows.Forms
+        // and one in System.Windows (WPF). I can't tell why this
+        // class is not unique and globally available in System.
+#if !USING_MONO
+        /// <summary>
+        /// Copies the HTML content currently selected in this <see cref="WebView"/>, to the system clipboard.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebView"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void CopyHTML()
+        {
+            VerifyValid();
+
+            if ( HasSelection )
+                Clipboard.SetText( this.Selection.HTML );
+        }
+#endif
+        #endregion
+
+        #region CopyLinkAddress
+        // See comments in CopyHTML
+#if !USING_MONO
+        /// <summary>
+        /// Copies the target URL of the link currently under the cursor.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebView"/> instance
+        /// (see <see cref="IsEnabled"/>).
+        /// </exception>
+        public void CopyLinkAddress()
+        {
+            VerifyValid();
+
+            if ( HasTargetURL )
+                Clipboard.SetText( this.TargetURL );
+        }
+#endif
         #endregion
 
         #region Paste
@@ -2331,6 +2426,9 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         {
             get
             {
+                if ( !IsEnabled )
+                    return false;
+
                 return hasKeyboardFocus;
             }
             protected set
@@ -2340,6 +2438,23 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
                 hasKeyboardFocus = value;
                 RaisePropertyChanged( "HasKeyboardFocus" );
+            }
+        }
+        #endregion
+
+        #region HasTargetURL
+        /// <summary>
+        /// Gets if this <see cref="WebControl"/> is currently indicating a target URL,
+        /// usually as a result of hovering over a link on the page.
+        /// </summary>
+        public bool HasTargetURL
+        {
+            get
+            {
+                if ( !IsEnabled )
+                    return false;
+
+                return !String.IsNullOrEmpty( targetURL );
             }
         }
         #endregion
@@ -2364,6 +2479,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
                 targetURL = value;
                 RaisePropertyChanged( "TargetURL" );
+                RaisePropertyChanged( "HasTargetURL" );
             }
         }
         #endregion
@@ -2427,6 +2543,9 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         {
             get
             {
+                if ( !IsEnabled )
+                    return false;
+
                 return isDomReady;
             }
             protected set
@@ -2440,6 +2559,69 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         }
         #endregion
 
+        #region FlashAlpha
+        private bool flashAlpha = true;
+
+        /// <summary>
+        /// Gets or sets if we should flush the alpha channel to completely opaque values, during rendering.
+        /// </summary>
+        public bool FlashAlpha
+        {
+            get
+            {
+                return flashAlpha;
+            }
+            set
+            {
+                if ( flashAlpha == value )
+                    return;
+
+                flashAlpha = value;
+                RaisePropertyChanged( "FlashAlpha" );
+            }
+        }
+        #endregion
+
+        #region HasSelection
+        /// <summary>
+        /// Gets if the user has selected content in the current page.
+        /// </summary>
+        public bool HasSelection
+        {
+            get
+            {
+                if ( !IsEnabled )
+                    return false;
+
+                return selection != Selection.Empty;
+            }
+        }
+        #endregion
+
+        #region Selection
+        private Selection selection = Selection.Empty;
+
+        /// <summary>
+        /// Gets a <see cref="Selection"/> providing information about the current selection range.
+        /// </summary>
+        public Selection Selection
+        {
+            get
+            {
+                return selection;
+            }
+            protected set
+            {
+                if ( selection == value )
+                    return;
+
+                selection = value;
+                RaisePropertyChanged( "Selection" );
+                RaisePropertyChanged( "HasSelection" );
+            }
+        }
+        #endregion
+
         #region Zoom
         [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static void awe_webview_set_zoom( IntPtr webview, int zoom_percent );
@@ -2448,10 +2630,14 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
         /// <summary>
         /// Gets or sets the zoom factor (page percentage) for the current hostname.
-        /// Valid range is from 10% to 500%. Please note that this operation is
-        /// asynchronous: the value may not change for several milliseconds after
-        /// you set the value.
+        /// Valid range is from 10% to 500%.
         /// </summary>
+        /// <remarks>
+        /// @note
+        /// Please note that this operation is asynchronous: 
+        /// the value may not change for several milliseconds after
+        /// you set this property.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// The member is called on an invalid <see cref="WebView"/> instance
         /// (see <see cref="IsEnabled"/>).
@@ -2498,7 +2684,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
             get
             {
                 VerifyValid();
-                actualUrl= StringHelper.ConvertAweString( awe_webview_get_url( Instance ) );
+                actualUrl = StringHelper.ConvertAweString( awe_webview_get_url( Instance ) );
                 return actualUrl;
             }
             set
@@ -2508,7 +2694,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
                 VerifyValid();
                 actualUrl = value;
-                LoadURL( actualUrl );                
+                LoadURL( actualUrl );
             }
         }
         #endregion
@@ -2713,6 +2899,18 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         {
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
 
+            Uri uriTest;
+            Uri.TryCreate( e.Url, UriKind.Absolute, out uriTest );
+            // This is here temporarily to fix an issue where download requests are fired for no obvious
+            // reason containing empty strings or characters like: "*", as Url.
+            if ( String.IsNullOrEmpty( e.Url ) ||
+                ( uriTest == null ) ||
+                !uriTest.IsAbsoluteUri ||
+                ( e.Url.IndexOfAny( Path.GetInvalidPathChars() ) != -1 ) ||
+                String.IsNullOrEmpty( Path.GetFileName( e.Url ) ) ||
+                ( Path.GetFileName( e.Url ).IndexOfAny( Path.GetInvalidFileNameChars() ) != -1 ) )
+                return;
+
             this.OnDownload( this, e );
         }
         #endregion
@@ -2789,6 +2987,8 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         {
             this.IsDomReady = true;
             this.OnDomReady( this, EventArgs.Empty );
+
+            selectionHelper.InjectSelectionHandlers();
         }
         #endregion
 
@@ -2965,6 +3165,16 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
             {
                 this.IsDirty = value;
             }
+        }
+        #endregion
+
+        #region Temporary Selection Logic
+        /// <summary>
+        /// Helper callback.
+        /// </summary>
+        private void OnWebSelectionChanged( object sender, WebSelectionEventArgs e )
+        {
+            this.Selection = e.Selection;
         }
         #endregion
     }

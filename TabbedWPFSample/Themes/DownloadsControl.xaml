@@ -1,0 +1,126 @@
+﻿<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:TabbedWPFSample">
+
+    <DrawingImage x:Key="FileImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <DrawingGroup ClipGeometry="F1 M 0,74.6667L 51.2956,74.6667L 51.2956,0.072937L 0,0.072937L 0,74.6667 Z ">
+                        <DrawingGroup.Children>
+                            <GeometryDrawing Geometry="F1 M 40.5853,16.796C 42.4627,14.5413 46.036,14.1653 51.108,15.4787L 51.108,15.4787C 47.1613,9.28 41.9013,4.20667 35.7,0.0733337L 35.7,0.0733337M 0,0.259995L 0,74.6667L 51.2947,74.6667L 51.2947,19.0493L 50.92,19.0493C 45.0947,17.1707 41.5253,17.7333 40.3987,21.116L 40.3987,21.116C 40.3987,21.3053 40.2093,21.4933 40.0227,21.68L 40.0227,21.68C 39.6453,21.8693 39.6453,21.8693 39.2707,21.8693L 39.2707,21.8693C 39.0813,21.8693 38.7053,21.8693 38.7053,21.68L 38.7053,21.68C 38.52,21.4933 38.3307,21.3053 38.3307,21.116L 32.3173,0.824005C 32.1307,0.636002 32.1307,0.447998 32.3173,0.259995M 4.88533,21.4933C 4.50933,21.116 4.32133,20.7413 4.32133,20.3653L 4.32133,20.3653C 4.32133,19.8027 4.50933,19.4253 4.88533,19.0493L 4.88533,19.0493C 5.072,18.8613 5.44933,18.6747 6.012,18.6747L 28.3733,18.6747C 28.7467,18.6747 29.124,18.8613 29.5,19.0493L 29.5,19.0493C 29.8747,19.4253 30.064,19.8027 30.064,20.3653L 30.064,20.3653C 30.064,20.7413 29.8747,21.116 29.5,21.4933L 29.5,21.4933C 29.124,21.68 28.7467,21.8693 28.3733,22.056L 6.012,22.056C 5.636,21.8693 5.072,21.68 4.88533,21.4933 Z M 5.44933,30.512C 5.072,30.1373 4.88533,29.76 4.88533,29.384L 4.88533,29.384C 4.88533,28.82 5.072,28.444 5.44933,28.2573L 5.44933,28.2573C 5.82533,27.8813 6.2,27.6933 6.57733,27.6933L 37.0147,27.6933C 37.5787,27.6933 37.7667,27.8813 38.3307,28.0693L 38.3307,28.0693C 38.52,28.444 38.7053,28.82 38.7053,29.384L 38.7053,29.384C 38.7053,29.76 38.52,30.1373 38.3307,30.512L 38.3307,30.512C 37.9547,30.6987 37.5787,30.888 37.204,31.076L 6.764,31.076C 6.2,30.888 5.82533,30.6987 5.44933,30.512 Z M 5.44933,39.5307C 5.26133,39.1547 5.072,38.7787 5.072,38.404L 5.072,38.404C 5.072,37.84 5.26133,37.4627 5.44933,37.088L 5.44933,37.088C 5.82533,36.9 6.2,36.712 6.57733,36.712L 37.204,36.712C 37.5787,36.712 37.9547,36.9 38.3307,37.088L 38.3307,37.088C 38.52,37.4627 38.7053,37.84 38.7053,38.404L 38.7053,38.404C 38.7053,38.7787 38.52,39.1547 38.3307,39.5307L 38.3307,39.5307C 37.9547,39.9067 37.5787,40.0947 37.204,40.0947L 6.764,40.0947C 6.2,39.9067 5.82533,39.7187 5.44933,39.5307 Z M 5.44933,48.5493C 5.072,48.1733 4.88533,47.7987 4.88533,47.4213L 4.88533,47.4213C 4.88533,46.8587 5.072,46.484 5.44933,46.108L 5.44933,46.108C 5.82533,45.92 6.2,45.732 6.764,45.732L 37.204,45.732C 37.5787,45.732 37.9547,45.92 38.3307,46.2933L 38.3307,46.2933C 38.52,46.484 38.7053,46.8587 38.7053,47.4213L 38.7053,47.4213C 38.7053,47.7987 38.52,48.1733 38.3307,48.5493L 38.3307,48.5493C 37.9547,48.7387 37.5787,48.9253 37.0147,49.1133L 6.57733,49.1133C 6.2,48.9253 5.82533,48.7387 5.44933,48.5493 Z M 5.44933,57.5693C 5.072,57.192 4.88533,56.8173 5.072,56.4413L 5.072,56.4413C 4.88533,55.8773 5.072,55.5027 5.44933,55.1253L 5.44933,55.1253C 5.82533,54.9373 6.2,54.7507 6.57733,54.7507L 37.0147,54.7507C 37.5787,54.7507 37.7667,54.9373 38.3307,55.1253L 38.3307,55.1253C 38.52,55.5027 38.7053,55.8773 38.7053,56.4413L 38.7053,56.4413C 38.7053,56.8173 38.52,57.192 38.3307,57.5693L 38.3307,57.5693C 37.7667,57.944 37.5787,58.1333 37.0147,58.1333L 6.764,58.1333C 6.2,57.944 5.82533,57.756 5.44933,57.5693 Z ">
+                                <GeometryDrawing.Brush>
+                                    <LinearGradientBrush StartPoint="0.501392,-0.00291191" EndPoint="0.501392,0.997093">
+                                        <LinearGradientBrush.GradientStops>
+                                            <GradientStop Color="#FFFCE040" Offset="0"/>
+                                            <GradientStop Color="#FFFCE040" Offset="0.00561523"/>
+                                            <GradientStop Color="#FFFAC132" Offset="0.507205"/>
+                                            <GradientStop Color="#FFF9A224" Offset="1"/>
+                                        </LinearGradientBrush.GradientStops>
+                                    </LinearGradientBrush>
+                                </GeometryDrawing.Brush>
+                            </GeometryDrawing>
+                        </DrawingGroup.Children>
+                    </DrawingGroup>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <Style TargetType="{x:Type local:DownloadsControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:DownloadsControl}">
+                    <Border 
+                        Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid SnapsToDevicePixels="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ItemsControl 
+                                DataContext="{TemplateBinding Source}" 
+                                ItemsSource="{Binding}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding OpenDownloadedFile}">
+                                            <Grid Margin="3" VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50" />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <Image 
+                                                    x:Name="fileImage" 
+                                                    Width="40" 
+                                                    Height="50" 
+                                                    Source="{StaticResource FileImage}" 
+                                                    Visibility="Collapsed"/>
+                                                <local:CircularProgressBar 
+                                                    x:Name="progressBar" 
+                                                    Width="50" 
+                                                    Height="50" 
+                                                    Foreground="{Binding Foreground}" 
+                                                    Value="{Binding Progress, Mode=OneWay}" 
+                                                    HoleSizeFactor="0.62"/>
+                                                <TextBlock 
+                                                    Grid.Column="1" 
+                                                    Margin="3" 
+                                                    HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center" 
+                                                    Foreground="{Binding Foreground}" 
+                                                    Text="{Binding FileName}"/>
+                                            </Grid>
+                                        </Button>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsDownloading}" Value="False">
+                                                <Setter TargetName="progressBar" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="fileImage" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCancelled}" Value="True">
+                                                <Setter TargetName="fileImage" Property="Opacity" Value="0.5" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button 
+                                Grid.Column="2" 
+                                Margin="3" 
+                                Width="30" 
+                                Height="30" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Center" 
+                                Command="Close" 
+                                CommandParameter="Downloads" 
+                                CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" 
+                                Padding="0">
+                                <Path 
+                                    Stretch="None" 
+                                    Width="10" 
+                                    Height="10" 
+                                    HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center" 
+                                    Stroke="Black" 
+                                    Fill="Black" 
+                                    StrokeThickness="3"
+                                    StrokeStartLineCap="Round"
+                                    StrokeEndLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Data="M 0,0 L 10,10 Z M 10,0 L 0,10 Z"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+</ResourceDictionary>

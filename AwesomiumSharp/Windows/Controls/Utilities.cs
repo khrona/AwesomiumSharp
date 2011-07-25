@@ -47,7 +47,7 @@ namespace AwesomiumSharp.Windows.Controls
                 case CursorType.Help:
                     return Cursors.Help;
 
-                case CursorType.Ibeam:
+                case CursorType.IBeam:
                     return Cursors.IBeam;
 
                 case CursorType.MiddlePanning:

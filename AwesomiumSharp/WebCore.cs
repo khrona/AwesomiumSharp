@@ -73,6 +73,10 @@
  *    07/12/2011:
  *    
  *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
+  *    
+ *    07/22/2011:
+ *    
+ *    - Synchronized with Awesomium r159 (1.6.2 Pre-Release)
  *      
  *-------------------------------------------------------------------------------
  *
@@ -150,7 +154,7 @@ namespace AwesomiumSharp
         Pointer,
         Cross,
         Hand,
-        Ibeam,
+        IBeam,
         Wait,
         Help,
         EastResize,
@@ -368,7 +372,7 @@ namespace AwesomiumSharp
             IntPtr log_path,
             LogLevel log_level,
             bool force_single_process,
-			IntPtr child_process_path,
+            IntPtr child_process_path,
             bool enable_auto_detect_encoding,
             IntPtr accept_language_override,
             IntPtr default_charset_override,
@@ -449,6 +453,12 @@ namespace AwesomiumSharp
                 StringHelper authServerWhitelistStr = new StringHelper( config.AuthServerWhitelist );
                 StringHelper customCSSStr = new StringHelper( config.CustomCSS );
 
+#if !USING_MONO
+                EnableThemingInScope activationContext = null;
+
+                if ( config.EnableVisualStyles )
+                    activationContext = new EnableThemingInScope();
+#endif
                 awe_webcore_initialize( config.EnablePlugins,
                     config.EnableJavascript,
                     config.EnableDatabases,
@@ -472,6 +482,13 @@ namespace AwesomiumSharp
                     customCSSStr.Value );
 
                 updatePeriod = config.AutoUpdatePeriod;
+
+#if !USING_MONO
+                homeURL = config.HomeURL;
+
+                if ( activationContext != null )
+                    activationContext.Dispose();
+#endif
 
                 activeWebViews = new List<IWebView>();
                 syncCtx = SynchronizationContext.Current;
@@ -675,18 +692,18 @@ namespace AwesomiumSharp
         /// Create a <see cref="WebView"/> (think of it like a tab in Chrome, you can load web-pages
         /// into it, interact with it, and render it to a buffer).
         /// </summary>
-        /// <param name="width">The initial width of the view in pixels</param>
-        /// <param name="height">The initial height of the view in pixels</param>
+        /// <param name="width">The initial width of the view in pixels.</param>
+        /// <param name="height">The initial height of the view in pixels.</param>
         /// <param name="viewSource">
         /// Enable View-Source mode on this <see cref="WebView"/> to view 
-        /// the HTML source of any web-page (must be loaded via <see cref="WebView.LoadURL"/>)
+        /// the HTML source of any web-page (must be loaded via <see cref="WebView.LoadURL"/>).
         /// </param>
         /// <returns>
         /// A new <see cref="WebView"/> instance.
         /// </returns>
         /// <remarks>
-        /// If you call this method before initializing the <see cref="WebCore"/>, the Awesomium
-        /// process will automatically start with default configuration settings.
+        /// If you call this method before initializing the <see cref="WebCore"/>, Awesomium
+        /// will automatically start with default configuration settings.
         /// </remarks>
         public static WebView CreateWebView( int width, int height, bool viewSource = false )
         {
@@ -701,12 +718,12 @@ namespace AwesomiumSharp
         }
 
         // Used by WebControl.
-        internal static IntPtr CreateWebViewInstance( int width, int height, IWebView host )
+        internal static IntPtr CreateWebViewInstance( int width, int height, IWebView host, bool viewSource = false )
         {
             if ( !isRunning )
                 Start();
 
-            IntPtr webviewPtr = awe_webcore_create_webview( width, height, false );
+            IntPtr webviewPtr = awe_webcore_create_webview( width, height, viewSource );
             activeWebViews.Add( host );
             return webviewPtr;
         }
@@ -1027,6 +1044,47 @@ namespace AwesomiumSharp
         }
         #endregion
 
+        #region HomeURL
+#if !USING_MONO
+        private static string homeURL = "about:blank";
+
+        /// <summary>
+        /// Gets or sets the URL that will be used as the Home URL
+        /// for <see cref="WebControl"/>s.
+        /// </summary>
+        /// <remarks>
+        /// This setting is used by <see cref="WebControl"/>s to automatically
+        /// handle the <see cref="NavigationCommands.BrowseHome"/> command.
+        /// The default is: "about:blank".
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// A null reference or an empty string defined.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Attempted to set this before starting <see cref="WebCore"/>.
+        /// </exception>
+        public static string HomeURL
+        {
+            get
+            {
+                return homeURL;
+            }
+            set
+            {
+                if ( String.Compare( homeURL, value, false ) == 0 )
+                    return;
+
+                if ( String.IsNullOrWhiteSpace( value ) )
+                    throw new ArgumentNullException();
+
+                VerifyLive();
+
+                homeURL = value;
+            }
+        }
+#endif
+        #endregion
+
         #endregion
 
         #region Event Handlers
@@ -1074,7 +1132,7 @@ namespace AwesomiumSharp
 
 
 
-#region Doxygen Intro
+    #region Doxygen Intro
     /**
  * @mainpage AwesomiumSharp API
  *
@@ -1147,6 +1205,6 @@ namespace AwesomiumSharp
  * This documentation is copyright (C) 2011 Khrona. All rights reserved. 
  * Awesomium is a trademark of Khrona.
  */
-#endregion
+    #endregion
 
 }

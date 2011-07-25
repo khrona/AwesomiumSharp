@@ -16,12 +16,6 @@
     <Window.Title>
         <Binding Path="Title" ElementName="Browser" StringFormat="Awesomium VB WPF Sample - {0}" />
     </Window.Title>
-    <Window.CommandBindings>
-        <CommandBinding x:Name="BrowseHomeCommandBinding" Command="BrowseHome" />
-    </Window.CommandBindings>
-    <Window.InputBindings>
-        <KeyBinding Key="Home" Modifiers="Alt" Command="BrowseHome" />
-    </Window.InputBindings>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
@@ -125,6 +119,7 @@
                 Grid.Column="3" 
                 Margin="3" 
                 Command="BrowseHome"
+                CommandTarget="{Binding ElementName=Browser}"
                 Padding="0">
                 <Image 
                     Width="12" 

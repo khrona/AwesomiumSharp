@@ -1,0 +1,454 @@
+﻿<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:TabbedWPFSample"
+    xmlns:shell="clr-namespace:Microsoft.Windows.Shell;assembly=Microsoft.Windows.Shell">
+
+    <!--Brushes for document headers-->
+    <LinearGradientBrush x:Key="TabHeaderBackground" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFECF5FC" Offset="0" />
+        <GradientStop Color="#FF98B4D2" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="TabHeaderForeground" Color="{x:Static SystemColors.WindowTextColor}"/>
+
+    <LinearGradientBrush x:Key="TabHeaderBackgroundSelected" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFFCFDFE" Offset="0" />
+        <GradientStop Color="#FFD2E6FA" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="TabHeaderBackgroundMouseOver" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFF7FCFE" Offset="0" />
+        <GradientStop Color="#FF81CFF1" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="TabHeaderBorder" Color="#FFC1D2EE"/>
+
+    <DrawingImage x:Key="NewImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Brush="#FF0A6B3A" Geometry="F1 M 73.2947,36.648C 73.2947,56.888 56.8907,73.2973 36.6493,73.2973C 16.408,73.2973 0,56.888 0,36.648C 0,16.408 16.408,-3.05176e-005 36.6493,-3.05176e-005C 56.8907,-3.05176e-005 73.2947,16.408 73.2947,36.648 Z "/>
+                    <GeometryDrawing Geometry="F1 M 70.7054,36.648C 70.7054,55.4573 55.4573,70.708 36.6493,70.708C 17.8387,70.708 2.58934,55.4573 2.58934,36.648C 2.58934,17.8387 17.8387,2.58798 36.6493,2.58798C 55.4573,2.58798 70.7054,17.8387 70.7054,36.648 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.499998,3.13598e-006" EndPoint="0.499998,1">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF7FCB28" Offset="0"/>
+                                    <GradientStop Color="#FF318F2F" Offset="0.573034"/>
+                                    <GradientStop Color="#FF0A6B3A" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#40FEFEFE" Geometry="F1 M 36.6493,4.31598C 55.1707,4.31598 70.236,19.1 70.6933,37.512C 70.7013,37.2253 70.7054,36.9373 70.7054,36.648C 70.7054,17.8387 55.4573,2.58798 36.6493,2.58798C 17.8387,2.58798 2.58934,17.8387 2.58934,36.648C 2.58934,36.9373 2.59334,37.2253 2.59999,37.512C 3.06,19.1 18.128,4.31598 36.6493,4.31598 Z "/>
+                    <GeometryDrawing Brush="#FFFEFEFE" Geometry="F1 M 53.1534,40.9893L 53.1534,34.2493L 40.0147,34.2493L 40.0147,21.112L 33.276,21.112L 33.276,34.2493L 20.14,34.2493L 20.14,40.9893L 33.276,40.9893L 33.276,54.1253L 40.0147,54.1266L 40.0147,40.9893L 53.1534,40.9893 Z "/>
+                    <GeometryDrawing Brush="#5AFEFEFE" Geometry="F1 M 54.8227,31.3413C 61.132,31.3413 67.3,31.9413 73.2947,33.0306C 71.4787,14.4893 55.848,-3.05176e-005 36.8293,-3.05176e-005C 16.588,-3.05176e-005 0.178665,16.408 0.178665,36.648C 0.178665,39.984 0.633347,43.2133 1.468,46.284C 17.016,36.804 35.2813,31.3413 54.8227,31.3413 Z "/>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="GlobeImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Geometry="F1 M 21.2975,81.2052C 7.2923,77.4435 1.49609,75.8862 0.707031,73.7794L 1.50519,77.907C 3.28839,84.5386 3.32355,84.6649 4.76563,88.2182L 5.74414,90.4839C 6.93878,91.8823 9.48566,92.6245 20.8333,95.476C 28.8405,97.4865 43.7448,101.231 53.8164,105.143C 58.082,106.802 68.6237,115.266 71.7864,115.424C 74.9492,115.582 79.5521,112.947 85.4362,112.782C 91.319,112.617 73.6055,95.2495 21.2975,81.2052 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="-0.00629779,0.500591" EndPoint="0.9937,0.500591">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF5A56A5" Offset="0"/>
+                                    <GradientStop Color="#FF43429B" Offset="0.251102"/>
+                                    <GradientStop Color="#FF2D2F91" Offset="0.5"/>
+                                    <GradientStop Color="#FF393881" Offset="0.750911"/>
+                                    <GradientStop Color="#FF464272" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="F1 M 94.3424,104.605C 96.9753,104.583 104.743,96.7339 105.725,93.0971C 91.7253,70.2313 45.2773,56.5229 30.0176,52.019C 8.22003,45.5841 3.15298,43.8784 3.44986,41.8836C 1.48502,48.4109 1.44727,48.5334 0.830078,52.0972C 0.549469,54.243 0.160797,57.0998 0,59.256C 0.217438,60.131 0.516266,61.325 6.72266,63.4591C 19.9967,68.019 33.7637,70.9266 47.0599,75.4266C 65.5143,81.6688 75.3633,87.7482 78.5989,89.7456C 84.8685,93.6154 89.069,99.6753 94.3424,104.605 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="-0.00433552,0.498962" EndPoint="0.995664,0.498962">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF5A56A5" Offset="0"/>
+                                    <GradientStop Color="#FF43429B" Offset="0.251102"/>
+                                    <GradientStop Color="#FF2D2F91" Offset="0.5"/>
+                                    <GradientStop Color="#FF393881" Offset="0.750911"/>
+                                    <GradientStop Color="#FF464272" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="F1 M 111.538,66.9813C 105.801,94.5907 78.7695,112.325 51.1588,106.592C 23.541,100.855 5.80728,73.8237 11.5417,46.2157C 17.2767,18.6037 44.3086,0.871918 71.9258,6.60495C 99.5352,12.3393 117.27,39.3719 111.538,66.9813 Z ">
+                        <GeometryDrawing.Brush>
+                            <RadialGradientBrush RadiusX="0.728122" RadiusY="0.728181" Center="0.672106,0.384644" GradientOrigin="0.672106,0.384644">
+                                <RadialGradientBrush.GradientStops>
+                                    <GradientStop Color="#FFFFFFFF" Offset="0"/>
+                                    <GradientStop Color="#FFFFFFFF" Offset="0.12627"/>
+                                    <GradientStop Color="#FFD8D8D8" Offset="0.561976"/>
+                                    <GradientStop Color="#FFB2B2B2" Offset="1"/>
+                                </RadialGradientBrush.GradientStops>
+                                <RadialGradientBrush.RelativeTransform>
+                                    <TransformGroup>
+                                        <RotateTransform CenterX="0.672106" CenterY="0.384644" Angle="11.7312"/>
+                                    </TransformGroup>
+                                </RadialGradientBrush.RelativeTransform>
+                            </RadialGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="F1 M 109.38,15.8394C 110.866,17.2 144.251,49.5698 16.0391,86.226C 6.10416,89.0672 6.09766,89.0919 5.74414,90.4839L 4.76563,88.2182C 2.46484,81.9149 2.375,81.6675 1.50519,77.907L 0.707031,73.7794C 1.07941,71.7781 4.00195,70.9435 16.3092,67.437C 109.281,40.9539 106.905,19.2586 97.2148,8.68307C 99.6289,9.03073 106.109,12.8407 109.38,15.8394 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.68889,0.356796" EndPoint="2.33136,0.356796">
+                                <LinearGradientBrush.RelativeTransform>
+                                    <TransformGroup>
+                                        <SkewTransform CenterX="0.68889" CenterY="0.356796" AngleX="-18.1986" AngleY="0"/>
+                                        <RotateTransform CenterX="0.68889" CenterY="0.356796" Angle="131.115"/>
+                                    </TransformGroup>
+                                </LinearGradientBrush.RelativeTransform>
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF29C3F2" Offset="0"/>
+                                    <GradientStop Color="#FF14B8EF" Offset="0.251853"/>
+                                    <GradientStop Color="#FF00AEED" Offset="0.5"/>
+                                    <GradientStop Color="#FF00A2E3" Offset="0.751743"/>
+                                    <GradientStop Color="#FF0096D9" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="F1 M 73.0091,0.016449C 84.306,0.545074 100.574,10.8485 84.0378,25.1154C 66.0534,40.631 26,50.812 12.8424,54.157C 4.03516,56.3953 0.740234,57.2313 0,59.256C 0.217438,57.1049 0.494141,54.2339 0.830078,52.0972C 2.2832,45.2834 2.2832,45.2834 3.44986,41.8836C 4.48175,40.4292 6.77603,39.6557 16.3835,37.5255C 84.9075,22.3224 89.1159,1.57895 65.7526,0.150543C 67.0221,0.068512 69.9974,-0.124176 73.0091,0.016449 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.493669,0.541753" EndPoint="4.66147,0.541753">
+                                <LinearGradientBrush.RelativeTransform>
+                                    <TransformGroup>
+                                        <SkewTransform CenterX="0.493669" CenterY="0.541753" AngleX="-23.4885" AngleY="0"/>
+                                        <RotateTransform CenterX="0.493669" CenterY="0.541753" Angle="128.287"/>
+                                    </TransformGroup>
+                                </LinearGradientBrush.RelativeTransform>
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF29C3F2" Offset="0"/>
+                                    <GradientStop Color="#FF14B8EF" Offset="0.251853"/>
+                                    <GradientStop Color="#FF00AEED" Offset="0.5"/>
+                                    <GradientStop Color="#FF00A2E3" Offset="0.751743"/>
+                                    <GradientStop Color="#FF0096D9" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="CloseImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Geometry="F1 M 41.6534,20.8267C 41.6534,32.328 32.3293,41.652 20.8267,41.652C 9.32535,41.652 0,32.328 0,20.8267C 0,9.32405 9.32535,1.52588e-005 20.8267,1.52588e-005C 32.3293,1.52588e-005 41.6534,9.32405 41.6534,20.8267 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.499987,1.00002" EndPoint="0.499987,-8.79216e-006">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF4F4F4F" Offset="0"/>
+                                    <GradientStop Color="#FF2D2D2D" Offset="0.5"/>
+                                    <GradientStop Color="#FF484848" Offset="0.5"/>
+                                    <GradientStop Color="#FF3C3C3C" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#FFFEFEFE" Geometry="F1 M 31.5827,13.7173L 27.9373,10.0706L 20.828,17.18L 13.7187,10.0706L 10.072,13.7173L 17.1813,20.8267L 10.072,27.9361L 13.7187,31.5814L 20.828,24.472L 27.9373,31.5814L 31.5827,27.9361L 24.4734,20.8267L 31.5827,13.7173 Z "/>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="CloseImageWhite">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Brush="#FF4F4F4F" Geometry="F1 M 0,21.8533C 0,33.9026 9.80402,43.7066 21.8534,43.7066C 33.9027,43.7066 43.7054,33.9026 43.7054,21.8533C 43.7054,9.80399 33.9027,-2.28882e-005 21.8534,-2.28882e-005C 9.80402,-2.28882e-005 0,9.80399 0,21.8533 Z M 21.8534,2.0532C 32.7707,2.0532 41.6534,10.9345 41.6534,21.8533C 41.6534,32.7706 32.7707,41.6532 21.8534,41.6532C 10.9347,41.6532 2.05334,32.7706 2.05334,21.8533C 2.05334,10.9345 10.9347,2.0532 21.8534,2.0532 Z "/>
+                    <GeometryDrawing Geometry="F1 M 32.608,14.7439L 28.9627,11.0986L 21.8534,18.2079L 14.744,11.0986L 11.0974,14.7439L 18.2067,21.8533L 11.0974,28.9626L 14.744,32.6079L 21.8534,25.4986L 28.9627,32.6079L 32.608,28.9626L 25.4987,21.8533L 32.608,14.7439 Z ">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.500006,1.08835" EndPoint="0.500006,-0.0274454">
+                                <LinearGradientBrush.GradientStops>
+                                    <GradientStop Color="#FF4F4F4F" Offset="0"/>
+                                    <GradientStop Color="#FF2D2D2D" Offset="0.5"/>
+                                    <GradientStop Color="#FF484848" Offset="0.5"/>
+                                    <GradientStop Color="#FF3C3C3C" Offset="1"/>
+                                </LinearGradientBrush.GradientStops>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <local:ZIndexConverter x:Key="ZIndexConverter" />
+
+    <ControlTemplate x:Key="NewButton" TargetType="{x:Type Button}">
+        <Image 
+            x:Name="Icon"
+            Width="15"
+            Height="15"
+            Source="{StaticResource NewImage}" 
+            Opacity="0.6"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Stretch="UniformToFill" />
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Icon" Property="Opacity" Value="0.8" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Icon" Property="Opacity" Value="1" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    
+    <ControlTemplate x:Key="CloseButton" TargetType="{x:Type Button}">
+        <Image 
+            x:Name="Icon"
+            Width="15"
+            Height="15"
+            Source="{StaticResource CloseImageWhite}" 
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Stretch="UniformToFill" />
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Icon" Property="Source" Value="{StaticResource CloseImage}" />
+                <Setter TargetName="Icon" Property="Opacity" Value="0.6" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Icon" Property="Source" Value="{StaticResource CloseImage}" />
+                <Setter TargetName="Icon" Property="Opacity" Value="1" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    
+    <ContextMenu x:Key="TabHeaderContextMenu" DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
+        <MenuItem Command="{x:Static local:MainWindow.NewTab}" />
+        <Separator />
+        <MenuItem Command="{x:Static local:MainWindow.CloseTab}" CommandParameter="{Binding DataContext}" />
+    </ContextMenu>
+
+    <Style TargetType="{x:Type local:WebTabControl}" BasedOn="{StaticResource {x:Type TabControl}}">
+        <!--<Setter Property="BorderBrush" Value="{Binding BorderBrush, Source={x:Static my:Theme.Default}}"/>-->
+        <Setter Property="Background" Value="Transparent"/>
+        <!--<Setter Property="Foreground" Value="{Binding Foreground, Source={x:Static my:Theme.Default}}"/>-->
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabControl}">
+                    <Grid KeyboardNavigation.TabNavigation="Local">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TabPanel 
+                            x:Name="HeaderPanel" 
+                            Panel.ZIndex="1" 
+                            Margin="1,0,4,-1" 
+                            IsItemsHost="True" 
+                            KeyboardNavigation.TabIndex="1" 
+                            Background="Transparent"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True" />
+                        <Button 
+                            Grid.Column="1" 
+                            Width="16" 
+                            Height="16" 
+                            Padding="0" 
+                            Margin="10,0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center" 
+                            Command="{x:Static local:MainWindow.NewTab}" 
+                            Template="{StaticResource NewButton}" 
+                            ToolTip="New Tab"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                        <Border 
+                            x:Name="Border" 
+                            Grid.Row="1" 
+                            Grid.ColumnSpan="2"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" 
+                            CornerRadius="2" 
+                            KeyboardNavigation.TabNavigation="Local" 
+                            KeyboardNavigation.DirectionalNavigation="Contained" 
+                            KeyboardNavigation.TabIndex="2">
+                            <ContentPresenter 
+                                x:Name="PART_SelectedContentHost" 
+                                ContentSource="SelectedContent"
+                                Content="{TemplateBinding SelectedContent}" 
+                                ContentStringFormat="{TemplateBinding SelectedContentStringFormat}" 
+                                ContentTemplate="{TemplateBinding SelectedContentTemplate}" 
+                                ContentTemplateSelector="{TemplateBinding SelectedContentTemplateSelector}" 
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type local:WebTabItem}" BasedOn="{StaticResource {x:Type TabItem}}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="ToolTip" Value="{Binding Browser.Title}"/>
+        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+        <Setter Property="ContextMenu" Value="{StaticResource TabHeaderContextMenu}" />
+        <Setter Property="Panel.ZIndex" Value="{Binding RelativeSource={RelativeSource Self}, Converter={StaticResource ZIndexConverter}}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Border 
+						x:Name="PART_DragArea" 
+						BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        Margin="0,0,-10,0"
+						SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Path
+                                Data="M 20,0.5 Q 16,0.5 10,10 Q 5,20 0,20 L 20,20" 
+                                x:Name="tabItemIntPathBackground" 
+                                Fill="{StaticResource TabHeaderBackground}"/>
+                            <Path 
+                                x:Name="tabItemIntPathBorder"  
+                                Stroke="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                                Data="M 20,0.5 Q 16,0.5 10,10 Q 5,19.5 0,19.5"/>
+                            <Border 
+                                x:Name="tabItemIntBorder" 
+                                Grid.Column="1" 
+                                BorderThickness="0,1,1,0" 
+                                Margin="-1,0,0,0" 
+                                CornerRadius="0,3,0,0" 
+                                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" 
+                                Background="{StaticResource TabHeaderBackground}"
+                                ToolTipService.InitialShowDelay="{Binding Path=(ToolTipService.InitialShowDelay), RelativeSource={RelativeSource TemplatedParent}}"
+                                ToolTipService.ShowDuration="{Binding Path=(ToolTipService.ShowDuration), RelativeSource={RelativeSource TemplatedParent}}"
+                                ToolTipService.BetweenShowDelay="{Binding Path=(ToolTipService.BetweenShowDelay), RelativeSource={RelativeSource TemplatedParent}}"
+                                ToolTip="{Binding Path=(ToolTipService.ToolTip), RelativeSource={RelativeSource TemplatedParent}}">
+                                <Grid Margin="0,0,3,0" MaxHeight="20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image 
+                                        x:Name="Icon" 
+                                        Source="{Binding Favicon}"
+                                        Width="16"
+                                        Height="16"
+                                        Stretch="UniformToFill"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    <local:ContentSpinner 
+                                        x:Name="Spinner" 
+                                        Grid.Row="1" 
+                                        HorizontalAlignment="Center" 
+                                        VerticalAlignment="Center" 
+                                        ContentScale="0.06" 
+                                        Opacity="0.7"
+                                        Visibility="Collapsed" 
+                                        Animating="False"/>
+                                    <!--<ContentPresenter 
+                                        x:Name="ContentSite" 
+                                        Margin="{TemplateBinding Padding}" 
+                                        Content="{TemplateBinding Header}" 
+                                        ContentStringFormat="{TemplateBinding HeaderStringFormat}" 
+                                        ContentTemplate="{TemplateBinding HeaderTemplate}" 
+                                        ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}" 
+                                        HorizontalAlignment="Stretch" 
+                                        VerticalAlignment="Stretch" 
+                                        RecognizesAccessKey="True" />-->
+                                    <TextBlock 
+                                        Grid.Column="1"
+                                        Margin="3,0"
+                                        TextTrimming="CharacterEllipsis" 
+                                        Text="{Binding Browser.Title}" 
+                                        VerticalAlignment="Center"/>
+                                    <Button
+                                        Grid.Column="2"
+                                        Width="16"
+                                        Height="16"
+                                        Padding="0"
+                                        VerticalAlignment="Center"
+                                        Command="{x:Static local:MainWindow.CloseTab}"
+                                        CommandParameter="{Binding}"
+                                        Template="{StaticResource CloseButton}"
+                                        ToolTip="Close Tab"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Browser.IsNavigating}" Value="True">
+                            <Setter TargetName="Spinner" Property="Animating" Value="True" />
+                            <Setter TargetName="Spinner" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Favicon}" Value="{x:Null}">
+                            <Setter TargetName="Icon" Property="Source" Value="{StaticResource GlobeImage}" />
+                        </DataTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <!--<Setter 
+                                Property="TextBlock.Foreground" 
+                                TargetName="ContentSite" 
+                                Value="{Binding SelectedForeground, Source={x:Static my:Theme.Default}}"/>-->
+                            <!--<Setter 
+                                Property="TextBlock.FontWeight" 
+                                TargetName="ContentSite" 
+                                Value="Bold"/>-->
+                            <Setter 
+                                Property="Background" 
+                                TargetName="tabItemIntBorder" 
+                                Value="{StaticResource TabHeaderBackgroundSelected}"/>
+                            <Setter 
+                                Property="Fill" 
+                                TargetName="tabItemIntPathBackground" 
+                                Value="{StaticResource TabHeaderBackgroundSelected}"/>
+                            <!--<Setter 
+                                Property="BorderBrush" 
+                                TargetName="tabItemIntBorder" 
+                                Value="{StaticResource TabHeaderBorder}"/>
+                            <Setter 
+                                Property="Stroke" 
+                                TargetName="tabItemIntPathBorder" 
+                                Value="{StaticResource TabHeaderBorder}"/>-->
+                            <Setter 
+                                Property="Panel.ZIndex" 
+                                Value="1000"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" SourceName="tabItemIntBorder" Value="True"/>
+                                <Condition Property="Selector.IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <!--<Setter 
+                                Property="TextBlock.Foreground" 
+                                TargetName="ContentSite" 
+                                Value="{Binding SelectedForeground, Source={x:Static my:Theme.Default}}"/>-->
+                            <Setter 
+                                Property="Background" 
+                                TargetName="tabItemIntBorder" 
+                                Value="{StaticResource TabHeaderBackgroundMouseOver}"/>
+                            <Setter 
+                                Property="Fill" 
+                                TargetName="tabItemIntPathBackground" 
+                                Value="{StaticResource TabHeaderBackgroundMouseOver}"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

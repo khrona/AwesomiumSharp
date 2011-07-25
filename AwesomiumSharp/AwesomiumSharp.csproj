@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\AwesomiumSharp.XML</DocumentationFile>
     <NoWarn>1591</NoWarn>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -46,12 +47,14 @@
   <PropertyGroup>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup />
   <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,6 +63,12 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EnableThemingInScope.cs" />
+    <Compile Include="EventArgs\WebSelectionEventArgs.cs" />
+    <Compile Include="Selection.cs" />
+    <Compile Include="SelectionHelper.cs" />
+    <Compile Include="Windows\Controls\WebSourceControl.cs" />
+    <Compile Include="Windows\Forms\Utilities.cs" />
     <None Include="Doxygen.cs" />
     <Compile Include="Windows\Controls\Utilities.cs" />
     <Compile Include="Windows\Controls\WebControlCommands.cs" />
@@ -89,7 +98,7 @@
     <Compile Include="JSArrayHelper.cs" />
     <Compile Include="JSObject.cs" />
     <Compile Include="KeyboardCodes.cs" />
-    <Compile Include="Resources.Designer.cs">
+    <Compile Include="Resources\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
@@ -106,10 +115,10 @@
     <Compile Include="RenderBuffer.cs" />
     <Compile Include="WebCoreConfig.cs" />
     <Compile Include="WebView.cs" />
-    <None Include="WebViewControl.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources.resx">
+    <EmbeddedResource Include="Resources\Resources.el-GR.resx" />
+    <EmbeddedResource Include="Resources\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
@@ -128,6 +137,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Windows\Controls\WebControl.bmp" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
@@ -137,7 +147,10 @@
     <PostBuildEvent>XCOPY ..\..\..\..\..\build\bin\release\icudt42.dll "$(TargetDir)" /i /y
 XCOPY ..\..\..\..\..\build\bin\release\Awesomium.dll "$(TargetDir)" /i /y
 XCOPY ..\..\..\..\..\build\bin\release\AwesomiumProcess.exe "$(TargetDir)" /i /y
-XCOPY ..\..\..\..\..\build\bin\Release\locales\en-US.dll "$(TargetDir)locales\" /i /y</PostBuildEvent>
+XCOPY ..\..\..\..\..\build\bin\Release\locales\en-US.dll "$(TargetDir)locales\" /i /y
+
+XCOPY ..\..\..\..\..\build\bin\debug\Awesomium_d.dll "$(TargetDir)" /i /y
+XCOPY ..\..\..\..\..\build\bin\debug\AwesomiumProcess_d.exe "$(TargetDir)" /i /y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
