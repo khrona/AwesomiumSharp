@@ -1,11 +1,11 @@
-﻿//***************************************************************************
-//    Project: TabbedWPFSample
-//    File:    DelegateCommand.vb
-//    Version: 1.0.0.0
-//
-//    Copyright ©2010 Perikles C. Stephanidis; All rights reserved.
-//    This code is provided "AS IS" without warranty of any kind.
-//***************************************************************************
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    DelegateCommand.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2010 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ ***************************************************************************/
 
 #region  Using
 using System;

@@ -1,11 +1,11 @@
-﻿//***************************************************************************
-//    Project: TabbedWPFSample
-//    File:    CircularProgressBar.cs
-//    Version: 1.0.0.0
-//
-//    Copyright ©2010 Perikles C. Stephanidis; All rights reserved.
-//    This code is provided "AS IS" without warranty of any kind.
-//***************************************************************************
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    CircularProgressBar.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2010 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ ***************************************************************************/
 
 using System;
 using System.Windows;

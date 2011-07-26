@@ -1,19 +1,18 @@
-﻿/*******************************************************************************
- *    Project : AwesomiumSharp
- *    File    : ViewModel.cs
- *    Version : 1.0.0.0 
- *    Date    : 07/03/2011
- *    Author  : Perikles C. Stephanidis (AmaDeuS)
- *    Contact : perikles@stephanidis.net
- *-------------------------------------------------------------------------------
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    ViewModel.cs
+ *  Version: 1.5.1.0
  *
- *    Notes   :
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ *__________________________________________________________________________
  *
- *    This abstract class implements IDisposable and INotifyPropertyChanged
- *    and provides the main logic that helps subclasses be MVVM friendly.
- *    
- * 
- ********************************************************************************/
+ *  Notes:
+ *
+ *  This abstract class implements IDisposable and INotifyPropertyChanged
+ *  and provides the main logic that helps subclasses be MVVM friendly.
+ *   
+ ***************************************************************************/
 
 #region  Using
 using System;

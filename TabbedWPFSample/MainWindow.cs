@@ -1,4 +1,21 @@
-﻿#region Using
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    MainWindow.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ *__________________________________________________________________________
+ *
+ *  Notes:
+ *
+ *  Application window. This does not act as a main-parent window. 
+ *  It's reusable. The application will exit when all windows are closed.
+ *  Completely styled with a custom WindowChrome. Check the XAML file.
+ *   
+ ***************************************************************************/
+
+#region Using
 using System;
 using System.Linq;
 using AwesomiumSharp;
@@ -28,6 +45,8 @@ namespace TabbedWPFSample
         {
             DefaultStyleKeyProperty.OverrideMetadata( typeof( MainWindow ), new FrameworkPropertyMetadata( typeof( MainWindow ) ) );
 
+            // We implement some elementary commands.
+            // The shortcuts specified, are the same as in Chrome.
             OpenInTab = new RoutedUICommand(
                 Properties.Resources.OpenInNewTab,
                 "OpenInTab",
@@ -48,64 +67,114 @@ namespace TabbedWPFSample
                 "CloseTab",
                 typeof( MainWindow ),
                 new InputGestureCollection( new KeyGesture[] { new KeyGesture( Key.W, ModifierKeys.Control ) } ) );
+            ShowDownloads = new RoutedUICommand(
+                Properties.Resources.Downloads,
+                "ShowDownloads",
+                typeof( MainWindow ) );
+            ShowSettings = new RoutedUICommand(
+                Properties.Resources.Settings,
+                "ShowSettings",
+                typeof( MainWindow ) );
         }
 
         public MainWindow( string[] args )
         {
+            // Keep this. We will use it when we load.
             initialUrls = args;
 
+            // Initialize collections.
             tabViews = new ObservableCollection<TabView>();
             this.SetValue( MainWindow.ViewsPropertyKey, tabViews );
             downloads = new ObservableCollection<Download>();
             this.SetValue( MainWindow.DownloadsPropertyKey, downloads );
 
+            // Assign event handlers.
             this.Loaded += OnLoaded;
+
+            // Assign command handlers.
             this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInTab, OnOpenTab, CanOpenTab ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInWindow, OnOpenWindow, CanOpenWindow ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.CloseTab, OnCloseTab ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.NewTab, OnNewTab ) );
+            this.CommandBindings.Add( new CommandBinding( MainWindow.ShowDownloads, OnShowDownloads ) );
+            this.CommandBindings.Add( new CommandBinding( MainWindow.ShowSettings, OnShowSettings ) );
             this.CommandBindings.Add( new CommandBinding( ApplicationCommands.Close, OnClose ) );
+
+            // Initialize (but DO NOT Start) the WebCore.
+            MainWindow.InitializeCore();
         }
         #endregion
 
 
         #region Overrides
-        protected override void OnSourceInitialized( EventArgs e )
-        {
-            base.OnSourceInitialized( e );
-        }
-
         protected override void OnClosing( CancelEventArgs e )
         {
+            // Hide during cleanup.
             this.Hide();
 
+            // Close the views and perform cleanup
+            // for every tab.
             foreach ( TabView view in tabViews )
-            {
-                if ( view.Browser != null )
-                    view.Browser.Close();
-            }
+                view.Close();
 
             tabViews.Clear();
 
-            WebCore.Shutdown();
+            // We may not be the last window open.
+            if ( Application.Current.Windows.Count == 1 )
+                WebCore.Shutdown();
+
             base.OnClosing( e );
         }
         #endregion
 
         #region Methods
-        public void OpenURL( String url )
+
+        #region InitializeCore (static)
+        private static void InitializeCore()
         {
-            if ( WebCore.IsRunning )
+            // We may be a new window in the same process.
+            if ( !WebCore.IsRunning )
             {
-                tabViews.Add( new TabView( this, url ) );
+                // Setup WebCore with plugins enabled.            
+                WebCoreConfig config = new WebCoreConfig
+                {
+                    EnablePlugins = true,
+                    HomeURL = Settings.Default.HomeURL,
+                    LogLevel = LogLevel.None
+                };
+
+                // Caution! Do not start the WebCore in window's constructor.
+                // This may be a startup window and a synchronization context
+                // (necessary for auto-update), is not yet available during
+                // construction; the Dispatcher is not running yet (see App.xaml.cs).
+                //
+                // Setting the start parameter to false, let's us define
+                // configuration settings early enough to be secure, but
+                // actually delay the starting of the WebCore until
+                // the first WebControl or WebView is created.
+                WebCore.Initialize( config, false );
             }
         }
+        #endregion
 
+
+        #region OpenURL
+        public void OpenURL( String url )
+        {
+            tabViews.Add( new TabView( this, url ) );
+        }
+        #endregion
+
+        #region DownloadFile
         public void DownloadFile( string url, string file )
         {
+            // Create a download item.
             Download download = new Download( url, file );
+            // If the same file had previously been downloaded,
+            // let the old one assume the identity of the new.
             Download existingDownload = downloads.SingleOrDefault( ( d ) => d == download );
 
+            // Show the downloads bar.
             this.DownloadsVisible = true;
 
             if ( existingDownload != null )
@@ -113,8 +182,11 @@ namespace TabbedWPFSample
             else
                 downloads.Add( download );
 
+            // Start downloading.
             download.Start();
         }
+        #endregion
+
         #endregion
 
         #region Properties
@@ -124,6 +196,8 @@ namespace TabbedWPFSample
         public static RoutedUICommand OpenInWindow { get; private set; }
         public static RoutedUICommand NewTab { get; private set; }
         public static RoutedUICommand CloseTab { get; private set; }
+        public static RoutedUICommand ShowDownloads { get; private set; }
+        public static RoutedUICommand ShowSettings { get; private set; }
         #endregion
 
 
@@ -182,14 +256,6 @@ namespace TabbedWPFSample
         #region Event Handlers
         private void OnLoaded( object sender, RoutedEventArgs e )
         {
-            // Setup WebCore with plugins enabled.            
-            WebCoreConfig config = new WebCoreConfig { EnablePlugins = true, HomeURL = Settings.Default.HomeURL };
-            // Caution! Do not initialize the WebCore in window's constructor.
-            // This is a startup window and a synchronization context
-            // (necessary for auto-update), is not yet available during
-            // construction; the Dispatcher is not running yet (see App.xaml.cs).
-            WebCore.Initialize( config );
-
             // Just like any respectable browser, we are ready to respond
             // to command line arguments passed if our browser is set as
             // the default browser or when a user attempts to open an html
@@ -218,6 +284,9 @@ namespace TabbedWPFSample
 
         private void OnOpenTab( object sender, ExecutedRoutedEventArgs e )
         {
+            // If this is called from a menu item, the target URL is specified as a parameter.
+            // If the user simply hit the shortcut, we need to get the target URL (if any) from the currently selected tab.
+            // The same applies for the rest of link related commands below.
             string target = (string)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.TargetURL : String.Empty );
 
             if ( !String.IsNullOrWhiteSpace( target ) )
@@ -235,7 +304,14 @@ namespace TabbedWPFSample
             string target = (string)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.TargetURL : String.Empty );
 
             if ( !String.IsNullOrWhiteSpace( target ) )
-                Process.Start( Assembly.GetExecutingAssembly().Location, String.Format( "\"{0}\"", target ) );
+            {
+                MainWindow win = new MainWindow( new string[] { target } );
+                win.Show();
+
+                // Or we can launch a separate process. Not appropriate in Awesomium,
+                // though safe for this sample since we are not using cache and logging.
+                //Process.Start( Assembly.GetExecutingAssembly().Location, String.Format( "\"{0}\"", target ) );
+            }
         }
 
         private void CanOpenWindow( object sender, CanExecuteRoutedEventArgs e )
@@ -255,7 +331,7 @@ namespace TabbedWPFSample
             {
                 if ( tabViews.Count == 1 )
                     // This is the last tab we are attempting to close.
-                    // Close the application.
+                    // Close the window. If this is the last window, the application exits.
                     this.Close();
                 else
                 {
@@ -268,8 +344,20 @@ namespace TabbedWPFSample
             }
         }
 
+        private void OnShowDownloads( object sender, ExecutedRoutedEventArgs e )
+        {
+            this.DownloadsVisible = true;
+        }
+
+        private void OnShowSettings( object sender, ExecutedRoutedEventArgs e )
+        {
+            // Show here a settings dialog.
+        }
+
         private void OnClose( object sender, ExecutedRoutedEventArgs e )
         {
+            // The command we handle here is ApplicationCommands.Close. We need to maintain
+            // the re-usability of this command, so we define a parameter for the downloads bar.
             if ( ( e.Parameter != null ) && ( String.Compare( e.Parameter.ToString(), "Downloads", true ) == 0 ) )
                 this.DownloadsVisible = false;
         }

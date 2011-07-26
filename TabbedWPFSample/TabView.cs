@@ -1,4 +1,24 @@
-﻿#region Using
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    TabView.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ *__________________________________________________________________________
+ *
+ *  Notes:
+ *
+ *  Represents the contents of a tab in an application window. This control
+ *  contains the WebControl and an independent bar with the address-box,
+ *  navigation buttons etc. It is lookless and the only two needed parts
+ *  (the WebControl and the address-box) are exposed as template parts
+ *  so that the control can easily be styled. The default style is defined
+ *  in Themes/TabView.xaml.
+ *   
+ ***************************************************************************/
+
+#region Using
 using System;
 using System.IO;
 using System.Net;
@@ -21,8 +41,8 @@ namespace TabbedWPFSample
     class TabView : Control
     {
         #region Constants
-        internal const String ElementBrowser = "PART_Browser";
-        internal const String ElementAddressBox = "PART_AddressBox";
+        public const String ElementBrowser = "PART_Browser";
+        public const String ElementAddressBox = "PART_AddressBox";
 
         private const String JS_FAVICON = "(function(){links = document.getElementsByTagName('link'); wHref=window.location.protocol + '//' + window.location.hostname + '/favicon.ico'; for(i=0; i<links.length; i++){s=links[i].rel; if(s.indexOf('icon') != -1){ wHref = links[i].href }; }; return wHref; })();";
         #endregion
@@ -54,6 +74,7 @@ namespace TabbedWPFSample
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
+
             AddressBox = GetTemplateChild( ElementAddressBox ) as TextBox;
 
             if ( AddressBox != null )
@@ -77,6 +98,9 @@ namespace TabbedWPFSample
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Closes the view and performs cleanup.
+        /// </summary>
         public void Close()
         {
             this.CommandBindings.Clear();
@@ -87,13 +111,19 @@ namespace TabbedWPFSample
 
         private void UpdateFavicon()
         {
+            // Execute some simple javascript that will search for a favicon.
             JSValue val = Browser.ExecuteJavascriptWithResult( JS_FAVICON );
 
+            // Check if we got a valid answer.
             if ( ( val != null ) && ( val.Type == JSValueType.String ) )
             {
+                // We do not need to perform the download of the favicon synchronously.
+                // May be a full icon set (thus big).
                 Task.Factory.StartNew<BitmapImage>( GetFavicon, val.ToString() ).ContinueWith(
                     ( t ) =>
                     {
+                        // If the download completed successfully, set the new favicon.
+                        // This post-completion procedure is executed synchronously.
                         if ( t.Exception == null )
                             this.SetValue( TabView.FaviconPropertyKey, t.Result );
                     },
@@ -115,7 +145,7 @@ namespace TabbedWPFSample
                     bitmap.BeginInit();
                     bitmap.StreamSource = stream;
                     bitmap.EndInit();
-                    bitmap.Freeze();
+                    bitmap.Freeze(); // Needed to safely pass the bitmap across threads.
 
                     return bitmap;
                 }
@@ -184,6 +214,11 @@ namespace TabbedWPFSample
         #endregion
 
         #region IsSelected
+        // This property is bound to the IsSelected property of the
+        // WebTabItem that hosts us. It allows us to inform the parent
+        // window of the currently selected tab, at any given time.
+        // As the binding is a TwoWay binding, this also allows us
+        // to update the selected tab from code.
         public bool IsSelected
         {
             get { return (bool)this.GetValue( IsSelectedProperty ); }
@@ -200,13 +235,10 @@ namespace TabbedWPFSample
             TabView owner = (TabView)d;
             bool value = (bool)e.NewValue;
 
-            // Add handling.
             if ( value )
                 owner.ParentWindow.SelectedView = owner;
-            else if ( owner.ParentWindow.SelectedView == owner )
-                owner.ParentWindow.SelectedView = null;
         }
-        #endregion        
+        #endregion
 
         #endregion
 
@@ -215,6 +247,9 @@ namespace TabbedWPFSample
         {
             if ( ( Browser != null ) && ( initialUrl != null ) )
             {
+                // The WebControl has been instantiated by now (and the core
+                // has started if this was the first view created). Load
+                // the URL that was given to us during construction of the tab.
                 Browser.LoadURL( initialUrl );
                 initialUrl = null;
             }
@@ -222,16 +257,26 @@ namespace TabbedWPFSample
 
         private void OnOpenExternalLink( object sender, OpenExternalLinkEventArgs e )
         {
+            // Inform the window that the web control is asking for a new window or tab.
+            // Currently, the event does not provide information of whether this request
+            // is the result of a user clicking on a link with target="_blank" or javascript
+            // calling window.open() etc. We assume target="_blank" and open a new tab.
+            // When we get this info, we will be able to support floating windows.
             ParentWindow.OpenURL( e.Url );
         }
 
         private void OnBeginLoading( object sender, BeginLoadingEventArgs e )
         {
+            // By now we have already navigated to the address.
+            // Clear the old favicon. The default style, will assign
+            // a default (globe) icon to the tab when null is set for
+            // FaviconProperty.
             this.ClearValue( TabView.FaviconPropertyKey );
         }
 
         private void OnDomReady( object sender, EventArgs e )
         {
+            // DOM is ready. We can start looking for a favicon.
             UpdateFavicon();
         }
 
@@ -244,6 +289,7 @@ namespace TabbedWPFSample
                 Multiselect = e.SelectMultipleFiles
             };
 
+            // Unlike WindowsForms, dialogs in WPF return a nullable boolean value.
             if ( ( dialog.ShowDialog( ParentWindow ) ?? false ) && ( dialog.FileNames.Length > 0 ) )
             {
                 e.SelectedFiles = dialog.FileNames;
@@ -253,10 +299,14 @@ namespace TabbedWPFSample
         {
             SaveFileDialog dialog = new SaveFileDialog()
             {
+                // This should give us the file name part of the URL.
                 FileName = Path.GetFileName( e.Url ),
+                // We set MyDocuments as the default. You can change this as you wish
+                // but make sure the specified folder actually exists.
                 InitialDirectory = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments )
             };
 
+            // Unlike WindowsForms, dialogs in WPF return a nullable boolean value.
             if ( ( dialog.ShowDialog( ParentWindow ) ?? false ) && ( dialog.FileNames.Length == 1 ) )
             {
                 ParentWindow.DownloadFile( e.Url, dialog.FileName );
@@ -267,14 +317,23 @@ namespace TabbedWPFSample
         {
             if ( e.Key == Key.Return )
             {
+                // The correct specification of the Binding on the Text property of the address-box,
+                // should specify UpdateSourceTrigger=Explicit. This allows us to only update
+                // the source of the Binding when the user hits Return. This assumes that the Text
+                // property of the address-box is binded to the Source property of the WebControl.
                 BindingExpression bind = BindingOperations.GetBindingExpression( AddressBox, TextBox.TextProperty );
 
-                if ( bind != null )
+                // If the parent binding has a different UpdateSourceTrigger set, we assume the designer
+                // has something else in his/her mind. Do not perform an explicit update of the source.
+                if ( ( bind != null ) && ( bind.ParentBinding.UpdateSourceTrigger == UpdateSourceTrigger.Explicit ) )
                 {
                     bind.UpdateSource();
                 }
             }
         }
+
+        // The following two handlers, allow us to handle the focusing of the address-box ourselves.
+        // In WPF, this is the only way to perform a SelectAll when the address-box is focused.
 
         private void AddressBox_PreviewMouseLeftButtonDown( object sender, MouseButtonEventArgs e )
         {

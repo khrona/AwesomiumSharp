@@ -121,6 +121,22 @@
  *      the static ContextMenuResourceKey property. Also added resource
  *      keys for all of the independent groups of the context menu, that
  *      allow the context menu to be partially overriden or extended.
+ *      
+ *    07/26/2011
+ *    
+ *    - Fixed parts of the documentation.
+ *    
+ *    - Removed the ShutdownCore method and the MainWindow.Closing handling
+ *      logic. This code was buggy:
+ *          * What we understand as the application's MainWindow, 
+ *            may not be the last window of an application. Applications
+ *            can be set to exit when all windows are closed; not just the
+ *            MainWindow. Shutting down core at this point can kill the views 
+ *            in other windows of the application still open.
+ *          * An application is not necessarily exiting when windows are 
+ *            closed. It is not our right to decide when to kill the core.
+ *          * In any case, we are a view. It is the application's 
+ *            responsibility to schedule the shutdown of the WebCore.
  *    
  * 
  ********************************************************************************/
@@ -708,12 +724,6 @@ namespace AwesomiumSharp.Windows.Controls
                 resourceResponseCallback = null;
                 awe_webview_set_callback_resource_response( Instance, null );
 
-                // If there are other controls created, they will take care of this.
-                // If this is the only control created or left, the WebCore will
-                // automatically shutdown after removing it.
-                if ( Application.Current.MainWindow != null )
-                    Application.Current.MainWindow.Closing -= ShutdownCore;
-
                 if ( hookAdded )
                 {
                     HwndSource source = (HwndSource)PresentationSource.FromVisual( this );
@@ -883,7 +893,7 @@ namespace AwesomiumSharp.Windows.Controls
             Point pt = Mouse.GetPosition( this );
             Rect r = new Rect( this.RenderSize );
 
-            if ( !r.Contains(pt) )
+            if ( !r.Contains( pt ) )
                 awe_webview_inject_mouse_move( Instance, -1, -1 );
 
             base.OnMouseLeave( e );
@@ -1163,14 +1173,6 @@ throw new InvalidOperationException( "The control is disabled either manually or
         {
             this.Instance = WebCore.CreateWebViewInstance( (int)this.ActualWidth, (int)this.ActualHeight, this, IsSourceControl );
             this.Focus();
-
-            if ( !isRecreatingView && ( Application.Current.MainWindow != null ) )
-                Application.Current.MainWindow.Closing += ShutdownCore;
-        }
-
-        private void ShutdownCore( object sender, CancelEventArgs e )
-        {
-            WebCore.Shutdown();
         }
         #endregion
 
@@ -1692,13 +1694,12 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// <summary>
         /// Navigates to the Home URL as defined in <see cref="WebCore.HomeURL"/>.
         /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// The member is called on an invalid <see cref="WebControl"/> instance
-        /// (see <see cref="IsEnabled"/>).
-        /// </exception>
-        public void GoToHome()
+        /// <returns>
+        /// True if the view is alive and the command was successfully sent. False otherwise.
+        /// </returns>
+        public bool GoToHome()
         {
-            this.LoadURL( WebCore.HomeURL );
+            return this.LoadURL( WebCore.HomeURL );
         }
         #endregion
 
@@ -1761,7 +1762,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         /// </returns>
         /// <remarks>
         /// @note
-        /// Any assets requires by the specified HTML (images etc.), should exist 
+        /// Any assets required by the specified HTML (images etc.), should exist 
         /// within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
         /// </remarks>
         public bool LoadHTML( string html, string frameName = "" )
@@ -3056,7 +3057,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         private static extern bool awe_webview_is_dirty( IntPtr webview );
 
         /// <summary>
-        /// Gets of this <see cref="WebControl"/> needs to be rendered again.
+        /// Gets if this <see cref="WebControl"/> needs to be rendered again.
         /// </summary>
         /// <remarks>
         /// Internal changes to this property fire the <see cref="IsDirtyChanged"/>

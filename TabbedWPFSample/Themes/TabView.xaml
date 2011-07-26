@@ -26,6 +26,27 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <DrawingImage x:Key="SettingsImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Brush="Black" Geometry="F1 M 15.6861,12.3139C 15.6861,14.3664 14.0355,16.0315 11.9987,16.0315C 9.96323,16.0315 8.31123,14.3664 8.31123,12.3139C 8.31123,10.2613 9.96323,8.59619 11.9987,8.59619C 14.0355,8.59619 15.6861,10.2613 15.6861,12.3139 Z M 22.0171,9.02298L 21.3552,9.02298C 21.1884,8.49114 20.9705,7.97768 20.717,7.48785L 21.1884,7.02167C 21.958,6.24426 22.2272,5.25542 21.7807,4.80762L 19.1924,2.21799C 18.7459,1.77282 17.7557,2.03546 16.977,2.81287L 16.5108,3.28168C 16.0223,3.02561 15.5089,2.81025 14.9757,2.64084L 14.9757,1.98162C 14.9757,0.887724 14.4622,1.90735e-006 13.8319,1.90735e-006L 10.1707,1.90735e-006C 9.53644,1.90735e-006 9.02692,0.887724 9.02692,1.98162L 9.02692,2.64084C 8.49114,2.81025 7.97899,3.02561 7.48654,3.28168L 7.01904,2.81287C 6.24688,2.03677 5.25542,1.77282 4.80893,2.21799L 2.22062,4.80762C 1.77282,5.25542 2.03808,6.24557 2.81287,7.02167L 3.27905,7.48523C 3.02429,7.97636 2.81287,8.49114 2.64347,9.02298L 1.98293,9.02298C 0.886408,9.02298 -3.69443e-007,9.53776 -3.69443e-007,10.1681L -3.69443e-007,13.828C -3.69443e-007,14.4622 0.886408,14.9744 1.98293,14.9744L 2.64347,14.9744C 2.81156,15.5089 3.02561,16.021 3.28037,16.5108L 2.81287,16.9783C 2.03808,17.7557 1.77282,18.7433 2.22062,19.1898L 4.80893,21.7794C 5.25542,22.2259 6.24688,21.9619 7.02035,21.1871L 7.48654,20.7183C 7.97899,20.9744 8.49114,21.1871 9.02692,21.3565L 9.02692,22.0158C 9.02692,23.111 9.53775,24 10.1707,24L 13.8319,24C 14.4662,24 14.9757,23.1136 14.9757,22.0158L 14.9757,21.3565C 15.5089,21.1884 16.0223,20.9744 16.5108,20.7183L 16.977,21.1871C 17.7557,21.9606 18.7459,22.2259 19.1924,21.7794L 21.7807,19.1898C 22.2272,18.7433 21.9606,17.7557 21.1884,16.977L 20.7223,16.5108C 20.977,16.021 21.1884,15.5089 21.3552,14.9744L 22.0171,14.9744C 23.1123,14.9744 24,14.4622 24,13.828L 24,10.1681C 24,9.53513 23.1123,9.02298 22.0171,9.02298 Z " />
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="DownloadImage">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <DrawingGroup.Children>
+                    <GeometryDrawing Brush="Black" Geometry="F1 M 7.31715,1C 6.53554,1 5.90214,1.34422 5.90214,1.76847L 5.90214,9.04345L 4.41637,9.04345L 4.41279,9.04791C 4.1268,9.40453 4.1268,9.98303 4.41279,10.3398L 10.1483,17.4951C 10.4345,17.8519 10.8904,17.8156 11.1841,17.4951L 16.9199,10.3398C 17.2056,9.98303 17.2059,9.40453 16.9199,9.04758L 16.9162,9.04345L 15.4307,9.04345L 15.4307,1.76847C 15.4307,1.34422 14.797,1 14.0153,1L 7.31715,1 Z "/>
+                    <GeometryDrawing Brush="Black" Geometry="F1 M 20.2149,15.032C 20.2149,17.4644 19.0435,19.4434 17.6039,19.4434L 3.72921,19.4434C 2.28969,19.4434 1.11828,17.4644 1.11828,15.032L 2.55142e-006,15.032C 2.55142e-006,18.5066 1.6729,21.3333 3.72921,21.3333L 17.6039,21.3333C 19.6603,21.3333 21.3333,18.5066 21.3333,15.032L 20.2149,15.032 Z "/>
+                </DrawingGroup.Children>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
     <!-- TabView -->
     <Style TargetType="{x:Type local:TabView}">
         <Setter Property="Background" Value="#FFD2E6FA" />
@@ -49,6 +70,8 @@
                                     <ColumnDefinition Width="30" />
                                     <ColumnDefinition Width="30" />
                                     <ColumnDefinition />
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="30" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -130,6 +153,32 @@
                                         Text="{Binding Source, ElementName=PART_Browser, UpdateSourceTrigger=Explicit}" 
                                         Background="Transparent"/>
                                 </Border>
+                                <Button 
+                                    Grid.Column="5" 
+                                    Margin="3" 
+                                    Padding="0"
+                                    Command="{x:Static local:MainWindow.ShowDownloads}">
+                                    <Image 
+                                        Width="12" 
+                                        Height="12" 
+                                        HorizontalAlignment="Center" 
+                                        VerticalAlignment="Center" 
+                                        Stretch="Uniform" 
+                                        Source="{StaticResource DownloadImage}"/>
+                                </Button>
+                                <Button 
+                                    Grid.Column="6" 
+                                    Margin="3" 
+                                    Padding="0"
+                                    Command="{x:Static local:MainWindow.ShowSettings}">
+                                    <Image 
+                                        Width="12" 
+                                        Height="12" 
+                                        HorizontalAlignment="Center" 
+                                        VerticalAlignment="Center" 
+                                        Stretch="Uniform" 
+                                        Source="{StaticResource SettingsImage}"/>
+                                </Button>
                             </Grid>
                             <Border Grid.Row="1" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
                                 <awe:WebControl x:Name="PART_Browser" Source="http://www.google.com"/>

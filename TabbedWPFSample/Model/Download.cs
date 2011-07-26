@@ -1,10 +1,27 @@
-﻿using System;
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    Download.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ *__________________________________________________________________________
+ *
+ *  Notes:
+ *
+ *  Represents a download operation.
+ *   
+ ***************************************************************************/
+
+#region Using
+using System;
 using System.IO;
 using System.Net;
 using System.Windows;
 using System.Diagnostics;
 using System.Windows.Input;
 using System.ComponentModel;
+#endregion
 
 namespace TabbedWPFSample
 {

@@ -121,6 +121,9 @@
     <value>Κλείσιμο Καρτέλας</value>
     <comment>CloseTab description</comment>
   </data>
+  <data name="Downloads" xml:space="preserve">
+    <value>Μεταφορτώσεις</value>
+  </data>
   <data name="NewTab" xml:space="preserve">
     <value>Νέα Καρτέλα</value>
     <comment>NewTab description</comment>
@@ -132,5 +135,8 @@
   <data name="OpenInNewWindow" xml:space="preserve">
     <value>Άνοιγμα σε Νέο Παράθυρο</value>
     <comment>OpenInNewWindow description</comment>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Ρυθμίσεις</value>
   </data>
 </root>

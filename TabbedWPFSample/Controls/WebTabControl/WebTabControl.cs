@@ -1,7 +1,24 @@
-﻿using System;
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    WebTabControl.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ *__________________________________________________________________________
+ *
+ *  Notes:
+ *
+ *  Re-styled TabControl that handles the size of its tabs.
+ *   
+ ***************************************************************************/
+
+#region Using
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Collections.Specialized;
+#endregion
 
 namespace TabbedWPFSample
 {
@@ -50,8 +67,8 @@ namespace TabbedWPFSample
                 double totalWidth = this.Items.Count * 180;
                 double finalWidth = 180;
 
-                if ( totalWidth > ( constraint.Width - 140 ) )
-                    finalWidth = ( constraint.Width - 140 ) / this.Items.Count;
+                if ( totalWidth > ( constraint.Width - 170 ) )
+                    finalWidth = ( constraint.Width - 170 ) / this.Items.Count;
 
                 foreach ( TabView item in this.Items )
                 {
@@ -73,6 +90,17 @@ namespace TabbedWPFSample
         protected override bool IsItemItsOwnContainerOverride( object item )
         {
             return item is WebTabItem;
+        }
+
+        protected override void OnSelectionChanged( SelectionChangedEventArgs e )
+        {
+            // Prevent the TabControl from staying with no selected item.
+            // This can occur is we try to un-select the selected tab from code,
+            // or by clicking it in the tabs menu.
+            if ( this.Items.Count > 0 && e.AddedItems.Count == 0 )
+                ( (TabView)this.Items[ 0 ] ).IsSelected = true;
+            else
+                base.OnSelectionChanged( e );
         }
         #endregion
     }

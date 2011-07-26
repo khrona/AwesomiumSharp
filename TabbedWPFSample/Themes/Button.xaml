@@ -6,6 +6,7 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="White" />
         <Setter Property="Foreground" Value="White" />
+        <Setter Property="ToolTip" Value="{Binding Command.Text, RelativeSource={RelativeSource Self}}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">

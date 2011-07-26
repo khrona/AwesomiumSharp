@@ -9,7 +9,7 @@
  *
  *    Notes   :
  *
- *    Temporary halper class that uses Javascript objects, callbacks and
+ *    Temporary helper class that uses Javascript objects, callbacks and
  *    injected code, to get information about the current selection range
  *    in a page. Used by both WebView and WebControl.
  *    

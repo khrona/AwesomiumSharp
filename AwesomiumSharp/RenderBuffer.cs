@@ -226,9 +226,9 @@ namespace AwesomiumSharp
         /// </summary>
         /// <remarks>
         /// If <see cref="WebView.SetTransparent"/> is not enabled, you may need to flush the alpha
-        /// channel of this buffer (eg, set every 4th bit to 255) before displaying it. This is
-        /// because Flash on Windows will sometimes corrupt our alpha channel and so you may 
-        /// see weird text in Flash if you forget to do this.
+        /// channel of this buffer before displaying it. This is because Flash on Windows will 
+        /// sometimes corrupt our alpha channel and so you may see weird text in Flash if you forget to do this.
+        /// To flash the alpha channel, use: <see cref="FlushAlpha"/>.
         /// </remarks>
         public IntPtr Buffer
         {

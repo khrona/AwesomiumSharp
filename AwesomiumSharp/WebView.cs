@@ -2444,7 +2444,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
         #region HasTargetURL
         /// <summary>
-        /// Gets if this <see cref="WebControl"/> is currently indicating a target URL,
+        /// Gets if this <see cref="WebView"/> is currently indicating a target URL,
         /// usually as a result of hovering over a link on the page.
         /// </summary>
         public bool HasTargetURL
@@ -2564,6 +2564,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
         /// <summary>
         /// Gets or sets if we should flush the alpha channel to completely opaque values, during rendering.
+        /// The default is true.
         /// </summary>
         public bool FlashAlpha
         {

@@ -1,12 +1,11 @@
-﻿//***************************************************************************
-//    Project: AmadeusIRC®
-//    File:    WeakEventListener.vb
-//    Version: 1.0.0.0
-//
-//    Copyright ©2010 Perikles C. Stephanidis; All rights reserved.
-//    This code is provided "AS IS" without warranty of any kind.
-//    Use in a production environment is prohibited.
-//***************************************************************************
+﻿/***************************************************************************
+ *  Project: TabbedWPFSample
+ *  File:    WeakEventListeners.cs
+ *  Version: 1.0.0.0
+ *
+ *  Copyright ©2011 Perikles C. Stephanidis; All rights reserved.
+ *  This code is provided "AS IS" without warranty of any kind.
+ ***************************************************************************/
 
 #region Using
 using System;

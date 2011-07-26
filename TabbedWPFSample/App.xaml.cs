@@ -6,7 +6,7 @@ namespace TabbedWPFSample
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    partial class App : Application
     {
         /// <summary>
         /// We need this because our main window no longer has a 

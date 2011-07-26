@@ -145,12 +145,16 @@
   </PropertyGroup>
   <PropertyGroup>
     <PostBuildEvent>XCOPY ..\..\..\..\..\build\bin\release\icudt42.dll "$(TargetDir)" /i /y
+XCOPY ..\..\..\..\..\build\bin\release\avcodec-52.dll "$(TargetDir)" /i /y
+XCOPY ..\..\..\..\..\build\bin\release\avformat-52.dll "$(TargetDir)" /i /y
+XCOPY ..\..\..\..\..\build\bin\release\avutil-50.dll "$(TargetDir)" /i /y
 XCOPY ..\..\..\..\..\build\bin\release\Awesomium.dll "$(TargetDir)" /i /y
 XCOPY ..\..\..\..\..\build\bin\release\AwesomiumProcess.exe "$(TargetDir)" /i /y
 XCOPY ..\..\..\..\..\build\bin\Release\locales\en-US.dll "$(TargetDir)locales\" /i /y
 
 XCOPY ..\..\..\..\..\build\bin\debug\Awesomium_d.dll "$(TargetDir)" /i /y
-XCOPY ..\..\..\..\..\build\bin\debug\AwesomiumProcess_d.exe "$(TargetDir)" /i /y</PostBuildEvent>
+XCOPY ..\..\..\..\..\build\bin\debug\AwesomiumProcess_d.exe "$(TargetDir)" /i /y
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

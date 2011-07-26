@@ -11,7 +11,8 @@
 using System;
 
 namespace TabbedWPFSample.Properties
-{ 
+{   
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -70,6 +71,15 @@ namespace TabbedWPFSample.Properties
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Downloads.
+        /// </summary>
+        internal static string Downloads {
+            get {
+                return ResourceManager.GetString("Downloads", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to New Tab.
         /// </summary>
         internal static string NewTab {
@@ -93,6 +103,15 @@ namespace TabbedWPFSample.Properties
         internal static string OpenInNewWindow {
             get {
                 return ResourceManager.GetString("OpenInNewWindow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings.
+        /// </summary>
+        internal static string Settings {
+            get {
+                return ResourceManager.GetString("Settings", resourceCulture);
             }
         }
     }

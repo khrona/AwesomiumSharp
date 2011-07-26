@@ -130,4 +130,12 @@
     <value>Close Tab</value>
     <comment>CloseTab description</comment>
   </data>
+  <data name="Downloads" xml:space="preserve">
+    <value>Downloads</value>
+    <comment>Downloads description</comment>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Settings description</comment>
+  </data>
 </root>
