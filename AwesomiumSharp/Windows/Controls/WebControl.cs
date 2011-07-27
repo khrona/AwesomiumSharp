@@ -207,6 +207,7 @@ namespace AwesomiumSharp.Windows.Controls
         private WebControlInvalidLayer controlLayer;
         private Boolean needsResize, flashAplha;
         private int resizeWidth, resizeHeight;
+        private string lastTitle;
 
         internal Dictionary<string, JSCallback> jsObjectCallbackMap;
 
@@ -1122,11 +1123,7 @@ namespace AwesomiumSharp.Windows.Controls
         private void VerifyLive()
         {
             if ( !IsLive )
-#if USING_MONO
-throw new InvalidOperationException( "The control is disabled either manually or it has been destroyed." );
-#else
                 throw new InvalidOperationException( AwesomiumSharp.Resources.ERR_WebControlDisabled );
-#endif
         }
         #endregion
 
@@ -1877,6 +1874,10 @@ throw new InvalidOperationException( "The control is disabled either manually or
         {
             VerifyLive();
             awe_webview_stop( Instance );
+
+            // If we had already received a title, lastTitle refers to the new.
+            // If not, restore the one of the previous page.
+            this.Title = lastTitle;
         }
         #endregion
 
@@ -3955,9 +3956,14 @@ throw new InvalidOperationException( "The control is disabled either manually or
         {
             bool value = (bool)e.NewValue;
 
-            // Add handling.
             if ( !value )
+            {
                 this.AddVisualChild( controlLayer );
+
+                this.IsNavigating = false;
+                this.CoerceValue( WebControl.IsLoadingPageProperty );
+                this.Title = this.IsCrashed ? AwesomiumSharp.Resources.TITLE_Crashed : lastTitle;
+            }
             else
             {
                 this.RemoveVisualChild( controlLayer );
@@ -4034,7 +4040,7 @@ throw new InvalidOperationException( "The control is disabled either manually or
         #endregion
 
 
-        #region Web View Events
+        #region WebView Events
 
         #region BeginNavigation
         [UnmanagedFunctionPointerAttribute( CallingConvention.Cdecl )]
@@ -4161,6 +4167,8 @@ throw new InvalidOperationException( "The control is disabled either manually or
             ReceiveTitleEventArgs e = new ReceiveTitleEventArgs(
                 StringHelper.ConvertAweString( title ),
                 StringHelper.ConvertAweString( frame_name ) );
+
+            lastTitle = e.Title;
 
             this.Title = e.Title;
             this.OnTitleReceived( this, e );

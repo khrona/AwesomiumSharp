@@ -1,6 +1,6 @@
-﻿Imports AwesomiumSharp
+﻿Imports System.IO
 Imports System.Net
-Imports System.IO
+Imports AwesomiumSharp
 Imports System.Threading.Tasks
 
 Class MainWindow
@@ -26,13 +26,20 @@ Class MainWindow
 
 
 #Region " Overrides "
-    Protected Overrides Sub OnSourceInitialized(e As System.EventArgs)
+    Protected Overrides Sub OnSourceInitialized(e As EventArgs)
         MyBase.OnSourceInitialized(e)
 
         If GlassUtilities.IsCompositionEnabled Then
             GlassUtilities.SetTransparentBackground(Me)
             GlassUtilities.ExtendGlassIntoClientArea(Me, New Thickness(0, 35, 0, 30))
         End If
+    End Sub
+
+    Protected Overrides Sub OnClosed(e As EventArgs)
+        Browser.Close()
+        WebCore.Shutdown()
+
+        MyBase.OnClosed(e)
     End Sub
 #End Region
 
@@ -113,7 +120,7 @@ Class MainWindow
         RestoreFavicon()
     End Sub
 
-    Private Sub Browser_DomReady(sender As Object, e As System.EventArgs) Handles Browser.DomReady
+    Private Sub Browser_DomReady(sender As Object, e As EventArgs) Handles Browser.DomReady
         UpdateFavicon()
     End Sub
 

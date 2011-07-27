@@ -8,10 +8,10 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using System;
-
-namespace AwesomiumSharp
-{
+namespace AwesomiumSharp {
+    using System;
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -201,6 +201,15 @@ namespace AwesomiumSharp
         internal static string StopFind {
             get {
                 return ResourceManager.GetString("StopFind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Crached!.
+        /// </summary>
+        internal static string TITLE_Crashed {
+            get {
+                return ResourceManager.GetString("TITLE_Crashed", resourceCulture);
             }
         }
         

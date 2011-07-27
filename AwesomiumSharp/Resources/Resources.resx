@@ -188,4 +188,7 @@
   <data name="CopyLinkAddress" xml:space="preserve">
     <value>Copy Link Address</value>
   </data>
+  <data name="TITLE_Crashed" xml:space="preserve">
+    <value>Crached!</value>
+  </data>
 </root>

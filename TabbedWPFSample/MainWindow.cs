@@ -138,15 +138,31 @@ namespace TabbedWPFSample
                 // Setup WebCore with plugins enabled.            
                 WebCoreConfig config = new WebCoreConfig
                 {
+                    // !THERE CAN ONLY BE A SINGLE WebCore RUNNING PER PROCESS!
+                    // We have insured that our application is single instance,
+                    // with the use of the WPFSingleInstance utility.
+                    // We can now safely enable cache and cookies.
+                    SaveCacheAndCookies = true,
+                    // In case our application is installed in ProgramFiles,
+                    // we wouldn't want the WebCore to attempt to create folders
+                    // and files in there. We do not have the required privileges.
+                    // Furthermore, it is important to allow each user account
+                    // have its own cache and cookies. So, there's no better place
+                    // than the Application User Data Path.
+                    UserDataPath = My.Application.UserAppDataPath,
                     EnablePlugins = true,
                     HomeURL = Settings.Default.HomeURL,
+                    // For the time being, we have to disable logging.
+                    // WebCore will attempt to create the log file in the
+                    // folder where the application resides. We do not want this
+                    // for the same reasons mentioned above for UserDataPath.
                     LogLevel = LogLevel.None
                 };
 
                 // Caution! Do not start the WebCore in window's constructor.
                 // This may be a startup window and a synchronization context
-                // (necessary for auto-update), is not yet available during
-                // construction; the Dispatcher is not running yet (see App.xaml.cs).
+                // (necessary for auto-update), is may not be available during
+                // construction; the Dispatcher may not be running yet (see App.xaml.cs).
                 //
                 // Setting the start parameter to false, let's us define
                 // configuration settings early enough to be secure, but
@@ -340,6 +356,8 @@ namespace TabbedWPFSample
                     tabViews.Remove( view );
                     // Close the view and the WebControl.
                     view.Close();
+
+                    GC.Collect();
                 }
             }
         }
