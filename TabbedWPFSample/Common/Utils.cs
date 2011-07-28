@@ -14,57 +14,184 @@ using System.Windows;
 using System.Reflection;
 using System.Windows.Media;
 using System.Globalization;
+using System.Collections.ObjectModel;
 #endregion
 
+// Yes, I love VB.
 namespace My
 {
-    #region ApplicationInfo
-    sealed class ApplicationInfo
+    #region AssemblyInfo
+    public class AssemblyInfo
     {
-        internal ApplicationInfo()
-        {
-            foreach ( Attribute a in Assembly.GetExecutingAssembly().GetCustomAttributes( true ) )
+        #region Fields
+        private Assembly m_Assembly;
+        private string m_CompanyName;
+        private string m_Copyright;
+        private string m_Description;
+        private string m_ProductName;
+        private string m_Title;
+        private string m_Trademark;
+        #endregion
+
+
+        #region Ctors
+        public AssemblyInfo( Assembly currentAssembly )
             {
-                if ( a is AssemblyCompanyAttribute )
-                    _CompanyName = ( (AssemblyCompanyAttribute)a ).Company;
+                if ( currentAssembly == null )
+                    throw new ArgumentNullException( "currentAssembly" );
 
-                if ( a is AssemblyProductAttribute )
-                    _ProductName = ( (AssemblyProductAttribute)a ).Product;
+                this.m_Assembly = currentAssembly;
+            }
+        #endregion
 
-                if ( a is AssemblyFileVersionAttribute )
-                    _Version = new Version( ( (AssemblyFileVersionAttribute)a ).Version );
 
-                if ( a is AssemblyVersionAttribute )
-                    _Version = new Version( ( (AssemblyVersionAttribute)a ).Version );
+        #region Methods
+        private object GetAttribute( Type attributeType )
+        {
+            object[] customAttributes = this.m_Assembly.GetCustomAttributes( attributeType, true );
+
+            if ( customAttributes.Length == 0 )
+                return null;
+
+            return customAttributes[ 0 ];
+        }
+        #endregion
+
+        #region Properties
+        public string AssemblyName
+        {
+            get
+            {
+                return this.m_Assembly.GetName().Name;
             }
         }
 
-        private string _CompanyName;
         public string CompanyName
         {
             get
             {
-                return _CompanyName;
+                if ( this.m_CompanyName == null )
+                {
+                    AssemblyCompanyAttribute attribute = (AssemblyCompanyAttribute)this.GetAttribute( typeof( AssemblyCompanyAttribute ) );
+                    this.m_CompanyName = attribute == null ? "" : attribute.Company;
+                }
+
+                return this.m_CompanyName;
             }
         }
 
-        private string _ProductName;
+        public string Copyright
+        {
+            get
+            {
+                if ( this.m_Copyright == null )
+                {
+                    AssemblyCopyrightAttribute attribute = (AssemblyCopyrightAttribute)this.GetAttribute( typeof( AssemblyCopyrightAttribute ) );
+                    this.m_Copyright = attribute == null ? "" : attribute.Copyright;
+                }
+
+                return this.m_Copyright;
+            }
+        }
+
+        public string Description
+        {
+            get
+            {
+                if ( this.m_Description == null )
+                {
+                    AssemblyDescriptionAttribute attribute = (AssemblyDescriptionAttribute)this.GetAttribute( typeof( AssemblyDescriptionAttribute ) );
+                    this.m_Description = attribute == null ? "" : attribute.Description;
+                }
+
+                return this.m_Description;
+            }
+        }
+
+        public string DirectoryPath
+        {
+            get
+            {
+                return Path.GetDirectoryName( this.m_Assembly.Location );
+            }
+        }
+
+        public ReadOnlyCollection<Assembly> LoadedAssemblies
+        {
+            get
+            {
+                Collection<Assembly> list = new Collection<Assembly>();
+                foreach ( Assembly assembly in AppDomain.CurrentDomain.GetAssemblies() )
+                {
+                    list.Add( assembly );
+                }
+                return new ReadOnlyCollection<Assembly>( list );
+            }
+        }
+
         public string ProductName
         {
             get
             {
-                return _ProductName;
+                if ( this.m_ProductName == null )
+                {
+                    AssemblyProductAttribute attribute = (AssemblyProductAttribute)this.GetAttribute( typeof( AssemblyProductAttribute ) );
+                    this.m_ProductName = attribute == null ? "" : attribute.Product;
+                }
+                return this.m_ProductName;
             }
         }
 
-        private Version _Version;
+        public string StackTrace
+        {
+            get
+            {
+                return Environment.StackTrace;
+            }
+        }
+
+        public string Title
+        {
+            get
+            {
+                if ( this.m_Title == null )
+                {
+                    AssemblyTitleAttribute attribute = (AssemblyTitleAttribute)this.GetAttribute( typeof( AssemblyTitleAttribute ) );
+                    this.m_Title = attribute == null ? "" : attribute.Title;
+                }
+                return this.m_Title;
+            }
+        }
+
+        public string Trademark
+        {
+            get
+            {
+                if ( this.m_Trademark == null )
+                {
+                    AssemblyTrademarkAttribute attribute = (AssemblyTrademarkAttribute)this.GetAttribute( typeof( AssemblyTrademarkAttribute ) );
+                    this.m_Trademark = attribute == null ? "" : attribute.Trademark;
+                }
+                return this.m_Trademark;
+            }
+        }
+
         public Version Version
         {
             get
             {
-                return _Version;
+                return this.m_Assembly.GetName().Version;
             }
         }
+
+        public long WorkingSet
+        {
+            get
+            {
+                return Environment.WorkingSet;
+            }
+        }
+        #endregion
     }
     #endregion
 
@@ -72,15 +199,7 @@ namespace My
     sealed class Application
     {
         #region Fields
-        private static ApplicationInfo info;
-        #endregion
-
-
-        #region Ctors
-        static Application()
-        {
-            info = new ApplicationInfo();
-        }
+        private static AssemblyInfo info;
         #endregion
 
 
@@ -105,9 +224,22 @@ namespace My
         #endregion
 
         #region Properties
-        public static ApplicationInfo Info
+        public static AssemblyInfo Info
         {
-            get { return info; }
+            get
+            {
+                if ( info == null )
+                {
+                    Assembly entryAssembly = Assembly.GetEntryAssembly();
+
+                    if ( entryAssembly == null )
+                        entryAssembly = Assembly.GetCallingAssembly();
+
+                    info = new AssemblyInfo( entryAssembly );
+                }
+
+                return info;
+            }
         }
 
         public static string LocalUserAppDataPath
@@ -178,6 +310,36 @@ namespace TabbedWPFSample
                 d = obj.FindVisualAncestor<T>();
 
             return d as T;
+        }
+
+        public static string GetFileSize( this FileInfo file )
+        {
+            long bytes = file.Length;
+
+            if ( bytes >= 1073741824 )
+            {
+                Decimal size = Decimal.Divide( bytes, 1073741824 );
+                return String.Format( "{0:##.##} GB", size );
+            }
+            else if ( bytes >= 1048576 )
+            {
+                Decimal size = Decimal.Divide( bytes, 1048576 );
+                return String.Format( "{0:##.##} MB", size );
+            }
+            else if ( bytes >= 1024 )
+            {
+                Decimal size = Decimal.Divide( bytes, 1024 );
+                return String.Format( "{0:##.##} KB", size );
+            }
+            else if ( bytes > 0 & bytes < 1024 )
+            {
+                Decimal size = bytes;
+                return String.Format( "{0:##.##} Bytes", size );
+            }
+            else
+            {
+                return "0 Bytes";
+            }
         }
 
         /// <summary>

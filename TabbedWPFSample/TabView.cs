@@ -329,6 +329,10 @@ namespace TabbedWPFSample
                 {
                     bind.UpdateSource();
                 }
+
+                // Move focus to the view.
+                if ( Browser != null )
+                    Browser.Focus();
             }
         }
 

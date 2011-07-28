@@ -122,6 +122,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <CustomToolNamespace>AwesomiumSharp</CustomToolNamespace>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

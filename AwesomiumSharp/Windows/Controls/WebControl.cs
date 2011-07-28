@@ -4315,6 +4315,10 @@ namespace AwesomiumSharp.Windows.Controls
 
             this.OnDownload( this, e );
 
+            // We get a BeginNavigation before this.
+            // Restore the title.
+            this.Title = lastTitle;
+
             CommandManager.InvalidateRequerySuggested();
         }
         #endregion

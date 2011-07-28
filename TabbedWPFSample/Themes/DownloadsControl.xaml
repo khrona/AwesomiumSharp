@@ -28,6 +28,121 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <ContextMenu x:Key="DownloadContextMenu" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+        <MenuItem Command="{Binding OpenDownloadedFileFolder}" Header="Open Containing Folder" />
+    </ContextMenu>
+
+    <DataTemplate x:Key="DownloadToolTipTemplate" DataType="{x:Type local:Download}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock 
+                Text="Name: " 
+                VerticalAlignment="Center" 
+                HorizontalAlignment="Right"/>
+            <TextBlock 
+                Grid.Column="1" 
+                Text="{Binding FileName}" 
+                Margin="2"/>
+            <TextBlock 
+                Grid.Row="1" 
+                Text="Size: " 
+                VerticalAlignment="Center" 
+                HorizontalAlignment="Right"/>
+            <TextBlock 
+                Grid.Column="1" 
+                Grid.Row="1" 
+                Text="{Binding FileSize}" 
+                Margin="2"/>
+            <TextBlock 
+                Grid.ColumnSpan="2" 
+                Grid.Row="2" 
+                Margin="2,5,2,2" 
+                FontStyle="Italic" 
+                TextWrapping="Wrap" 
+                Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" 
+                Text="Right-Click for more options"/>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="DownloadTemplate" DataType="{x:Type local:Download}">
+        <DataTemplate.Resources>
+            <Storyboard x:Key="Flash">
+                <DoubleAnimation 
+                    Storyboard.TargetName="fileImage" 
+                    Storyboard.TargetProperty="(UIElement.Opacity)" 
+                    From="1" 
+                    To="0" 
+                    Duration="00:00:00.3" 
+                    AutoReverse="True" 
+                    RepeatBehavior="3x"/>
+            </Storyboard>
+        </DataTemplate.Resources>
+        <Button 
+            Command="{Binding OpenDownloadedFile}" 
+            Margin="3" 
+            Padding="0"
+            ContextMenu="{StaticResource DownloadContextMenu}">
+            <Button.ToolTip>
+                <ToolTip Content="{Binding}" ContentTemplate="{StaticResource DownloadToolTipTemplate}" />
+            </Button.ToolTip>
+            <Grid Margin="2" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Image 
+                    x:Name="fileImage" 
+                    Width="30" 
+                    Height="36" 
+                    Source="{StaticResource FileImage}" 
+                    VerticalAlignment="Center" 
+                    Visibility="Collapsed" 
+                    Opacity="0"/>
+                <local:CircularProgressBar 
+                    x:Name="progressBar" 
+                    Width="36" 
+                    Height="36" 
+                    Foreground="{Binding Foreground}" 
+                    VerticalAlignment="Center" 
+                    Value="{Binding Progress, Mode=OneWay}" 
+                    StrokeThickness="5" 
+                    HoleSizeFactor="0.75" 
+                    TextBlock.FontSize="9"/>
+                <TextBlock 
+                    Grid.Column="1" 
+                    Margin="3" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center" 
+                    TextTrimming="CharacterEllipsis" 
+                    MaxWidth="200" 
+                    Foreground="{Binding Foreground}" 
+                    Text="{Binding FileName}"/>
+            </Grid>
+        </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsDownloading}" Value="False">
+                <Setter TargetName="progressBar" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="fileImage" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsCancelled}" Value="True">
+                <Setter TargetName="fileImage" Property="Opacity" Value="0.5" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsDownloadComplete}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard Storyboard="{StaticResource Flash}" />
+                </DataTrigger.EnterActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <Style TargetType="{x:Type local:DownloadsControl}">
         <Setter Property="Template">
             <Setter.Value>
@@ -36,60 +151,20 @@
                         Background="{TemplateBinding Background}" 
                         BorderBrush="{TemplateBinding BorderBrush}" 
                         BorderThickness="{TemplateBinding BorderThickness}">
-                        <Grid SnapsToDevicePixels="True">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ItemsControl 
                                 DataContext="{TemplateBinding Source}" 
-                                ItemsSource="{Binding}">
+                                ItemsSource="{Binding}"
+                                ItemTemplate="{StaticResource DownloadTemplate}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <WrapPanel />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Command="{Binding OpenDownloadedFile}">
-                                            <Grid Margin="3" VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="50" />
-                                                    <ColumnDefinition />
-                                                </Grid.ColumnDefinitions>
-                                                <Image 
-                                                    x:Name="fileImage" 
-                                                    Width="40" 
-                                                    Height="50" 
-                                                    Source="{StaticResource FileImage}" 
-                                                    Visibility="Collapsed"/>
-                                                <local:CircularProgressBar 
-                                                    x:Name="progressBar" 
-                                                    Width="50" 
-                                                    Height="50" 
-                                                    Foreground="{Binding Foreground}" 
-                                                    Value="{Binding Progress, Mode=OneWay}" 
-                                                    HoleSizeFactor="0.62"/>
-                                                <TextBlock 
-                                                    Grid.Column="1" 
-                                                    Margin="3" 
-                                                    HorizontalAlignment="Center" 
-                                                    VerticalAlignment="Center" 
-                                                    Foreground="{Binding Foreground}" 
-                                                    Text="{Binding FileName}"/>
-                                            </Grid>
-                                        </Button>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding IsDownloading}" Value="False">
-                                                <Setter TargetName="progressBar" Property="Visibility" Value="Collapsed" />
-                                                <Setter TargetName="fileImage" Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding IsCancelled}" Value="True">
-                                                <Setter TargetName="fileImage" Property="Opacity" Value="0.5" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <Button 
                                 Grid.Column="2" 
@@ -122,5 +197,5 @@
             </Setter.Value>
         </Setter>
     </Style>
-    
+
 </ResourceDictionary>

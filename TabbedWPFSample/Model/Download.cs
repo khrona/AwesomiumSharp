@@ -9,7 +9,7 @@
  *
  *  Notes:
  *
- *  Represents a download operation.
+ *  Represents end executes a download operation.
  *   
  ***************************************************************************/
 
@@ -28,9 +28,12 @@ namespace TabbedWPFSample
     internal class Download : ViewModel
     {
         #region Fields
+        private const string SHELL = "explorer.exe";
         private string file;
         WebClient client;
+
         DelegateCommand openCommand;
+        DelegateCommand openFolderCommand;
         #endregion
 
         #region Ctors
@@ -48,6 +51,8 @@ namespace TabbedWPFSample
 
             openCommand = new DelegateCommand( OnOpenDownloadedFile, CanOpenDownloadedFile );
             this.Commands.Add( openCommand );
+            openFolderCommand = new DelegateCommand( OnOpenDownloadedFileFolder, CanOpenDownloadedFile );
+            this.Commands.Add( openFolderCommand );
         }
         #endregion
 
@@ -73,6 +78,7 @@ namespace TabbedWPFSample
             file = null;
             client = null;
             openCommand = null;
+            openFolderCommand = null;
         }
         #endregion
 
@@ -111,6 +117,12 @@ namespace TabbedWPFSample
                     this.IsCancelled = e.Cancelled;
                     this.IsDownloading = false;
 
+                    if ( !e.Cancelled && File.Exists( file ) )
+                    {
+                        this.FileSize = new FileInfo( file ).GetFileSize();
+                        this.IsDownloadComplete = true;
+                    }
+
                     CommandManager.InvalidateRequerySuggested();
                 }
 
@@ -131,7 +143,9 @@ namespace TabbedWPFSample
                 return;
             }
 
+            this.FileSize = "N/A";
             this.IsCancelled = false;
+            this.IsDownloadComplete = false;
             this.IsDownloading = true;
 
             CommandManager.InvalidateRequerySuggested();
@@ -228,11 +242,53 @@ namespace TabbedWPFSample
             }
         }
 
+        private string _FileSize;
+        public string FileSize
+        {
+            get
+            {
+                return _FileSize;
+            }
+            protected set
+            {
+                if ( String.Compare( _FileSize, value, true ) == 0 )
+                    return;
+
+                _FileSize = value;
+                RaisePropertyChanged( "FileSize" );
+            }
+        }
+
+        private bool _IsDownloadComplete;
+        public bool IsDownloadComplete
+        {
+            get
+            {
+                return _IsDownloadComplete;
+            }
+            protected set
+            {
+                if ( _IsDownloadComplete == value )
+                    return;
+
+                _IsDownloadComplete = value;
+                RaisePropertyChanged( "IsDownloadComplete" );
+            }
+        }
+
         public ICommand OpenDownloadedFile
         {
             get
             {
                 return openCommand;
+            }
+        }
+
+        public ICommand OpenDownloadedFileFolder
+        {
+            get
+            {
+                return openFolderCommand;
             }
         }
         #endregion
@@ -259,11 +315,23 @@ namespace TabbedWPFSample
         #region Event Handlers
         private void OnOpenDownloadedFile()
         {
-            if ( !IsDownloading && !IsCancelled && File.Exists( file ) )
+            if ( IsDownloadComplete && File.Exists( file ) )
             {
                 try
                 {
                     Process.Start( file );
+                }
+                catch { }
+            }
+        }
+
+        private void OnOpenDownloadedFileFolder()
+        {
+            if ( IsDownloadComplete && File.Exists( file ) )
+            {
+                try
+                {
+                    Process.Start( SHELL, String.Format( @"/select, ""{0}""", file ) );
                 }
                 catch { }
             }

@@ -139,7 +139,7 @@ namespace TabbedWPFSample
                 WebCoreConfig config = new WebCoreConfig
                 {
                     // !THERE CAN ONLY BE A SINGLE WebCore RUNNING PER PROCESS!
-                    // We have insured that our application is single instance,
+                    // We have ensured that our application is single instance,
                     // with the use of the WPFSingleInstance utility.
                     // We can now safely enable cache and cookies.
                     SaveCacheAndCookies = true,
@@ -152,17 +152,17 @@ namespace TabbedWPFSample
                     UserDataPath = My.Application.UserAppDataPath,
                     EnablePlugins = true,
                     HomeURL = Settings.Default.HomeURL,
-                    // For the time being, we have to disable logging.
-                    // WebCore will attempt to create the log file in the
-                    // folder where the application resides. We do not want this
-                    // for the same reasons mentioned above for UserDataPath.
-                    LogLevel = LogLevel.None
+                    // ...Se comments for UserDataPath.
+                    LogPath = My.Application.UserAppDataPath,
+                    // Let's gather some extra info for this sample.
+                    LogLevel = LogLevel.Verbose
                 };
 
                 // Caution! Do not start the WebCore in window's constructor.
                 // This may be a startup window and a synchronization context
-                // (necessary for auto-update), is may not be available during
-                // construction; the Dispatcher may not be running yet (see App.xaml.cs).
+                // (necessary for auto-update), may not be available during
+                // construction; the Dispatcher may not be running yet 
+                // (see App.xaml.cs).
                 //
                 // Setting the start parameter to false, let's us define
                 // configuration settings early enough to be secure, but

@@ -8,10 +8,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using System;
-
-namespace TabbedWPFSample.Properties
-{   
+namespace TabbedWPFSample.Properties {
+    using System;
+    
     
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
