@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Windows;
 using TabbedWPFSample.Properties;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace TabbedWPFSample
 {
@@ -21,6 +23,10 @@ namespace TabbedWPFSample
             App app = new App();
             app.InitializeComponent();
             app.Run();
+
+            // Changes to settings may require a restart.
+            if ( My.Application.Restart )
+                Process.Start( Assembly.GetEntryAssembly().CodeBase );
         }
 
         protected override void OnStartup( StartupEventArgs e )
@@ -36,7 +42,7 @@ namespace TabbedWPFSample
         {
             // When the user is trying to launch a new instance of the application,
             // trick him/her by simply opening a new window in this application.
-            // It is important that no more that one WebCores per process are started.
+            // It is important that no more that one WebCore is started per process.
             MainWindow win = new MainWindow( new string[] { Settings.Default.HomeURL } );
             win.Show();
         }

@@ -37,6 +37,7 @@ namespace AwesomiumSharp
         private IWebView view;
         private WebSelectionChangedHandler selectionChangedHandler;
         private Selection selection;
+        private bool isRegistered;
 
         private const string SELECTION_OBJECT = "WebControlSelectionHelper";
         private const string SELECTION_HTML_CALLBACK = "webControlHTMLSelectionChanged";
@@ -62,6 +63,8 @@ namespace AwesomiumSharp
             view.CreateObject( SELECTION_OBJECT );
             view.SetObjectCallback( SELECTION_OBJECT, SELECTION_TEXT_CALLBACK, OnTextSelectionChanged );
             view.SetObjectCallback( SELECTION_OBJECT, SELECTION_HTML_CALLBACK, OnHTMLSelectionChanged );
+
+            isRegistered = true;
         }
 
         /// <summary>
@@ -121,6 +124,14 @@ namespace AwesomiumSharp
         #endregion
 
         #region Properties
+        public bool IsRegistered
+        {
+            get
+            {
+                return isRegistered;
+            }
+        }
+
         public IWebView View
         {
             get
@@ -153,7 +164,22 @@ namespace AwesomiumSharp
             if ( !IsDisposed )
             {
                 selectionChangedHandler = null;
-                view = null;
+
+                if ( isRegistered && ( view != null ) )
+                {
+                    try
+                    {
+                        view.DestroyObject( SELECTION_OBJECT );
+                        view.SetObjectCallback( SELECTION_OBJECT, SELECTION_TEXT_CALLBACK, null );
+                        view.SetObjectCallback( SELECTION_OBJECT, SELECTION_HTML_CALLBACK, null );
+                    }
+                    catch { }
+                    finally
+                    {
+                        view = null;
+                        isRegistered = false;
+                    }
+                }
 
                 IsDisposed = true;
             }

@@ -112,6 +112,9 @@
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="ContextMenu" Value="{x:Null}" />
             </Trigger>
+            <Trigger Property="IsSourceControl" Value="True">
+                <Setter Property="ContextMenu" Value="{x:Null}" />
+            </Trigger>
         </Style.Triggers>
     </Style>
 

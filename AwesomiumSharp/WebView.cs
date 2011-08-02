@@ -1,84 +1,32 @@
-﻿#region Changelog
-/*******************************************************************************/
-/*************************** EDITING NOTES *************************************/
-/*******************************************************************************
- *    Project : AwesomiumSharp
- *    File    : WebView.cs
- *    Version : 1.0.0.0 
- *    Date    : 07/03/2011
- *    Editor  : Perikles C. Stephanidis (AmaDeuS)
- *    Contact : perikles@stephanidis.net
+﻿/*******************************************************************************
+ *    Project  : AwesomiumSharp
+ *    File     : WebView.cs
+ *    Version  : 1.6.2.0 
+ *    Date     : 07/03/2011
+ *    Editor   : Perikles C. Stephanidis (AmaDeuS)
+ *    Contact  : perikles@stephanidis.net
  *-------------------------------------------------------------------------------
  *
- *    Notes   :
+ *    Notes    :
  *
- *    This class is a wrapper to the Awesomium C API. The major 
- *    differences and edits made are:
+ *    The WebView is sort of like a tab in Chrome: you can load web-pages into it, 
+ *    interact with it, and render it to a buffer (we give you the raw pixels, 
+ *    its your duty to display it).
  *    
- *    - Many changes with respect to standard .NET guidelines and naming
- *      convention were made. These include, among others:
- *          * Get/Set accessors were turned into Properties wherever
- *            this was appropriate.
- *          * The names of many events were changed to follow proper
- *            naming convension.
- *          * Protected event triggers were added.
- *          * Former inner classes (such as the various EventArgs) are
- *            taken outside the class and moved to separate files. They
- *            can be found in the EventArgs project folder. All these
- *            classes have also been edited following the same guidelines.
+ *    Changelog: 
  *    
- *    - A base modeling class (ViewModel) implementing INotifyPropertyChanged
- *      is added and subclassed. This makes WebView MVVM friendly.
- *      
- *    - Part of the Find logic is now handled by this class making it
- *      more straightforward. FindNext is added.
- *    
- *    - Extensive pro-exception verification of validity before every API
- *      call is added.  
- *      
- *      
- *    07/08/2011:
- *    
- *    - Full documentation. Updated documentation will soon be available online
- *      at: <http://awesomium.com/docs/1_6_2/sharp_api/>
- *      
- *    - Few fixes and renaming of members.
- *    
- *    
- *    07/12/2011:
- *    
- *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
- *    
- *    
- *    07/18/2011 (Perikles C. Stephanidis)
- *      
- *    - Added support for the new RenderBuffer.FlashAlpha. Tests have shown
- *      that adding this feature to WebView by default, does not affect
- *      performance. Nevertheless, a property (FlashAlpha) has been added
- *      to the view and allows developers to disable the feature.
- *      It is enabled by default.
- *      
- *    - Added e temporary model of getting current selection in both
- *      Text and HTML form. The model uses Javascript objects, callbacks
- *      and injected code. This model will be removed when we get a native way 
- *      to access current selection changes and properties. You can see the
- *      logic in the SelectionHelper and Selection classes, as well as in the
- *      "Temporary Selection Logic" region, at the bottom of this code file.
- * 
- *-------------------------------------------------------------------------------
- *
- *    !Changes may need to be tested with AwesomiumMono. I didn't test them!
+ *    https://github.com/khrona/AwesomiumSharp/commits/master.atom
  * 
  ********************************************************************************/
-#endregion
 
 #region Using
 using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Text;
-using System.Runtime.InteropServices;
 using System.IO;
+using System.Text;
+using System.ComponentModel;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Collections.Specialized;
 #if !USING_MONO
 using System.Linq;
 using System.Windows;
@@ -91,19 +39,19 @@ namespace AwesomiumMono
 namespace AwesomiumSharp
 #endif
 {
+    #region Documentation
     /// <summary>
     /// The WebView is sort of like a tab in Chrome: you can load web-pages into it, interact with it, 
     /// and render it to a buffer (we give you the raw pixels, its your duty to display it).
     /// </summary>
     /// <remarks>
-    /// @note
     /// You can create a WebView using <see cref="WebCore.CreateWebView"/>. If you have not initialized
     /// the <see cref="WebCore"/> (see <see cref="WebCore.Initialize"/>) before creating a <see cref="WebView"/>,
     /// the core will be initialized using default configuration settings and automatically be started
     /// before creating the view.
-    /// @warning
-    /// Instances of classes in this assembly and their members, are not thread safe.
     /// </remarks>
+    /// <threadsafety static="true" instance="false" />
+    #endregion
     public class WebView : ViewModel, IWebView
     {
         #region Fields
@@ -655,7 +603,6 @@ namespace AwesomiumSharp
         /// after calling this method, will cause a <see cref="InvalidOperationException"/>.
         /// </summary>
         /// <remarks>
-        /// @warning
         /// To avoid exceptions, Make sure you do not call this method when the hosting UI 
         /// (if any) of this view, is still alive and visible.
         /// </remarks>
@@ -683,9 +630,80 @@ namespace AwesomiumSharp
                 resourceResponseCallback = null;
                 awe_webview_set_callback_resource_response( Instance, null );
 
+                beginLoadingCallback = null;
+                awe_webview_set_callback_begin_loading( Instance, null );
+
+                beginNavigationCallback = null;
+                awe_webview_set_callback_begin_navigation( Instance, null );
+
+                changeCursorCallback = null;
+                awe_webview_set_callback_change_cursor( Instance, null );
+
+                changeKeyboardFocusCallback = null;
+                awe_webview_set_callback_change_keyboard_focus( Instance, null );
+
+                changeTargetURLCallback = null;
+                awe_webview_set_callback_change_target_url( Instance, null );
+
+                changeTooltipCallback = null;
+                awe_webview_set_callback_change_tooltip( Instance, null );
+
+                domReadyCallback = null;
+                awe_webview_set_callback_dom_ready( Instance, null );
+
+                finishLoadingCallback = null;
+                awe_webview_set_callback_finish_loading( Instance, null );
+
+                getFindResultsCallback = null;
+                awe_webview_set_callback_get_find_results( Instance, null );
+
+                getPageContentsCallback = null;
+                awe_webview_set_callback_get_page_contents( Instance, null );
+
+                getScrollDataCallback = null;
+                awe_webview_set_callback_get_scroll_data( Instance, null );
+
+                jsCallback = null;
+                awe_webview_set_callback_js_callback( Instance, null );
+
+                jsConsoleMessageCallback = null;
+                awe_webview_set_callback_js_console_message( Instance, null );
+
+                openExternalLinkCallback = null;
+                awe_webview_set_callback_open_external_link( Instance, null );
+
+                pluginCrashedCallback = null;
+                awe_webview_set_callback_plugin_crashed( Instance, null );
+
+                receiveTitleCallback = null;
+                awe_webview_set_callback_receive_title( Instance, null );
+
+                requestFileChooserCallback = null;
+                awe_webview_set_callback_request_file_chooser( Instance, null );
+
+                requestDownloadCallback = null;
+                awe_webview_set_callback_request_download( Instance, null );
+
+                requestMoveCallback = null;
+                awe_webview_set_callback_request_move( Instance, null );
+
+                updateIMECallback = null;
+                awe_webview_set_callback_update_ime( Instance, null );
+
+                webviewCrashedCallback = null;
+                awe_webview_set_callback_web_view_crashed( Instance, null );
+
                 selectionHelper.Dispose();
                 selectionHelper = null;
                 selection = Selection.Empty;
+
+                this.JSCallbackCalled -= handleJSCallback;
+
+                if ( jsObjectCallbackMap != null )
+                {
+                    jsObjectCallbackMap.Clear();
+                    jsObjectCallbackMap = null;
+                }
 
                 WebCore.DestroyView( this );
                 Instance = IntPtr.Zero;
@@ -768,8 +786,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// The name of the frame to load the HTML in.
         /// </param>
         /// <remarks>
-        /// @note
-        /// Any assets requires by the specified HTML (images etc.), should exist 
+        /// Any assets required by the specified HTML (images etc.), should exist 
         /// within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
@@ -801,7 +818,6 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// The name of the frame to load the file in.
         /// </param>
         /// <remarks>
-        /// @note
         /// The file should exist within the base directory set with <see cref="WebCore.SetBaseDirectory"/>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">
@@ -1171,8 +1187,10 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// <remarks>
         /// For maximum efficiency, you should only call this when the <see cref="WebView"/> is dirty 
         /// (see <see cref="IsDirty"/>).
-        /// @note
+        /// <p/>
+        /// <note type="tip">
         /// The most appropriate time to call this method, is from within your <see cref="IsDirtyChanged"/> handler.
+        /// </note>
         /// </remarks>
         /// <returns>
         /// An instance of the <see cref="RenderBuffer"/> that this <see cref="WebView"/> was rendered to. 
@@ -1188,7 +1206,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
             VerifyValid();
             RenderBuffer buffer = new RenderBuffer( awe_webview_render( Instance ) );
 
-            if ( flashAlpha && ( buffer != null ) )
+            if ( flushAlpha && ( buffer != null ) )
                 buffer.FlushAlpha();
 
             return buffer;
@@ -1376,10 +1394,11 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// This is usually easier to use than <see cref="InjectKeyboardEvent"/>. All you have to
         /// do is hook into the window procedure of this view's host, intercept WM_KEYDOWN, WM_KEYUP and WM_CHAR
         /// and inject them to the view by using this method.
-        /// @warning
+        /// <note type="tip">
         /// Beware that in WPF, only the parent Window has a window procedure. Make sure
         /// that you only inject messages when the actual host (if it's a child element)
         /// has the focus, and that you do not hook into the same procedure multiple times.
+        /// </note>
         /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// The member is called on an invalid <see cref="WebView"/> instance
@@ -1687,7 +1706,6 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// For example, to match all URLs from the domain "google.com", your filter string can be: http://google.com/*
         /// </example>
         /// <remarks> 
-        /// @note
         /// You may also use the "local://" scheme prefix to describe the URL to the base directory
         /// (set via <see cref="WebCore.SetBaseDirectory"/>).
         /// </remarks>
@@ -1833,7 +1851,6 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// </summary>
         /// <param name="name">
         /// The name of the header definition (specified in <see cref="WebView.SetHeaderDefinition"/>).
-        /// @note
         /// Specify an empty string, to remove all header re-write rules.
         /// </param>
         /// <exception cref="InvalidOperationException">
@@ -1861,7 +1878,6 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// The full path to the file that was selected.
         /// </param>
         /// <remarks>
-        /// @note
         /// Alternatively, if you opened a modal dialog from within your <see cref="SelectLocalFiles"/> handler,
         /// you can define the files to be uploaded by using the <see cref="SelectLocalFilesEventArgs.SelectedFiles"/>
         /// property.
@@ -2161,11 +2177,10 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// or was never properly instantiated. Attempting to access members of this
         /// view while the value of this property is false, may cause a <see cref="InvalidOperationException"/>
         /// </para>
-        /// <para>
-        /// @note
+        /// <note>
         /// There is no way to revive an invalid view. When you are done with reporting any errors
         /// to the user, dispose it and release any references to it to avoid memory leaks.
-        /// </para>
+        /// </note>
         /// </remarks>
         public bool IsEnabled
         {
@@ -2559,26 +2574,26 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         }
         #endregion
 
-        #region FlashAlpha
-        private bool flashAlpha = true;
+        #region FlushAlpha
+        private bool flushAlpha = true;
 
         /// <summary>
         /// Gets or sets if we should flush the alpha channel to completely opaque values, during rendering.
         /// The default is true.
         /// </summary>
-        public bool FlashAlpha
+        public bool FlushAlpha
         {
             get
             {
-                return flashAlpha;
+                return flushAlpha;
             }
             set
             {
-                if ( flashAlpha == value )
+                if ( flushAlpha == value )
                     return;
 
-                flashAlpha = value;
-                RaisePropertyChanged( "FlashAlpha" );
+                flushAlpha = value;
+                RaisePropertyChanged( "FlushAlpha" );
             }
         }
         #endregion
@@ -2634,8 +2649,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         /// Valid range is from 10% to 500%.
         /// </summary>
         /// <remarks>
-        /// @note
-        /// Please note that this operation is asynchronous: 
+        /// This operation is asynchronous: 
         /// the value may not change for several milliseconds after
         /// you set this property.
         /// </remarks>
@@ -2902,8 +2916,7 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
 
             Uri uriTest;
             Uri.TryCreate( e.Url, UriKind.Absolute, out uriTest );
-            // This is here temporarily to fix an issue where download requests are fired for no obvious
-            // reason containing empty strings or characters like: "*", as Url.
+
             if ( String.IsNullOrEmpty( e.Url ) ||
                 ( uriTest == null ) ||
                 !uriTest.IsAbsoluteUri ||

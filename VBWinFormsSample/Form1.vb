@@ -39,7 +39,7 @@ Public Class Form1
 
         Dim ptr As IntPtr = bits.Scan0.ToInt32()
 
-        rBuffer.CopyTo(ptr, bits.Stride, 4, False)
+        rBuffer.CopyTo(ptr, bits.Stride, 4)
 
         bitmap.UnlockBits(bits)
 

@@ -1,29 +1,31 @@
-﻿/*******************************************************************************
- *    Project : AwesomiumSharp
- *    File    : WebCoreConfig.cs
- *    Version : 1.0.0.0 
- *    Date    : 07/03/2011
- *    Author  : Perikles C. Stephanidis (AmaDeuS)
- *    Contact : perikles@stephanidis.net
- *-------------------------------------------------------------------------------
- *
- *    Notes   :
- *
- *    This class provides initialization settings to the WebCore. It is now
- *    fully documented and taken out of WebCore.cs
- *    
- *    07/12/2011:
- *    
- *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
- *    
- *    07/22/2011:
- *    
- *    - Synchronized with Awesomium r159 (1.6.2 Pre-Release)
- *    
- *    - Added EnableVisualStyles property used to apply visual styles to the
- *      Print dialog. Read details in remarks section of EnableThemingInScope.
- * 
- ********************************************************************************/
+﻿#region Changelog
+/*******************************************************************************
+     *    Project : AwesomiumSharp
+     *    File    : WebCoreConfig.cs
+     *    Version : 1.0.0.0 
+     *    Date    : 07/03/2011
+     *    Author  : Perikles C. Stephanidis (AmaDeuS)
+     *    Contact : perikles@stephanidis.net
+     *-------------------------------------------------------------------------------
+     *
+     *    Notes   :
+     *
+     *    This class provides initialization settings to the WebCore. It is now
+     *    fully documented and taken out of WebCore.cs
+     *    
+     *    07/12/2011:
+     *    
+     *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
+     *    
+     *    07/22/2011:
+     *    
+     *    - Synchronized with Awesomium r159 (1.6.2 Pre-Release)
+     *    
+     *    - Added EnableVisualStyles property used to apply visual styles to the
+     *      Print dialog. Read details in remarks section of EnableThemingInScope.
+     * 
+     ********************************************************************************/
+#endregion
 
 using System;
 using System.ComponentModel;
@@ -109,15 +111,17 @@ namespace AwesomiumSharp
         /// </summary>
         public string LogPath { get; set; }
         /// <summary>
-        /// Indicates the logging level to use, this can be either <see cref="LogLevel.None"/>, 
-        /// <see cref="LogLevel.Normal"/>, or <see cref="LogLevel.Verbose"/>.
-        /// The default is <see cref="LogLevel.Normal"/>.
+        /// Indicates the logging level to use, this can be either <see cref="AwesomiumSharp.LogLevel.None"/>, 
+        /// <see cref="AwesomiumSharp.LogLevel.Normal"/>, or <see cref="AwesomiumSharp.LogLevel.Verbose"/>.
+        /// The default is <see cref="AwesomiumSharp.LogLevel.Normal"/>.
         /// </summary>
         public LogLevel LogLevel { get; set; }
         /// <summary>
         /// Indicates whether or not all WebViews and should be forced to render inside
         /// the main process (we typically launch a separate child-process to
-        /// render each WebView and plugin safely). This mode currently only works
+        /// render each WebView and plugin safely).
+        /// <p/>
+        /// This mode currently only works
         /// on Windows and automatically disables plugins and local databases.
         /// The default is false.
         /// </summary>
@@ -152,26 +156,40 @@ namespace AwesomiumSharp
         /// Specify anything else to set manual proxy settings.
         /// </summary>
         /// <example>
-        /// Example:
-        /// <pre>
-        /// "none"                         -- No proxy. (Default).
-        /// 
-        /// "auto"                         -- Detect system proxy settings.
-        /// 
-        /// "http=myproxy:80;ftp=myproxy2" -- Use HTTP proxy "myproxy:80"  
-        ///                                   for http:// URLs, and HTTP proxy 
-        ///                                   "myproxy2:80" for ftp:// URLs.
-        ///                                   
-        /// "myproxy:80"                   -- Use HTTP proxy "foopy:80" for
-        ///                                   all URLs.
-        ///                                   
-        /// "socks4://myproxy"             -- Use SOCKS v4 proxy "foopy:1080" 
-        ///                                   for all URLs.
-        /// </pre>
+        /// Possible values can be:
+        /// <list type="table">
+        /// <listheader>
+        /// <term>Value</term>
+        /// <description>Description</description>
+        /// </listheader>
+        /// <item>
+        /// <term><c>"none"</c></term>
+        /// <description>No proxy. (<b>Default</b>).</description>
+        /// </item>
+        /// <item>
+        /// <term><c>"auto"</c></term>
+        /// <description>Detect system proxy settings.</description>
+        /// </item>
+        /// <item>
+        /// <term><c>"http=myproxy:80;ftp=myproxy2"</c></term>
+        /// <description>
+        /// Use HTTP proxy "myproxy:80" for http:// URLs, and HTTP proxy 
+        /// "myproxy2:80" for ftp:// URLs.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <term><c>"myproxy:80"</c></term>
+        /// <description>Use HTTP proxy "foopy:80" for all URLs.</description>
+        /// </item>
+        /// <item>
+        /// <term><c>"socks4://myproxy"</c></term>
+        /// <description>Use SOCKS v4 proxy "foopy:1080" for all URLs.</description>
+        /// </item>
+        /// </list>
         /// </example>
         public string ProxyServer { get; set; }
         /// <summary>
-        /// Indicates the URL to the PAC (Proxy Auto-Config) Script to use. See <http://en.wikipedia.org/wiki/Proxy_auto-config> for more info.
+        /// Indicates the URL to the PAC (Proxy Auto-Config) Script to use. See http://en.wikipedia.org/wiki/Proxy_auto-config for more info.
         /// </summary>
         public string ProxyConfigScript { get; set; }
         /// <summary>
@@ -181,6 +199,12 @@ namespace AwesomiumSharp
         /// Integrated Authentication can authenticate the user to an Intranet server or proxy without prompting the user for a username or password. 
         /// It does this by using cached credentials which are established when the user initially logs in to the machine that Awesomium is running on. 
         /// Integrated Authentication is supported for Negotiate and NTLM challenges only.
+        /// <p/>
+        /// <note>
+        /// In Windows only, if you do not set this property, the permitted list consists of those servers in the Local Machine or 
+        /// Local Intranet security zone (for example, when the host in the URL includes a "." character it is outside the Local Intranet security zone), 
+        /// which is the behavior present in IE.
+        /// </note>
         /// </remarks>
         /// <example>
         /// The list is set using a comma-separated string of URLs. For example, you can specify:
@@ -190,10 +214,6 @@ namespace AwesomiumSharp
         /// which would tell Awesomium that any URL ending in either 'example.com', 'foobar.com' or 'baz' is in the permitted list.
         /// Without the '*' prefix, the URL has to match exactly.
         /// </example>
-        /// @note
-        /// In Windows only, if you do not set this property, the permitted list consists of those servers in the Local Machine or 
-        /// Local Intranet security zone (for example, when the host in the URL includes a "." character it is outside the Local Intranet security zone), 
-        /// which is the behavior present in IE.
         public string AuthServerWhitelist { get; set; }
         /// <summary>
         /// Indicates whether or not cache and cookies should be saved to disk.
@@ -205,7 +225,7 @@ namespace AwesomiumSharp
         public int MaxCacheSize { get; set; }
         /// <summary>
         /// Indicates whether or not the "same-origin" policy should be disabled. 
-        /// See <http://en.wikipedia.org/wiki/Same_origin_policy>.
+        /// See http://en.wikipedia.org/wiki/Same_origin_policy.
         /// </summary>
         public bool DisableSameOriginPolicy { get; set; }
         /// <summary>
@@ -237,11 +257,11 @@ namespace AwesomiumSharp
         private string homeURL;
         /// <summary>
         /// Gets or sets the URL that will be used as the Home URL
-        /// for <see cref="WebControl"/>s.
+        /// for <see cref="Windows.Controls.WebControl"/>s.
         /// </summary>
         /// <remarks>
-        /// This setting is used by <see cref="WebControl"/>s to automatically
-        /// handle the <see cref="NavigationCommands.BrowseHome"/> command.
+        /// This setting is used by <see cref="Windows.Controls.WebControl"/>s to automatically
+        /// handle the <see cref="System.Windows.Input.NavigationCommands.BrowseHome"/> command.
         /// The default is: "about:blank".
         /// </remarks>
         /// <exception cref="ArgumentNullException">

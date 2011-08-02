@@ -24,6 +24,7 @@ namespace TabbedWPFSample
 {
     class WebTabControl : TabControl
     {
+        private bool collectionChanging;
 
         #region Ctor
         static WebTabControl()
@@ -35,7 +36,9 @@ namespace TabbedWPFSample
         #region Overrides
         protected override void OnItemsChanged( NotifyCollectionChangedEventArgs e )
         {
+            collectionChanging = true;
             base.OnItemsChanged( e );
+            collectionChanging = false;
 
             if ( ( e.NewItems != null ) && ( e.NewItems.Count > 0 ) )
             {
@@ -94,13 +97,14 @@ namespace TabbedWPFSample
 
         protected override void OnSelectionChanged( SelectionChangedEventArgs e )
         {
+            base.OnSelectionChanged( e );
+
             // Prevent the TabControl from staying with no selected item.
             // This can occur is we try to un-select the selected tab from code,
             // or by clicking it in the tabs menu.
-            if ( this.Items.Count > 0 && e.AddedItems.Count == 0 )
+            if ( !collectionChanging && ( this.Items.Count > 0 ) && ( e.AddedItems.Count == 0 ) && ( this.SelectedIndex < 0 ) )
                 ( (TabView)this.Items[ 0 ] ).IsSelected = true;
-            else
-                base.OnSelectionChanged( e );
+
         }
         #endregion
     }

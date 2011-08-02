@@ -13,6 +13,7 @@
 
             <PopupAnimation x:Key="{x:Static SystemParameters.MenuPopupAnimationKey}">None</PopupAnimation>
 
+            <!-- We override the items that appear when we right-click a link in a page -->
             <x:Array x:Key="{x:Static awe:WebControl.ContextMenuLinkItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
                 <MenuItem 
                     Command="{x:Static local:MainWindow.OpenInTab}"
@@ -25,7 +26,18 @@
                     CommandTarget="{Binding}"/>
                 <Separator />
             </x:Array>
-            
+
+            <!-- We override the items that appear when we right-click a page, to add the "Show Source Code" item. -->
+            <x:Array x:Key="{x:Static awe:WebControl.ContextMenuPageItemsArrayRecourceKey}" Type="{x:Type DependencyObject}">
+                <MenuItem Command="BrowseBack" CommandTarget="{Binding}" />
+                <MenuItem Command="BrowseForward" CommandTarget="{Binding}" />
+                <MenuItem Command="Refresh" CommandTarget="{Binding}" />
+                <Separator />
+                <MenuItem Command="{x:Static local:MainWindow.OpenSource}" CommandParameter="{Binding Source}"/>
+                <Separator />
+                <MenuItem Command="Print" CommandTarget="{Binding}" />
+            </x:Array>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

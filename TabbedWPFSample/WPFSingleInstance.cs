@@ -127,7 +127,8 @@ namespace TabbedWPFSample
                         DispatcherPriority.ApplicationIdle,
                         ( sender, e ) =>
                         {
-                            if ( Application.Current.Windows.Cast<Window>().Count( ( window ) => !( double.IsNaN( window.Left ) ) ) == 0 )
+                            if ( ( Application.Current != null ) &&
+                                Application.Current.Windows.Cast<Window>().Count( ( window ) => !( double.IsNaN( window.Left ) ) ) == 0 )
                             {
                                 // For that exit no interception.
                                 Environment.Exit( 0 );

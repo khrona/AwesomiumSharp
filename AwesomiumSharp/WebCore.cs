@@ -1,89 +1,24 @@
-﻿#region Changelog
-/*******************************************************************************/
-/*************************** EDITING NOTES *************************************/
-/*******************************************************************************
- *    Project : AwesomiumSharp
- *    File    : WebCore.cs
- *    Version : 1.0.0.0 
- *    Date    : 07/03/2011
- *    Editor  : Perikles C. Stephanidis (AmaDeuS)
- *    Contact : perikles@stephanidis.net
+﻿/*******************************************************************************
+ *    Project  : AwesomiumSharp
+ *    File     : WebCore.cs
+ *    Version  : 1.6.2.0 
+ *    Date     : 08/02/2011
+ *    Editor   : Perikles C. Stephanidis (AmaDeuS)
+ *    Contact  : perikles@stephanidis.net
  *-------------------------------------------------------------------------------
  *
- *    Notes   :
- *
- *    This static class is a wrapper to AwesomiumSharp::WebCore. Read XML
- *    comments for details. The major differences and edits made are:
+ *    Notes    :
  *    
- *    - Many changes with respect to standard .NET guidelines and naming
- *      convention were made. These include, among others:
- *          * Get/Set accessors were turned into Properties wherever
- *            this was appropriate.
- *          * The names of many members were changed to follow proper
- *            naming convention.
- *          * WebCoreConfig is created, documented and taken out of
- *            the class.
+ *    The WebCore is the "core" of Awesomium; it manages the lifetime of all views
+ *    (see <see cref="WebView"/> and <see cref="Windows.Controls.WebControl"/>) 
+ *    and maintains useful services like resource caching and 
+ *    network connections.
  *    
- *    - Background auto-updating is added and can be configured during
- *      initialization through WebCoreConfig, or afterwards through
- *      the AutoUpdate property.
+ *    Changelog: 
  *    
- *    - Extensive pro-exception verification of validity before every API
- *      call is added.
- *      
- * 
- *    07/06/2011:
+ *    https://github.com/khrona/AwesomiumSharp/commits/master.atom
  *    
- *    - I have decided to completely isolate auto-update to the WebCore
- *      itself, and disallow access to to the auto-Update logic from outside
- *      the assembly. The scenario and analysis is:
- *          * If a developer creates many WebView instances and provides for
- *            them his/her own update logic, or if he/she uses many WebControls
- *            (that include their own auto-update) we may end up with
- *            awe_webcore_update being called tens of times almost 
- *            simultaneously, for no reason. Documentation for awe_webcore_update
- *            says that this method is "...updating the RenderBuffer of each 
- *            WebView, destroying any WebViews that are queued for destruction, 
- *            and invoking any queued WebView events. You should call this 
- *            as part of your application's update loop.". This means that one
- *            call is enough to cover all created views.
- *          * We could demand for a hwnd and hook into the host application's
- *            message loop, but the idea of calling awe_webcore_update
- *            from inside our application's message loop is actually not
- *            appropriate. Awesomium runs as a separate process and has its
- *            own message loop. Our application may be idle while Awesomium
- *            is not. So we will keep relying on a timer.
- *            
- *    - WebCoreConfig is moved to a separate file.
- *    
- *    - Changes in initialization logic and minor bug fixes.
- *    
- *    - Added and improved existing documentation to reflect changes and
- *      help with the understanding of the new logic.
- *      
- *    07/08/2011:
- *    
- *    - Full XML documentation. Updated HTML documentation will soon be available
- *      online at: <http://awesomium.com/docs/1_6_2/sharp_api/>
- *      
- *    - Improved auto-updating.
- *
- *    - Improved initialization logic.
- *    
- *    07/12/2011:
- *    
- *    - Synchronized with Awesomium r148 (1.6.2 Pre-Release)
- *    
- *    07/22/2011:
- *    
- *    - Synchronized with Awesomium r159 (1.6.2 Pre-Release)
- *      
- *-------------------------------------------------------------------------------
- *
- *    !Changes may need to be tested with AwesomiumMono. I didn't test them!
- * 
  ********************************************************************************/
-#endregion
 
 #region Using
 using System;
@@ -135,17 +70,29 @@ namespace AwesomiumSharp
 
     public enum WebKeyModifiers
     {
-        /// Whether or not a Shift key is down
+        /// <summary>
+        /// Whether or not a Shift key is down.
+        /// </summary>
         ShiftKey = 1 << 0,
-        /// Whether or not a Control key is down
+        /// <summary>
+        /// Whether or not a Control key is down.
+        /// </summary>
         ControlKey = 1 << 1,
-        /// Whether or not an ALT key is down
+        /// <summary>
+        /// Whether or not an ALT key is down.
+        /// </summary>
         AltKey = 1 << 2,
-        /// Whether or not a meta key (Command-key on Mac, Windows-key on Windows) is down
+        /// <summary>
+        /// Whether or not a meta key (Command-key on Mac, Windows-key on Windows) is down.
+        /// </summary>
         MetaKey = 1 << 3,
-        /// Whether or not the key pressed is on the keypad
+        /// <summary>
+        /// Whether or not the key pressed is on the keypad.
+        /// </summary>
         IsKeypad = 1 << 4,
+        /// <summary>
         /// Whether or not the character input is the result of an auto-repeat timer.
+        /// </summary>
         IsAutoRepeat = 1 << 5,
     };
 
@@ -253,7 +200,7 @@ namespace AwesomiumSharp
     };
 
     /// <summary>
-    /// A simple rectangle class. Used with <see cref="WebView.GetDirtyBounds"/>, <see cref="Windows.Controls.WebControl.GetDirtyBounds"/>
+    /// A simple rectangle class. Used with <see cref="WebView.DirtyBounds"/>, <see cref="Windows.Controls.WebControl.DirtyBounds"/>
     /// and various <see cref="RenderBuffer"/> methods.
     /// </summary>
     [StructLayout( LayoutKind.Sequential )]
@@ -267,6 +214,7 @@ namespace AwesomiumSharp
     #endregion
 
 
+    #region Documentation
     /// <summary>
     /// The WebCore is the "core" of Awesomium; it manages the lifetime of all views
     /// (see <see cref="WebView"/> and <see cref="Windows.Controls.WebControl"/>) and maintains useful services
@@ -276,22 +224,20 @@ namespace AwesomiumSharp
     /// Generally, you should initialize the WebCore (<see cref="WebCore.Initialize"/>) providing
     /// your custom configuration, before creating any views and shut it down (<see cref="WebCore.Shutdown"/>)
     /// at the end of your program.
-    /// @note
-    /// <para>
+    /// <p/>
+    /// <note>
     /// If you do not initialize <see cref="WebCore"/>, the core will automatically
     /// start, using default configuration, when you create the first view by either calling
     /// <see cref="WebCore.CreateWebView"/> or by instantiating a <see cref="Windows.Controls.WebControl"/>.
-    /// </para>
-    /// @warning
-    /// <para>
+    /// </note>
+    /// <p/>
+    /// <note type="caution">
     /// Do not call any of the members of this class (other than <see cref="WebCore.Initialize"/>
     /// or <see cref="WebCore.CreateWebView"/>) before starting the core.
-    /// </para>
-    /// @warning
-    /// <para>
-    /// Instances of classes in this assembly and their members, are not thread safe.
-    /// </para>
+    /// </note>
     /// </remarks>
+    /// <threadsafety static="false" instance="false" />
+    #endregion
     public static class WebCore
     {
         #region Fields
@@ -310,6 +256,7 @@ namespace AwesomiumSharp
         private static int updatePeriod = 20;
         private static bool isRunning;
         private static bool isShuttingDown;
+        private static int coreThreadID;
         private static SynchronizationContext syncCtx;
         #endregion
 
@@ -323,6 +270,19 @@ namespace AwesomiumSharp
         {
             if ( !isRunning )
                 throw new InvalidOperationException( "The WebCore is not running. At least one view needs to be created before" );
+        }
+        #endregion
+
+        #region CheckAccess
+        /// <summary>
+        /// Checks thread affinity.
+        /// </summary>
+        /// <returns>
+        /// True if called on the correct thread. False otherwise.
+        /// </returns>
+        internal static bool CheckAccess()
+        {
+            return Thread.CurrentThread.ManagedThreadId == coreThreadID;
         }
         #endregion
 
@@ -354,6 +314,17 @@ namespace AwesomiumSharp
 
                 //if ( activeWebViews.Count == 0 )
                 //    Shutdown();
+            }
+        }
+        #endregion
+
+        #region StopUpdateTimer
+        private static void StopUpdateTimer()
+        {
+            if ( updateTimer != null )
+            {
+                updateTimer.Dispose();
+                updateTimer = null;
             }
         }
         #endregion
@@ -398,22 +369,20 @@ namespace AwesomiumSharp
         /// is created. The default is true.
         /// </param>
         /// <remarks>
-        /// @note
         /// <para>
         /// If you do not call this method, the <see cref="WebCore"/> will start automatically,
         /// using default configuration settings, when you first create a view through <see cref="CreateWebView"/>
         /// or by instantiating a <see cref="Windows.Controls.WebControl"/>.
         /// </para>
-        /// <para>
+        /// <note>
         /// If you are not sure if <see cref="WebCore"/> is running, check <see cref="IsRunning"/>
         /// before calling this method. If <see cref="WebCore"/> is running, you will have
         /// to shut it down (see <see cref="Shutdown"/>) and <b>restart the hosting application</b> before 
-        /// initializing <see cref="WebCore"/> again. <see cref="WebCore"/> is a singleton. Only a single
-        /// initialization/instantiation is available per application session.
-        /// </para>
-        /// @warning
+        /// initializing <see cref="WebCore"/> again. Only a single initialization/instantiation of the 
+        /// <see cref="WebCore"/> is possible per application session (process).
+        /// </note>
         /// <para>
-        /// For this (r148) test release, if you set <see cref="WebCoreConfig.SaveCacheAndCookies"/> to true, 
+        /// If you set <see cref="WebCoreConfig.SaveCacheAndCookies"/> to true, 
         /// please make sure that your hosting application is a single instance application, 
         /// unless you are sure that you provide a unique <see cref="WebCoreConfig.UserDataPath"/>
         /// for each of your application's instances.
@@ -493,14 +462,14 @@ namespace AwesomiumSharp
                 activeWebViews = new List<IWebView>();
                 syncCtx = SynchronizationContext.Current;
 
-                if ( updateTimer != null )
-                {
-                    updateTimer.Dispose();
-                    updateTimer = null;
-                }
+                // Just to be sure.
+                StopUpdateTimer();
+
+                // In some scenarios (like when using Mono) just the
+                // SynchronizationContext is not enough to ensure thread affinity.
+                coreThreadID = Thread.CurrentThread.ManagedThreadId;
 
                 // We will not start auto-update unless we get a synchronization context.
-                // Read the updated documentation of Update for details.
                 if ( syncCtx != null )
                     updateTimer = new Timer( UpdateTimerCallback, null, 20, updatePeriod );
 
@@ -535,17 +504,11 @@ namespace AwesomiumSharp
                 isShuttingDown = true;
 
                 // Stop the update timer.
-                if ( updateTimer != null )
-                {
-                    updateTimer.Dispose();
-                    updateTimer = null;
-                }
+                StopUpdateTimer();
 
                 // Inform views by closing them.
                 foreach ( IWebView i in activeWebViews )
-                {
                     i.Close();
-                }
 
                 try
                 {
@@ -584,7 +547,6 @@ namespace AwesomiumSharp
         /// <see cref="Windows.Controls.WebControl.IsDirtyChanged"/>).
         /// </summary>
         /// <remarks>
-        /// <para>
         /// If you are using Awesomium from a UI thread (regular use), you never need to call this method.
         /// Internal auto-update takes care of this and you only need to watch for the <see cref="WebView.IsDirtyChanged"/>
         /// or <see cref="Windows.Controls.WebControl.IsDirtyChanged"/> events. If you are using Awesomium from a
@@ -592,15 +554,9 @@ namespace AwesomiumSharp
         /// you must manually call this method from either your application's message loop or by creating a timer. 
         /// In this case, you must make sure that any calls to any of the classes of this assembly,
         /// are made from the same thread.
-        /// </para>
-        /// <para>
-        /// @note
+        /// <note>
         /// You can check <see cref="IsAutoUpdateEnabled"/> to know if auto-update is already enabled.
-        /// </para>
-        /// <para>
-        /// @warning
-        /// Instances of classes in this assembly and their members, are not thread safe.
-        /// </para>
+        /// </note>
         /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// The member is called before starting <see cref="WebCore"/>.
@@ -737,7 +693,7 @@ namespace AwesomiumSharp
         /// Sets a custom response page to use when a WebView encounters a certain HTML status code from the server (like '404 - File not found').
         /// </summary>
         /// <param name="statusCode">
-        /// The status code this response page should be associated with. See <http://en.wikipedia.org/wiki/List_of_HTTP_status_codes>.
+        /// The status code this response page should be associated with. See http://en.wikipedia.org/wiki/List_of_HTTP_status_codes.
         /// </param>
         /// <param name="filePath">
         /// The local page to load as a response, should be a path relative to the base directory.
@@ -803,9 +759,9 @@ namespace AwesomiumSharp
         /// </param>
         /// <param name="cookieString">
         /// The cookie string, for example:
-        /// <example>
+        /// <c>
         /// "key1=value1; key2=value2"
-        /// </example>
+        /// </c>
         /// </param>
         /// <param name="isHttpOnly">
         /// Whether or not this cookie is HTTP-only.
@@ -933,7 +889,7 @@ namespace AwesomiumSharp
         private static extern bool awe_webcore_are_plugins_enabled();
 
         /// <summary>
-        /// Returns whether or not plugins are enabled.
+        /// Gets if plugins are enabled.
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// The member is accessed before starting <see cref="WebCore"/>.
@@ -1050,11 +1006,11 @@ namespace AwesomiumSharp
 
         /// <summary>
         /// Gets or sets the URL that will be used as the Home URL
-        /// for <see cref="WebControl"/>s.
+        /// for <see cref="Windows.Controls.WebControl"/>s.
         /// </summary>
         /// <remarks>
-        /// This setting is used by <see cref="WebControl"/>s to automatically
-        /// handle the <see cref="NavigationCommands.BrowseHome"/> command.
+        /// This setting is used by <see cref="Windows.Controls.WebControl"/>s to automatically
+        /// handle the <see cref="System.Windows.Input.NavigationCommands.BrowseHome"/> command.
         /// The default is: "about:blank".
         /// </remarks>
         /// <exception cref="ArgumentNullException">
@@ -1094,24 +1050,37 @@ namespace AwesomiumSharp
 
         private static void UpdateTimerCallback( object state )
         {
-            if ( syncCtx != null )
+            // Seems strange? It's not. We check the variable faster
+            // then we get a value from a property. The logical OR ensures
+            // that if the first part succeeds, the second won't be called at all.
+            // But in the rare case we have reached here without a valid Synchronization
+            // Context, the property's getter will attempt to aquire one now;
+            // if this fails too, we can stop the timer.
+            if ( syncCtx != null || SynchronizationContext != null )
             {
-                // Wait for the previous update to complete before you post another.
+                // Wait for the previous update to complete before we post another.
                 if ( !isUpdating )
                     // API calls should normally be thread safe but they are not.
                     // We need the synchronization context to marshal calls.
                     syncCtx.Post( UpdateSync, state );
             }
-            else if ( updateTimer != null )
+            else
             {
                 // We should not be here anyway!
-                updateTimer.Dispose();
-                updateTimer = null;
+                StopUpdateTimer();
             }
         }
 
         private static void UpdateSync( object state )
         {
+            // That's an additional check to ensure
+            // thread affinity, needed by Awesomium.
+            if ( !CheckAccess() )
+            {
+                StopUpdateTimer();
+                return;
+            }
+
             // Prevent race condition. We use Post, not Send.
             if ( !isRunning || isShuttingDown || isUpdating )
                 return;
@@ -1129,82 +1098,4 @@ namespace AwesomiumSharp
         }
         #endregion
     }
-
-
-
-    #region Doxygen Intro
-    /**
- * @mainpage AwesomiumSharp API
- *
- * @section intro_sec Introduction
- *
- * Hi there, welcome to the Awesomium .NET API docs! Awesomium is a software 
- * library that makes it easy to put the web in your applications. Whether 
- * that means embedded web browsing, rendering pages as images, streaming 
- * pages over the net, or manipulating web content live for some other 
- * purpose, Awesomium does it all.
- *
- * If this is your first time exploring the API, we recommend
- * starting with <see cref="WebCore"/> and <see cref="WebView"/>.
- * 
- * Here's a simple example of using the API to render a page once:
- * <code>
- *   using ( webView = WebCore.CreateWebView( 800, 600 ) )
- *   {
- *       webView.LoadURL( "http://www.google.com" );
- *
- *       while ( webView.IsLoadingPage )
- *           WebCore.Update();
- *
- *       webView.Render().SaveToPNG( "result.png", true );
- *   }
- *
- *   WebCore.Shutdown();
- * </code>
- * 
- * If you are interested in just adding a standalone <see cref="WebView"/> to your
- * WPF application with minimal work, take a look at <see cref="Windows.Controls.WebControl"/>
- * (it should be available in your Toolbox if you add a reference to
- * AwesomiumSharp in your project, just drag-and-drop and you're done).
- *
- * For more help and tips with the API, please visit our Knowledge Base
- *     <http://support.awesomium.com/faqs>
- *     
- * @note
- * <para>
- * This version of AwesomiumSharp & AwesomiumMono, is compiled against
- * the new test release of Awesomium: r148 (tentatively, 1.6.2).
- * You can get this release from:
- *     <http://www.awesomium.com/downloads/awesomium_r148_sdk_win.zip>
- * </para>
- * 
- * @note
- * <para>
- * You can get the source of this pre-release version of AwesomiumSharp
- * from Github (follow the link bellow). This is the last AwesomiumSharp 
- * version before the official version that will be released alongside
- * Awesomium 1.6.2, incorporating all new features of Awesomium 1.6.2.
- * It is provided for testing purposes.
- *</para>
- *
- * @warning
- * <para>
- * For this (r148) test release, if you set <see cref="WebCoreConfig.SaveCacheAndCookies"/>
- * to true during initialization of <see cref="WebCore"/>, please make sure 
- * that your hosting application is a single instance application, 
- * unless you are sure that you provide a unique <see cref="WebCoreConfig.UserDataPath"/>
- * for each of your application's instances.
- * </para>
- *
- * @section usefullinks_sec Useful Links
- * - AwesomimSharp on GitHub: <https://github.com/khrona/AwesomiumSharp>
- * - Awesomium Main: <http://www.awesomium.com>
- * - Support Home: <http://support.awesomium.com>
- * 
- * @section copyright_sec Copyright
- * This documentation is copyright (C) 2011 Khrona. All rights reserved. 
- * Awesomium is a trademark of Khrona.
- */
-    #endregion
-
 }

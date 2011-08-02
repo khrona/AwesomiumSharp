@@ -75,6 +75,10 @@ namespace TabbedWPFSample
                 Properties.Resources.Settings,
                 "ShowSettings",
                 typeof( MainWindow ) );
+            OpenSource = new RoutedUICommand(
+                Properties.Resources.ShowSource,
+                "OpenSource",
+                typeof( MainWindow ) );
         }
 
         public MainWindow( string[] args )
@@ -92,8 +96,9 @@ namespace TabbedWPFSample
             this.Loaded += OnLoaded;
 
             // Assign command handlers.
-            this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInTab, OnOpenTab, CanOpenTab ) );
-            this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInWindow, OnOpenWindow, CanOpenWindow ) );
+            this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInTab, OnOpenTab, CanOpen ) );
+            this.CommandBindings.Add( new CommandBinding( MainWindow.OpenInWindow, OnOpenWindow, CanOpen ) );
+            this.CommandBindings.Add( new CommandBinding( MainWindow.OpenSource, OnOpenSource, CanOpenSource ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.CloseTab, OnCloseTab ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.NewTab, OnNewTab ) );
             this.CommandBindings.Add( new CommandBinding( MainWindow.ShowDownloads, OnShowDownloads ) );
@@ -175,9 +180,9 @@ namespace TabbedWPFSample
 
 
         #region OpenURL
-        public void OpenURL( String url )
+        public void OpenURL( String url, bool isSource = false )
         {
-            tabViews.Add( new TabView( this, url ) );
+            tabViews.Add( isSource ? new TabSourceView( this, url ) : new TabView( this, url ) );
         }
         #endregion
 
@@ -210,6 +215,7 @@ namespace TabbedWPFSample
         #region Static
         public static RoutedUICommand OpenInTab { get; private set; }
         public static RoutedUICommand OpenInWindow { get; private set; }
+        public static RoutedUICommand OpenSource { get; private set; }
         public static RoutedUICommand NewTab { get; private set; }
         public static RoutedUICommand CloseTab { get; private set; }
         public static RoutedUICommand ShowDownloads { get; private set; }
@@ -309,31 +315,40 @@ namespace TabbedWPFSample
                 this.OpenURL( target );
         }
 
-        private void CanOpenTab( object sender, CanExecuteRoutedEventArgs e )
-        {
-            string target = (string)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.TargetURL : String.Empty );
-            e.CanExecute = !String.IsNullOrWhiteSpace( target );
-        }
-
         private void OnOpenWindow( object sender, ExecutedRoutedEventArgs e )
         {
             string target = (string)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.TargetURL : String.Empty );
 
             if ( !String.IsNullOrWhiteSpace( target ) )
             {
+                // Open link in a new window.
                 MainWindow win = new MainWindow( new string[] { target } );
                 win.Show();
 
-                // Or we can launch a separate process. Not appropriate in Awesomium,
-                // though safe for this sample since we are not using cache and logging.
+                // Or we can launch a separate process. Not appropriate in Awesomium;
+                // it can only be safe if we are not using cache and logging.
                 //Process.Start( Assembly.GetExecutingAssembly().Location, String.Format( "\"{0}\"", target ) );
             }
         }
 
-        private void CanOpenWindow( object sender, CanExecuteRoutedEventArgs e )
+        private void CanOpen( object sender, CanExecuteRoutedEventArgs e )
         {
             string target = (string)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.TargetURL : String.Empty );
             e.CanExecute = !String.IsNullOrWhiteSpace( target );
+        }
+
+        private void OnOpenSource( object sender, ExecutedRoutedEventArgs e )
+        {
+            Uri target = (Uri)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.Source : null );
+
+            if ( target != null )
+                this.OpenURL( target.AbsoluteUri, true );
+        }
+
+        private void CanOpenSource( object sender, CanExecuteRoutedEventArgs e )
+        {
+            Uri target = (Uri)e.Parameter ?? ( SelectedView != null ? SelectedView.Browser.Source : null );
+            e.CanExecute = target != null;
         }
 
         private void OnNewTab( object sender, ExecutedRoutedEventArgs e )
@@ -369,7 +384,10 @@ namespace TabbedWPFSample
 
         private void OnShowSettings( object sender, ExecutedRoutedEventArgs e )
         {
-            // Show here a settings dialog.
+            // TODO: Show here a settings dialog.
+            // If the changes made require a restart (such as changes to
+            // the WebCore configuration), set My.Application.Restart
+            // to true and close the application.
         }
 
         private void OnClose( object sender, ExecutedRoutedEventArgs e )

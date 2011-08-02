@@ -25,22 +25,24 @@ namespace AwesomiumSharp
         #endregion
 
         #region Ctor
-        internal RenderBuffer(IntPtr renderbuffer)
+        internal RenderBuffer( IntPtr renderbuffer )
         {
             this.renderbuffer = renderbuffer;
         }
         #endregion
 
 
-        #region Method
+        #region Methods
 
         #region CopyTo
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_renderbuffer_copy_to(IntPtr renderbuffer,
-                                         IntPtr dest_buffer,
-                                         int dest_rowspan,
-                                         int dest_depth,
-                                         bool convert_to_rgba);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_renderbuffer_copy_to(
+            IntPtr renderbuffer,
+            IntPtr dest_buffer,
+            int dest_rowspan,
+            int dest_depth,
+            bool convert_to_rgba,
+            bool flip_y );
 
         /// <summary>
         /// Copy this buffer to a specified destination buffer.
@@ -48,27 +50,48 @@ namespace AwesomiumSharp
         /// <param name="destBuffer">The destination buffer (should have same dimensions).</param>
         /// <param name="destRowspan"></param>
         /// <param name="destDepth">The depth (either 3 BPP or 4 BPP).</param>
-        /// <param name="convertToRGBA">True to convert to RGBA format. False otherwise.</param>
-        public void CopyTo(IntPtr destBuffer,
-                           int destRowspan,
-                           int destDepth,
-                           bool convertToRGBA)
+        public void CopyTo( IntPtr destBuffer, int destRowspan, int destDepth )
         {
-            awe_renderbuffer_copy_to(renderbuffer, destBuffer, destRowspan, destDepth, convertToRGBA);
+            this.CopyTo( destBuffer, destRowspan, destDepth, false, false );
+        }
+
+        /// <summary>
+        /// Copy this buffer to a specified destination buffer.
+        /// </summary>
+        /// <param name="destBuffer">The destination buffer (should have same dimensions).</param>
+        /// <param name="destRowspan">The rowspan (number of bytes per row) of the destination buffer.</param>
+        /// <param name="destDepth">The depth (either 3 BPP or 4 BPP).</param>
+        /// <param name="convertToRGBA">True to convert to RGBA format. False otherwise.</param>
+        public void CopyTo( IntPtr destBuffer, int destRowspan, int destDepth, bool convertToRGBA )
+        {
+            this.CopyTo( destBuffer, destRowspan, destDepth, convertToRGBA, false );
+        }
+
+        /// <summary>
+        /// Copy this buffer to a specified destination buffer.
+        /// </summary>
+        /// <param name="destBuffer">The destination buffer (should have same dimensions).</param>
+        /// <param name="destRowspan">The rowspan (number of bytes per row) of the destination buffer.</param>
+        /// <param name="destDepth">The depth (either 3 BPP or 4 BPP).</param>
+        /// <param name="convertToRGBA">True to convert to RGBA format. False otherwise.</param>
+        /// <param name="flip_y">True to flip the image buffer vertically. False otherwise.</param>
+        public void CopyTo( IntPtr destBuffer, int destRowspan, int destDepth, bool convertToRGBA, bool flip_y )
+        {
+            awe_renderbuffer_copy_to( renderbuffer, destBuffer, destRowspan, destDepth, convertToRGBA, flip_y );
         }
         #endregion
 
         #region CopyToFloat
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void awe_renderbuffer_copy_to_float(IntPtr renderbuffer,
-                                          IntPtr destination);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern void awe_renderbuffer_copy_to_float( IntPtr renderbuffer,
+                                          IntPtr destination );
         /// <summary>
         /// Copy this buffer to a pixel buffer with a floating-point pixel format for use with game engines like Unity3D.
         /// </summary>
         /// <param name="destination"></param>
-        public void CopyToFloat(IntPtr destination)
+        public void CopyToFloat( IntPtr destination )
         {
-            awe_renderbuffer_copy_to_float(renderbuffer, destination);
+            awe_renderbuffer_copy_to_float( renderbuffer, destination );
         }
         #endregion
 
@@ -81,22 +104,21 @@ namespace AwesomiumSharp
         /// The <see cref="WriteableBitmap"/> to write to. Must have the same dimensions.
         /// </param>
         /// <remarks>
-        /// @warning
-        /// Once again: The <paramref name="destination"/> <see cref="WriteableBitmap"/>
-        /// must have the same dimensions.
+        /// The <paramref name="destination"/> <see cref="WriteableBitmap"/>
+        /// must have the same dimensions to this <see cref="RenderBuffer"/>.
         /// </remarks>
         /// <exception cref="AccessViolationException">
         /// Attempted to write to a <see cref="WriteableBitmap"/> with different dimensions 
         /// than this buffer.
         /// </exception>
-        public void CopyToBitmap(WriteableBitmap destination)
+        public void CopyToBitmap( WriteableBitmap destination )
         {
             int width = this.Width;
             int height = this.Height;
-            Int32Rect rect = new Int32Rect(0, 0, width, height);
+            Int32Rect rect = new Int32Rect( 0, 0, width, height );
             try
             {
-                destination.WritePixels(rect, this.Buffer, (int)(this.Rowspan * this.Height), this.Rowspan, 0, 0);
+                destination.WritePixels( rect, this.Buffer, (int)( this.Rowspan * this.Height ), this.Rowspan, 0, 0 );
             }
             catch { /* Some sort of handling for this. */ }
         }
@@ -104,9 +126,9 @@ namespace AwesomiumSharp
 #endif
 
         #region SaveToPNG
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private extern static bool awe_renderbuffer_save_to_png(IntPtr renderbuffer, IntPtr file_path, bool preserve_transparency);
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static bool awe_renderbuffer_save_to_png( IntPtr renderbuffer, IntPtr file_path, bool preserve_transparency );
         /// <summary>
         /// Save this buffer to a PNG image.
         /// </summary>
@@ -119,18 +141,18 @@ namespace AwesomiumSharp
         /// <returns>
         /// True if the image was successfully saved. False otherwise.
         /// </returns>
-        public bool SaveToPNG(string filePath, bool preserveTransparency = false)
+        public bool SaveToPNG( string filePath, bool preserveTransparency = false )
         {
-            StringHelper filePathStr = new StringHelper(filePath);
-            bool temp = awe_renderbuffer_save_to_png(renderbuffer, filePathStr.Value, preserveTransparency);
+            StringHelper filePathStr = new StringHelper( filePath );
+            bool temp = awe_renderbuffer_save_to_png( renderbuffer, filePathStr.Value, preserveTransparency );
             return temp;
         }
         #endregion
 
         #region SaveToJPEG
-        [return: MarshalAs(UnmanagedType.I1)]
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private extern static bool awe_renderbuffer_save_to_jpeg(IntPtr renderbuffer, IntPtr file_path, int quality);
+        [return: MarshalAs( UnmanagedType.I1 )]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private extern static bool awe_renderbuffer_save_to_jpeg( IntPtr renderbuffer, IntPtr file_path, int quality );
 
         /// <summary>
         /// Save this buffer to a JPEG image.
@@ -144,10 +166,10 @@ namespace AwesomiumSharp
         /// <returns>
         /// True if the image was successfully saved. False otherwise.
         /// </returns>
-        public bool SaveToJPEG(string filePath, int quality = 90)
+        public bool SaveToJPEG( string filePath, int quality = 90 )
         {
-            StringHelper filePathStr = new StringHelper(filePath);
-            bool temp = awe_renderbuffer_save_to_jpeg(renderbuffer, filePathStr.Value, quality);
+            StringHelper filePathStr = new StringHelper( filePath );
+            bool temp = awe_renderbuffer_save_to_jpeg( renderbuffer, filePathStr.Value, quality );
             return temp;
         }
         #endregion
@@ -170,8 +192,8 @@ namespace AwesomiumSharp
         #region Properties
 
         #region Width
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int awe_renderbuffer_get_width(IntPtr renderbuffer);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern int awe_renderbuffer_get_width( IntPtr renderbuffer );
 
         /// <summary>
         /// The width, in pixels.
@@ -180,14 +202,14 @@ namespace AwesomiumSharp
         {
             get
             {
-                return awe_renderbuffer_get_width(renderbuffer);
+                return awe_renderbuffer_get_width( renderbuffer );
             }
         }
         #endregion
 
         #region Height
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int awe_renderbuffer_get_height(IntPtr renderbuffer);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern int awe_renderbuffer_get_height( IntPtr renderbuffer );
 
         /// <summary>
         /// The height, in pixels.
@@ -196,14 +218,14 @@ namespace AwesomiumSharp
         {
             get
             {
-                return awe_renderbuffer_get_height(renderbuffer);
+                return awe_renderbuffer_get_height( renderbuffer );
             }
         }
         #endregion
 
         #region Rowspan
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int awe_renderbuffer_get_rowspan(IntPtr renderbuffer);
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
+        private static extern int awe_renderbuffer_get_rowspan( IntPtr renderbuffer );
 
         /// <summary>
         /// The number of bytes per row (this is usually width * 4 but can be different).
@@ -212,13 +234,13 @@ namespace AwesomiumSharp
         {
             get
             {
-                return awe_renderbuffer_get_rowspan(renderbuffer);
+                return awe_renderbuffer_get_rowspan( renderbuffer );
             }
         }
         #endregion
 
         #region Buffer
-        [DllImport(WebCore.DLLName, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport( WebCore.DLLName, CallingConvention = CallingConvention.Cdecl )]
         private extern static IntPtr awe_renderbuffer_get_buffer( IntPtr renderbuffer );
 
         /// <summary>
@@ -234,7 +256,7 @@ namespace AwesomiumSharp
         {
             get
             {
-                return awe_renderbuffer_get_buffer(renderbuffer);
+                return awe_renderbuffer_get_buffer( renderbuffer );
             }
         }
         #endregion

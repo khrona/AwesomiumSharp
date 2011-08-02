@@ -113,5 +113,14 @@ namespace TabbedWPFSample.Properties {
                 return ResourceManager.GetString("Settings", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show Source Code.
+        /// </summary>
+        internal static string ShowSource {
+            get {
+                return ResourceManager.GetString("ShowSource", resourceCulture);
+            }
+        }
     }
 }

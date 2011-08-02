@@ -112,22 +112,23 @@ namespace TabbedWPFSample
         private void UpdateFavicon()
         {
             // Execute some simple javascript that will search for a favicon.
-            JSValue val = Browser.ExecuteJavascriptWithResult( JS_FAVICON );
-
-            // Check if we got a valid answer.
-            if ( ( val != null ) && ( val.Type == JSValueType.String ) )
+            using ( JSValue val = Browser.ExecuteJavascriptWithResult( JS_FAVICON ) )
             {
-                // We do not need to perform the download of the favicon synchronously.
-                // May be a full icon set (thus big).
-                Task.Factory.StartNew<BitmapImage>( GetFavicon, val.ToString() ).ContinueWith(
-                    ( t ) =>
-                    {
-                        // If the download completed successfully, set the new favicon.
-                        // This post-completion procedure is executed synchronously.
-                        if ( t.Exception == null )
-                            this.SetValue( TabView.FaviconPropertyKey, t.Result );
-                    },
-                    TaskScheduler.FromCurrentSynchronizationContext() );
+                // Check if we got a valid answer.
+                if ( ( val != null ) && ( val.Type == JSValueType.String ) )
+                {
+                    // We do not need to perform the download of the favicon synchronously.
+                    // May be a full icon set (thus big).
+                    Task.Factory.StartNew<BitmapImage>( GetFavicon, val.ToString() ).ContinueWith(
+                        ( t ) =>
+                        {
+                            // If the download completed successfully, set the new favicon.
+                            // This post-completion procedure is executed synchronously.
+                            if ( t.Exception == null )
+                                this.SetValue( TabView.FaviconPropertyKey, t.Result );
+                        },
+                        TaskScheduler.FromCurrentSynchronizationContext() );
+                }
             }
         }
 
@@ -238,6 +239,22 @@ namespace TabbedWPFSample
             if ( value )
                 owner.ParentWindow.SelectedView = owner;
         }
+        #endregion
+
+        #region IsSourceView
+        public bool IsSourceView
+        {
+            get { return (bool)this.GetValue( IsSourceViewProperty ); }
+            protected set { SetValue( IsSourceViewPropertyKey, value ); }
+        }
+
+        public static readonly DependencyPropertyKey IsSourceViewPropertyKey =
+            DependencyProperty.RegisterReadOnly( "IsSourceView",
+            typeof( bool ), typeof( TabView ),
+            new FrameworkPropertyMetadata( false ) );
+
+        public static readonly DependencyProperty IsSourceViewProperty =
+            IsSourceViewPropertyKey.DependencyProperty;
         #endregion
 
         #endregion

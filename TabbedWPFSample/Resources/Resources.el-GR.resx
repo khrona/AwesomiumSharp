@@ -139,4 +139,7 @@
   <data name="Settings" xml:space="preserve">
     <value>Ρυθμίσεις</value>
   </data>
+  <data name="ShowSource" xml:space="preserve">
+    <value>Προβολή Κώδικα Σελίδας</value>
+  </data>
 </root>

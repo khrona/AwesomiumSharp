@@ -21,7 +21,7 @@ using System.Collections.ObjectModel;
 namespace My
 {
     #region AssemblyInfo
-    public class AssemblyInfo
+    internal class AssemblyInfo
     {
         #region Fields
         private Assembly m_Assembly;
@@ -36,12 +36,12 @@ namespace My
 
         #region Ctors
         public AssemblyInfo( Assembly currentAssembly )
-            {
-                if ( currentAssembly == null )
-                    throw new ArgumentNullException( "currentAssembly" );
+        {
+            if ( currentAssembly == null )
+                throw new ArgumentNullException( "currentAssembly" );
 
-                this.m_Assembly = currentAssembly;
-            }
+            this.m_Assembly = currentAssembly;
+        }
         #endregion
 
 
@@ -224,6 +224,8 @@ namespace My
         #endregion
 
         #region Properties
+        public static bool Restart { get; set; }
+
         public static AssemblyInfo Info
         {
             get

@@ -69,7 +69,6 @@
     <Compile Include="SelectionHelper.cs" />
     <Compile Include="Windows\Controls\WebSourceControl.cs" />
     <Compile Include="Windows\Forms\Utilities.cs" />
-    <None Include="Doxygen.cs" />
     <Compile Include="Windows\Controls\Utilities.cs" />
     <Compile Include="Windows\Controls\WebControlCommands.cs" />
     <Compile Include="Windows\Controls\WebControlInvalidLayer.cs" />

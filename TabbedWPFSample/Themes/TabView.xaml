@@ -180,8 +180,8 @@
                                         Source="{StaticResource SettingsImage}"/>
                                 </Button>
                             </Grid>
-                            <Border Grid.Row="1" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
-                                <awe:WebControl x:Name="PART_Browser" Source="http://www.google.com"/>
+                            <Border x:Name="browserContainer" Grid.Row="1" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                                <awe:WebControl x:Name="PART_Browser" />
                             </Border>
                             <Border 
                                 Grid.Row="2" 
@@ -262,6 +262,22 @@
                             <Setter TargetName="AddressBorder" Property="Background" Value="White" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type local:TabSourceView}" BasedOn="{StaticResource {x:Type local:TabView}}">
+        <Setter Property="Background" Value="#FFD2E6FA" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:TabSourceView}">
+                    <Border 
+                        Background="{TemplateBinding Background}" 
+                        BorderBrush="{TemplateBinding BorderBrush}" 
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                        <awe:WebSourceControl x:Name="PART_Browser" />
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
