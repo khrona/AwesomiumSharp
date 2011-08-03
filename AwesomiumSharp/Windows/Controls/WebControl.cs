@@ -4387,18 +4387,6 @@ namespace AwesomiumSharp.Windows.Controls
         private void internalRequestDownloadCallback( IntPtr caller, IntPtr download )
         {
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
-
-            Uri uriTest;
-            Uri.TryCreate( e.Url, UriKind.Absolute, out uriTest );
-
-            if ( String.IsNullOrWhiteSpace( e.Url ) ||
-                ( uriTest == null ) ||
-                !uriTest.IsAbsoluteUri ||
-                ( e.Url.IndexOfAny( Path.GetInvalidPathChars() ) != -1 ) ||
-                String.IsNullOrWhiteSpace( Path.GetFileName( e.Url ) ) ||
-                ( Path.GetFileName( e.Url ).IndexOfAny( Path.GetInvalidFileNameChars() ) != -1 ) )
-                return;
-
             this.OnDownload( this, e );
 
             // We get a BeginNavigation before this.

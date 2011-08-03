@@ -2913,18 +2913,6 @@ throw new InvalidOperationException( "This WebView instance is invalid. It has e
         private void internalRequestDownloadCallback( IntPtr caller, IntPtr download )
         {
             UrlEventArgs e = new UrlEventArgs( StringHelper.ConvertAweString( download ) );
-
-            Uri uriTest;
-            Uri.TryCreate( e.Url, UriKind.Absolute, out uriTest );
-
-            if ( String.IsNullOrEmpty( e.Url ) ||
-                ( uriTest == null ) ||
-                !uriTest.IsAbsoluteUri ||
-                ( e.Url.IndexOfAny( Path.GetInvalidPathChars() ) != -1 ) ||
-                String.IsNullOrEmpty( Path.GetFileName( e.Url ) ) ||
-                ( Path.GetFileName( e.Url ).IndexOfAny( Path.GetInvalidFileNameChars() ) != -1 ) )
-                return;
-
             this.OnDownload( this, e );
         }
         #endregion

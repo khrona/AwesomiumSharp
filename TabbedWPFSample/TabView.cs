@@ -154,6 +154,75 @@ namespace TabbedWPFSample
 
             return null;
         }
+
+        private void QueryDownload( string url )
+        {
+            try
+            {
+                // Create a request for the headers only.
+                WebRequest request = WebRequest.Create( url );
+                request.Method = WebRequestMethods.Http.Head;
+
+                // Asynchronously perform the request.
+                request.BeginGetResponse( ( ar ) =>
+                {
+                    try
+                    {
+                        WebResponse response = request.EndGetResponse( ar );
+
+                        if ( response != null )
+                        {
+                            // Get the "content-disposition" header.
+                            // We currently care for the filename only. However, at this point we could
+                            // also inform the user of the size of the file by getting the value of the:
+                            // "content-length" header.
+                            string contentDisposition = response.Headers[ "content-disposition" ];
+
+                            if ( !String.IsNullOrEmpty( contentDisposition ) )
+                            {
+                                // Initialize.
+                                string fileName = string.Empty;
+
+                                // Look for the filename part.
+                                string fileNamePart = "filename=";
+                                int index = contentDisposition.IndexOf( fileNamePart, StringComparison.InvariantCultureIgnoreCase );
+
+                                if ( index >= 0 )
+                                {
+                                    fileName = contentDisposition.Substring( index + fileNamePart.Length );
+                                    // Cleanup any invalid surrounding characters.
+                                    fileName = fileName.Trim( Path.GetInvalidFileNameChars() ).Trim( new char[] { '"', ';' } );
+                                }
+
+                                // If we have a filename, proceed with asking the user
+                                // and performing the actual download.
+                                if ( !String.IsNullOrWhiteSpace( fileName ) )
+                                    Dispatcher.BeginInvoke( (Action<string, string>)RequestDownload, url, fileName );
+                            }
+                        }
+                    }
+                    catch { }
+                }, null );
+            }
+            catch { }
+        }
+
+        private void RequestDownload( string url, string fileName )
+        {
+            SaveFileDialog dialog = new SaveFileDialog()
+            {
+                FileName = fileName,
+                // We set MyDocuments as the default. You can change this as you wish
+                // but make sure the specified folder actually exists.
+                InitialDirectory = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments )
+            };
+
+            // Unlike WindowsForms, dialogs in WPF return a nullable boolean value.
+            if ( ( dialog.ShowDialog( ParentWindow ) ?? false ) && ( dialog.FileNames.Length == 1 ) )
+            {
+                ParentWindow.DownloadFile( url, dialog.FileName );
+            }
+        }
         #endregion
 
         #region Properties
@@ -314,20 +383,12 @@ namespace TabbedWPFSample
         }
         private void OnDownload( object sender, UrlEventArgs e )
         {
-            SaveFileDialog dialog = new SaveFileDialog()
-            {
-                // This should give us the file name part of the URL.
-                FileName = Path.GetFileName( e.Url ),
-                // We set MyDocuments as the default. You can change this as you wish
-                // but make sure the specified folder actually exists.
-                InitialDirectory = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments )
-            };
-
-            // Unlike WindowsForms, dialogs in WPF return a nullable boolean value.
-            if ( ( dialog.ShowDialog( ParentWindow ) ?? false ) && ( dialog.FileNames.Length == 1 ) )
-            {
-                ParentWindow.DownloadFile( e.Url, dialog.FileName );
-            }
+            // For the time being, the event provides the URL (that may contain a query) but not
+            // the actual filename. We will query the server for the name of the file.
+            // (Some browsers, like Chrome, immediately start the download while they figure out
+            // the filename and then wait for the user to respond to the Save dialog. This is why
+            // when you actually hit "Save", you notice that most of the file is already downloaded)
+            QueryDownload( e.Url );
         }
 
         private void AddressBox_KeyDown( object sender, KeyEventArgs e )
