@@ -34,6 +34,7 @@ using System.Windows.Media.Imaging;
 using System.Runtime.InteropServices;
 using System.Collections.Specialized;
 using System.IO;
+using System.Windows.Threading;
 #endregion
 
 namespace AwesomiumSharp.Windows.Controls
@@ -975,6 +976,9 @@ namespace AwesomiumSharp.Windows.Controls
                 resizeHeight = (int)( availableSize.Height * deviceTransform.M22 );
 
                 needsResize = true;
+
+                this.CoerceValue( WebControl.IsResizingProperty );
+                this.Update();
             }
 
             return size;
@@ -988,7 +992,7 @@ namespace AwesomiumSharp.Windows.Controls
                 controlLayer.Arrange( new Rect( new Point(), arrangeBounds ) );
 
             if ( IsLive )
-                Update();
+                this.CoerceValue( WebControl.IsResizingProperty );
 
             return base.ArrangeOverride( arrangeBounds );
         }
@@ -1292,12 +1296,56 @@ namespace AwesomiumSharp.Windows.Controls
 
 
         #region Update
+        private DispatcherOperation redrawOperation;
+
+        private void Update( DispatcherPriority priority )
+        {
+            if ( priority > DispatcherPriority.Render )
+            {
+                if ( redrawOperation != null )
+                {
+                    redrawOperation.Abort();
+                    redrawOperation = null;
+                }
+
+                this.Redraw();
+            }
+            else
+            {
+                if ( redrawOperation != null )
+                    redrawOperation.Priority = priority;
+                else
+                {
+                    redrawOperation = Dispatcher.BeginInvoke(
+                        priority,
+                        (Action)( () =>
+                        {
+                            redrawOperation = null;
+                            this.Redraw();
+                        } )
+                        );
+                }
+            }
+        }
+
         private void Update()
         {
-            if ( needsResize && !awe_webview_is_resizing( Instance ) )
+            this.Update( DispatcherPriority.Normal );
+        }
+
+        private void Redraw()
+        {
+            if ( needsResize )
             {
-                awe_webview_resize( Instance, resizeWidth, resizeHeight, true, 300 );
-                needsResize = false;
+                if ( awe_webview_is_resizing( Instance ) )
+                {
+                    this.Update( DispatcherPriority.Render );
+                }
+                else
+                {
+                    awe_webview_resize( Instance, resizeWidth, resizeHeight, true, 300 );
+                    needsResize = false;
+                }
             }
 
             RenderBuffer buffer = Render();
@@ -1327,6 +1375,8 @@ namespace AwesomiumSharp.Windows.Controls
                     buffer.FlushAlpha();
 
                 buffer.CopyToBitmap( bitmap );
+
+                this.InvalidateVisual();
             }
         }
         #endregion
@@ -3165,7 +3215,7 @@ namespace AwesomiumSharp.Windows.Controls
             if ( !owner.IsLive )
                 return baseValue;
 
-            return awe_webview_is_dirty( owner.Instance );
+            return awe_webview_is_resizing( owner.Instance );
         }
         #endregion
 
