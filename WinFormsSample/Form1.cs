@@ -2,81 +2,183 @@
 using AwesomiumSharp;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Drawing.Imaging;
 using AwesomiumSharp.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace WinFormsSample
 {
     public partial class WebForm : Form
     {
+        #region Fields
         WebView webView;
+        RenderBuffer rBuffer;
         Bitmap frameBuffer;
         bool needsResize;
+        #endregion
 
+
+        #region Ctors
         public WebForm()
         {
-            InitializeComponent();
+            // Notice that Control.DoubleBuffered has been set to true
+            // in the designer, to prevent flickering.
 
-            Resize += WebForm_Resize;
-            webViewBitmap.MouseMove += WebForm_MouseMove;
-            webViewBitmap.MouseDown += WebForm_MouseDown;
-            webViewBitmap.MouseUp += WebForm_MouseUp;
-            MouseWheel += WebForm_MouseWheel;
-            KeyDown += WebForm_KeyDown;
-            KeyUp += WebForm_KeyUp;
-            KeyPress += WebForm_KeyPress;
-            FormClosed += WebForm_FormClosed;
-            Activated += WebForm_Activated;
-            Deactivate += WebForm_Deactivate;
+            InitializeComponent();
 
             WebCoreConfig config = new WebCoreConfig { EnablePlugins = true };
             WebCore.Initialize( config );
 
-            webView = WebCore.CreateWebView( webViewBitmap.Width, webViewBitmap.Height );
+            webView = WebCore.CreateWebView( this.ClientSize.Width, this.ClientSize.Height );
             webView.IsDirtyChanged += OnIsDirtyChanged;
             webView.SelectLocalFiles += OnSelectLocalFiles;
             webView.CursorChanged += OnCursorChanged;
             webView.LoadURL( "http://www.google.com" );
             webView.Focus();
         }
+        #endregion
 
-        void WebForm_Activated( object sender, EventArgs e )
+
+        #region Methods
+        protected override void OnActivated( EventArgs e )
         {
+            base.OnActivated( e );
+
             if ( !webView.IsEnabled )
                 return;
 
             webView.Focus();
         }
 
-        void WebForm_Deactivate( object sender, EventArgs e )
+        protected override void OnDeactivate( EventArgs e )
         {
+            base.OnDeactivate( e );
+
             if ( !webView.IsEnabled )
                 return;
 
             webView.Unfocus();
         }
 
-        void WebForm_FormClosed( object sender, FormClosedEventArgs e )
+        protected override void OnFormClosed( FormClosedEventArgs e )
         {
-            webView.IsDirtyChanged -= OnIsDirtyChanged;
-            webView.SelectLocalFiles -= OnSelectLocalFiles;
-            webView.Close();
-            WebCore.Shutdown();
+            if ( webView != null )
+            {
+                webView.IsDirtyChanged -= OnIsDirtyChanged;
+                webView.SelectLocalFiles -= OnSelectLocalFiles;
+                webView.Close();
+                WebCore.Shutdown();
+            }
+
+            base.OnFormClosed( e );
         }
 
+        protected override void OnPaint( PaintEventArgs e )
+        {
+            if ( ( webView != null ) && webView.IsEnabled && webView.IsDirty )
+                rBuffer = webView.Render();
+
+            if ( rBuffer != null )
+                Utilities.DrawBuffer( rBuffer, e.Graphics, this.BackColor, ref frameBuffer );
+            else
+                base.OnPaint( e );
+        }
+
+        protected override void OnResize( EventArgs e )
+        {
+            base.OnResize( e );
+
+            if ( ( webView == null ) || !webView.IsEnabled )
+                return;
+
+            if ( this.ClientSize.Width != 0 && this.ClientSize.Height != 0 )
+                needsResize = true;
+        }
+
+        protected override void OnKeyPress( KeyPressEventArgs e )
+        {
+            base.OnKeyPress( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( e ) );
+        }
+
+        protected override void OnKeyDown( KeyEventArgs e )
+        {
+            base.OnKeyDown( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyDown, e ) );
+        }
+
+        protected override void OnKeyUp( KeyEventArgs e )
+        {
+            base.OnKeyUp( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyUp, e ) );
+        }
+
+        protected override void OnMouseDown( MouseEventArgs e )
+        {
+            base.OnMouseDown( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseDown( MouseButton.Left );
+        }
+
+        protected override void OnMouseUp( MouseEventArgs e )
+        {
+            base.OnMouseUp( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseUp( MouseButton.Left );
+        }
+
+        protected override void OnMouseMove( MouseEventArgs e )
+        {
+            base.OnMouseMove( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseMove( e.X, e.Y );
+        }
+
+        protected override void OnMouseWheel( MouseEventArgs e )
+        {
+            base.OnMouseWheel( e );
+
+            if ( !webView.IsEnabled )
+                return;
+
+            webView.InjectMouseWheel( e.Delta );
+        }
+        #endregion
+
+        #region Event Handlers
         private void OnIsDirtyChanged( object sender, EventArgs e )
         {
             if ( needsResize && !webView.IsDisposed )
             {
                 if ( !webView.IsResizing )
                 {
-                    webView.Resize( webViewBitmap.Width, webViewBitmap.Height );
+                    webView.Resize( this.ClientSize.Width, this.ClientSize.Height );
                     needsResize = false;
                 }
             }
 
             if ( webView.IsDirty )
-                Render();
+                this.Invalidate();
         }
 
         private void OnCursorChanged( object sender, ChangeCursorEventArgs e )
@@ -102,113 +204,19 @@ namespace WinFormsSample
                 }
             }
         }
-
-        void Render()
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            RenderBuffer rBuffer = webView.Render();
-
-            if ( frameBuffer == null )
-            {
-                frameBuffer = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
-            }
-            else if ( frameBuffer.Width != rBuffer.Width || frameBuffer.Height != rBuffer.Height )
-            {
-                frameBuffer.Dispose();
-                frameBuffer = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
-            }
-
-            BitmapData bits = frameBuffer.LockBits( 
-                new Rectangle( 0, 0, rBuffer.Width, rBuffer.Height ),
-                ImageLockMode.ReadWrite, frameBuffer.PixelFormat );
-
-            unsafe
-            {
-                UInt64* ptrBase = (UInt64*)( (byte*)bits.Scan0 );
-                UInt64* datBase = (UInt64*)rBuffer.Buffer;
-                UInt32 lOffset = 0;
-                UInt32 lEnd = (UInt32)webViewBitmap.Height * (UInt32)( webViewBitmap.Width / 8 );
-
-                // copy 64 bits at a time, 4 times (since we divided by 8)
-                for ( lOffset = 0; lOffset < lEnd; lOffset++ )
-                {
-                    *ptrBase++ = *datBase++;
-                    *ptrBase++ = *datBase++;
-                    *ptrBase++ = *datBase++;
-                    *ptrBase++ = *datBase++;
-                }
-            }
-
-            frameBuffer.UnlockBits( bits );
-
-            webViewBitmap.Image = frameBuffer;
-        }
-
-        void WebForm_Resize( object sender, EventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            if ( webViewBitmap.Width != 0 && webViewBitmap.Height != 0 )
-                needsResize = true;
-        }
-
-        void WebForm_KeyPress( object sender, KeyPressEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( e ) );
-        }
-
-        void WebForm_KeyDown( object sender, KeyEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyDown, e ) );
-        }
-
-        void WebForm_KeyUp( object sender, KeyEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectKeyboardEvent( Utilities.GetKeyboardEvent( WebKeyType.KeyUp, e ) );
-        }
-
-        void WebForm_MouseUp( object sender, MouseEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectMouseUp( MouseButton.Left );
-        }
-
-        void WebForm_MouseDown( object sender, MouseEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectMouseDown( MouseButton.Left );
-        }
-
-        void WebForm_MouseMove( object sender, MouseEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectMouseMove( e.X, e.Y );
-        }
-
-        void WebForm_MouseWheel( object sender, MouseEventArgs e )
-        {
-            if ( !webView.IsEnabled )
-                return;
-
-            webView.InjectMouseWheel( e.Delta );
-        }
+        #endregion
     }
+
+    #region NativeMethods
+    internal static class NativeMethods
+    {
+
+        [DllImport( "user32" )]
+        internal static extern IntPtr GetDC( IntPtr hwnd );
+
+        [DllImport( "user32.dll" )]
+        internal static extern bool ReleaseDC( IntPtr hWnd, IntPtr hDC );
+
+    }
+    #endregion
 }

@@ -19,12 +19,14 @@
  ********************************************************************************/
 
 using System;
+using System.ComponentModel;
 
 namespace AwesomiumSharp.Windows.Controls
 {
     /// <summary>
     /// Represents a WPF control that displays the HTML source of any web-page loaded using <see cref="WebControl.LoadURL"/>.
     /// </summary>
+    [Description( "Represents a WPF control that displays the HTML source of any web-page loaded using WebControl.LoadURL" )]
     public class WebSourceControl : WebControl
     {
         internal override bool IsSourceControl

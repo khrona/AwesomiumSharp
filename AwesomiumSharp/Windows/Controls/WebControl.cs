@@ -612,6 +612,45 @@ namespace AwesomiumSharp.Windows.Controls
         #endregion
 
         #region Dtor
+        public void OnClose( bool isFinilizing )
+        {
+            if ( Instance != IntPtr.Zero )
+            {
+                // We do not even need to care about WebCore.DestroyView,
+                // if we reached here from a finalizer. The WebCore keeps
+                // a reference of all created views. We would not reach
+                // here from a finalizer if the core is not dying too.
+                if ( !isFinilizing )
+                {
+                    if ( hookAdded )
+                    {
+                        if ( hwndSource != null )
+                        {
+                            hwndSource.RemoveHook( HandleMessages );
+                            hookAdded = false;
+                        }
+
+                        ComponentDispatcher.ThreadFilterMessage -= OnThreadFilterMessage;
+                    }
+
+                    this.ClearDelegates();
+
+                    controlLayer = null;
+                    toolTip = null;
+
+                    this.Loaded -= OnLoaded;
+                    this.Unloaded -= OnUnloaded;
+                    this.IsEnabledChanged -= OnIsEnabledChanged;
+
+                    WebCore.DestroyView( this );
+
+                    GC.SuppressFinalize( this );
+                }
+
+                Instance = IntPtr.Zero;
+            }
+        }
+
         /// <summary>
         /// Destroys and removes this web view control. Any call to members of this control
         /// after calling this method, will cause a <see cref="InvalidOperationException"/>.
@@ -622,38 +661,12 @@ namespace AwesomiumSharp.Windows.Controls
         /// </remarks>
         public void Close()
         {
-            if ( Instance != IntPtr.Zero )
-            {
-                if ( hookAdded )
-                {
-                    if ( hwndSource != null )
-                    {
-                        hwndSource.RemoveHook( HandleMessages );
-                        hookAdded = false;
-                    }
-
-                    ComponentDispatcher.ThreadFilterMessage -= OnThreadFilterMessage;
-                }
-
-                this.ClearDelegates();
-
-                controlLayer = null;
-                toolTip = null;
-
-                this.Loaded -= OnLoaded;
-                this.Unloaded -= OnUnloaded;
-                this.IsEnabledChanged -= OnIsEnabledChanged;
-
-                WebCore.DestroyView( this );
-                Instance = IntPtr.Zero;
-
-                GC.SuppressFinalize( this );
-            }
+            this.OnClose( false );
         }
 
         ~WebControl()
         {
-            this.Close();
+            this.OnClose( true );
         }
         #endregion
 
@@ -3134,6 +3147,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// </remarks>
         /// <seealso cref="WebControl.IsDirtyChanged"/>
         /// <seealso cref="WebCore.Update"/>
+        [Browsable( false )]
         public bool IsDirty
         {
             get { return (bool)this.GetValue( WebControl.IsDirtyProperty ); }
@@ -3192,6 +3206,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// True if we are waiting for the <see cref="WebControl"/> to
         /// return acknowledgment of a pending resize operation. False otherwise.
         /// </returns>
+        [Browsable( false )]
         public bool IsResizing
         {
             get { return (bool)this.GetValue( WebControl.IsResizingProperty ); }
@@ -3227,6 +3242,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets if a page is currently loading in the <see cref="WebControl"/>.
         /// </summary>
+        [Browsable( false )]
         public bool IsLoadingPage
         {
             get { return (bool)this.GetValue( WebControl.IsLoadingPageProperty ); }
@@ -3263,6 +3279,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// of a page are being downloaded, this property is updated when navigation
         /// starts and updates again when loading completes.
         /// </remarks>
+        [Browsable( false )]
         public bool IsNavigating
         {
             get { return (bool)this.GetValue( WebControl.IsNavigatingProperty ); }
@@ -3292,6 +3309,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// An <see cref="AweRect"/> representing the bounds of the area that has changed 
         /// since the last rendering.
         /// </returns>
+        [Browsable( false )]
         public AweRect DirtyBounds
         {
             get { return (AweRect)this.GetValue( WebControl.DirtyBoundsProperty ); }
@@ -3335,6 +3353,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets the available number of steps back in history.
         /// </summary>
+        [Browsable( false )]
         public int HistoryBackCount
         {
             get { return (int)this.GetValue( WebControl.HistoryBackCountProperty ); }
@@ -3369,6 +3388,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets the available number of steps forward in history.
         /// </summary>
+        [Browsable( false )]
         public int HistoryForwardCount
         {
             get { return (int)this.GetValue( WebControl.HistoryForwardCountProperty ); }
@@ -3400,6 +3420,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets the title of the page currently loaded in this <see cref="WebControl"/>.
         /// </summary>
+        [Browsable( false )]
         public string Title
         {
             get { return (string)this.GetValue( WebControl.TitleProperty ); }
@@ -3422,6 +3443,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets if this <see cref="WebControl"/> currently has keyboard focus.
         /// </summary>
+        [Browsable( false )]
         public bool HasKeyboardFocus
         {
             get { return (bool)this.GetValue( WebControl.HasKeyboardFocusProperty ); }
@@ -3445,6 +3467,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// Gets if this <see cref="WebControl"/> is currently indicating a target URL,
         /// usually as a result of hovering over a link on the page.
         /// </summary>
+        [Browsable( false )]
         public bool HasTargetURL
         {
             get { return (bool)this.GetValue( WebControl.HasTargetURLProperty ); }
@@ -3477,6 +3500,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// Gets the target URL indicated by the <see cref="WebControl"/>,
         /// usually as a result of hovering over a link on the page.
         /// </summary>
+        [Browsable( false )]
         public string TargetURL
         {
             get { return (string)this.GetValue( WebControl.TargetURLProperty ); }
@@ -3537,6 +3561,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets the textual representation of the contents of the page currently loaded.
         /// </summary>
+        [Browsable( false )]
         public string PageContents
         {
             get { return (string)this.GetValue( WebControl.PageContentsProperty ); }
@@ -3562,6 +3587,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <remarks>
         /// This is very useful for executing Javascript on a page before its content has finished loading.
         /// </remarks>
+        [Browsable( false )]
         public bool IsDomReady
         {
             get { return (bool)this.GetValue( WebControl.IsDomReadyProperty ); }
@@ -3584,6 +3610,9 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets or sets if we should flush the alpha channel to completely opaque values, during rendering.
         /// </summary>
+        [Category( "Common" )]
+        [Description( "Gets or sets if we should flush the alpha channel to completely opaque values, during rendering." )]
+        [DefaultValue( true )]
         public bool FlushAlpha
         {
             get { return (bool)this.GetValue( FlushAlphaProperty ); }
@@ -3614,6 +3643,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets if the user has selected content in the current page.
         /// </summary>
+        [Browsable( false )]
         public bool HasSelection
         {
             get { return (bool)this.GetValue( WebControl.HasSelectionProperty ); }
@@ -3641,6 +3671,7 @@ namespace AwesomiumSharp.Windows.Controls
         /// <summary>
         /// Gets a <see cref="Selection"/> providing information about the current selection range.
         /// </summary>
+        [Browsable( false )]
         public Selection Selection
         {
             get { return (Selection)this.GetValue( WebControl.SelectionProperty ); }
@@ -3686,6 +3717,9 @@ namespace AwesomiumSharp.Windows.Controls
         /// <remarks>
         /// Valid range is from 10 to 500.
         /// </remarks>
+        [Category( "Common" )]
+        [Description( "Gets or sets the zoom factor (page percentage)." )]
+        [DefaultValue( 100 )]
         public int Zoom
         {
             get { return (int)this.GetValue( ZoomProperty ); }
@@ -3734,6 +3768,9 @@ namespace AwesomiumSharp.Windows.Controls
         /// by this <see cref="WebControl"/>.
         /// </returns>
         /// <seealso cref="LoadURL"/>
+        [Category( "Common" )]
+        [Description( "Gets or sets the current URL presented by this WebControl." )]
+        [DefaultValue( null )]
         public Uri Source
         {
             get { return (Uri)this.GetValue( SourceProperty ); }

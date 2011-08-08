@@ -120,14 +120,17 @@ namespace AwesomiumSharp
         /// Indicates whether or not all WebViews and should be forced to render inside
         /// the main process (we typically launch a separate child-process to
         /// render each WebView and plugin safely).
-        /// <p/>
-        /// This mode currently only works
-        /// on Windows and automatically disables plugins and local databases.
-        /// The default is false.
         /// </summary>
+        /// <remarks>
+        /// This mode currently only works on Windows and automatically disables 
+        /// plugins and local databases. The default is false.
+        /// </remarks>
         public bool ForceSingleProcess { get; set; }
 
         private string _ChildProcessPath;
+        /// <summary>
+        /// [This property is currently being ignored in AwesomiumSharp and AwesomiumMono]
+        /// </summary>
         [EditorBrowsable( EditorBrowsableState.Never )]
         public string ChildProcessPath
         {

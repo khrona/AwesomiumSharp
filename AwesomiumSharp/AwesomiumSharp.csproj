@@ -33,6 +33,7 @@
     <DocumentationFile>bin\Debug\AwesomiumSharp.XML</DocumentationFile>
     <NoWarn>1591</NoWarn>
     <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -43,6 +44,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\AwesomiumSharp.XML</DocumentationFile>
     <NoWarn>1591</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>

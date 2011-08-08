@@ -608,7 +608,7 @@ namespace AwesomiumSharp
         /// </remarks>
         public void Close()
         {
-            this.Dispose();
+            this.Dispose(true);
             RaisePropertyChanged( "IsEnabled" );
         }
 

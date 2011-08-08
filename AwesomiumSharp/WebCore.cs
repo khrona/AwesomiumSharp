@@ -27,7 +27,9 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 #if !USING_MONO
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 #endif
 #endregion
@@ -249,8 +251,11 @@ namespace AwesomiumSharp
         internal const string DLLName = "Awesomium";
 #endif
 
+#if !USING_MONO
+        private static List<String> dependencies;
+#endif
         private static List<IWebView> activeWebViews;
-        private static List<IntPtr> pendingWebViews = new List<IntPtr>();
+        private static List<IntPtr> pendingWebViews;
         private static WebCoreConfig configuration;
         private static Timer updateTimer;
         private static int updatePeriod = 20;
@@ -261,9 +266,47 @@ namespace AwesomiumSharp
         #endregion
 
 
+        #region Ctors
+        static WebCore()
+        {
+#if !USING_MONO
+            dependencies = new List<String>( new String[] 
+                { 
+    #if DEBUG_AWESOMIUM
+                    "Awesomium_d.dll",
+                    "AwesomiumProcess_d.exe"
+    #else
+                    "Awesomium.dll",
+                    "AwesomiumProcess.exe",
+    #endif
+                    "icudt42.dll",
+                    @"\locales\en-US.dll"
+                } );
+#endif
+
+            pendingWebViews = new List<IntPtr>();
+        }
+        #endregion
+
+
         #region Methods
 
         #region Internal
+
+        #region VerifyDependencies
+#if !USING_MONO
+        internal static void VerifyDependencies()
+        {
+            Assembly asm = Assembly.GetEntryAssembly();
+
+            foreach ( String s in dependencies )
+            {
+                if ( !File.Exists( String.Format( "{0}{1}{2}", Path.GetDirectoryName( asm.Location ), Path.DirectorySeparatorChar, s ) ) )
+                    throw new DllNotFoundException( String.Format( "The dependency: {0} could not be found!", s ) );
+            }
+        }
+#endif
+        #endregion
 
         #region VerifyLive
         internal static void VerifyLive()
@@ -406,6 +449,9 @@ namespace AwesomiumSharp
 
         private static void Start()
         {
+#if !USING_MONO
+            VerifyDependencies();
+#endif
             if ( !isRunning )
             {
                 WebCoreConfig config = configuration ?? new WebCoreConfig { SaveCacheAndCookies = true, EnablePlugins = true };

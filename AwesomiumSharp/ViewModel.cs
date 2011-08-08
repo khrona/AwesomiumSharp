@@ -69,7 +69,7 @@ namespace AwesomiumSharp
         #region IDisposable Members
         ~ViewModel()
         {
-            this.Dispose();
+            this.Dispose( false );
         }
 
         /// <summary>
@@ -87,18 +87,21 @@ namespace AwesomiumSharp
         /// </summary>
         void IDisposable.Dispose()
         {
-            this.Dispose();
+            this.Dispose( true );
         }
 
-        internal void Dispose()
+        internal void Dispose( bool isDisposing )
         {
-            if ( !IsDisposed )
+            if ( isDisposed )
+                return;
+
+            if ( isDisposing )
             {
                 OnDispose();
-                IsDisposed = true;
+                GC.SuppressFinalize( this );
             }
 
-            GC.SuppressFinalize( this );
+            IsDisposed = true;
         }
 
         /// <summary>

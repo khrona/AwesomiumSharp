@@ -16,6 +16,8 @@
 
 using System;
 using System.Windows.Forms;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace AwesomiumSharp.Windows.Forms
 {
@@ -199,11 +201,141 @@ namespace AwesomiumSharp.Windows.Forms
         /// </returns>
         public static WebKeyboardEvent GetKeyboardEvent( KeyPressEventArgs e )
         {
-            WebKeyboardEvent keyEvent = new WebKeyboardEvent { 
-                Type = WebKeyType.Char, 
-                Text = new ushort[] { e.KeyChar, 0, 0, 0 } };
+            WebKeyboardEvent keyEvent = new WebKeyboardEvent
+            {
+                Type = WebKeyType.Char,
+                Text = new ushort[] { e.KeyChar, 0, 0, 0 }
+            };
 
             return keyEvent;
+        }
+        #endregion
+
+        #region DrawBuffer
+        /// <summary>
+        /// Draws the contents of a <see cref="RenderBuffer" /> to a <see cref="Bitmap"/>.
+        /// </summary>
+        /// <param name="rBuffer">
+        /// The pixel buffer of a view. You can get this by calling <see cref="WebView.Render" />,
+        /// when a view is dirty.
+        /// </param>
+        /// <param name="b">
+        /// A reference to the <see cref="Bitmap"/> that is filled with the contents of the specified
+        /// pixel buffer. This can be a null reference in which case a new bitmap will be created.
+        /// Keep a reference to this bitmap for subsequent calls to this method. This prevents useless
+        /// overhead when the size of the pixel buffer has not changed and a creation of a new bitmap
+        /// is not required.
+        /// </param>
+        /// <seealso cref="WebView.IsDirty"/>
+        /// <seealso cref="WebView.Render"/>
+        public static void DrawBuffer( RenderBuffer rBuffer, ref Bitmap b )
+        {
+            if ( b == null )
+                b = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
+            else if ( ( b.Width != rBuffer.Width ) || ( b.Height != rBuffer.Height ) )
+            {
+                b.Dispose();
+                b = new Bitmap( rBuffer.Width, rBuffer.Height, PixelFormat.Format32bppArgb );
+            }
+
+            BitmapData bits = b.LockBits(
+                new Rectangle( 0, 0, rBuffer.Width, rBuffer.Height ),
+                ImageLockMode.ReadWrite, b.PixelFormat );
+
+            unsafe
+            {
+                UInt64* ptrBase = (UInt64*)( (byte*)bits.Scan0 );
+                UInt64* datBase = (UInt64*)rBuffer.Buffer;
+                UInt32 lOffset = 0;
+                UInt32 lEnd = (UInt32)b.Height * (UInt32)( b.Width / 8 );
+
+                // copy 64 bits at a time, 4 times (since we divided by 8)
+                for ( lOffset = 0; lOffset < lEnd; lOffset++ )
+                {
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
+                    *ptrBase++ = *datBase++;
+                }
+            }
+
+            b.UnlockBits( bits );
+        }
+
+        /// <summary>
+        /// Draws the contents of a <see cref="RenderBuffer" /> to a <see cref="Bitmap"/> and draws the bitmap
+        /// to a drawing surface.
+        /// </summary>
+        /// <param name="rBuffer">
+        /// The pixel buffer of a view. You can get this by calling <see cref="WebView.Render" />,
+        /// when a view is dirty.
+        /// </param>
+        /// <param name="g">
+        /// A <see cref="Graphics" /> instance representing the drawing surface used to paint.
+        /// </param>
+        /// <param name="b">
+        /// A reference to the <see cref="Bitmap"/> that is filled with the contents of the specified
+        /// pixel buffer. This can be a null reference in which case a new bitmap will be created.
+        /// Keep a reference to this bitmap for subsequent calls to this method. This prevents useless
+        /// overhead when the size of the pixel buffer has not changed and a creation of a new bitmap
+        /// is not required.
+        /// </param>
+        /// <remarks>
+        /// You do not need to check for changes to the size of the pixel buffer before calling this method.
+        /// <p/>
+        /// <note>
+        /// The specified <see cref="Graphics"/> is not being disposed. You do not need to dispose it
+        /// if you get from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
+        /// may need to dispose it after calling this method, if you get it from a different device context.
+        /// </note>
+        /// </remarks>
+        /// <seealso cref="WebView.IsDirty"/>
+        /// <seealso cref="WebView.Render"/>
+        public static void DrawBuffer( RenderBuffer rBuffer, Graphics g, ref Bitmap b )
+        {
+            DrawBuffer( rBuffer, ref b );
+            g.DrawImageUnscaled( b, 0, 0 );
+        }
+
+        /// <summary>
+        /// Draws the contents of a <see cref="RenderBuffer" /> to a <see cref="Bitmap"/> and draws the bitmap
+        /// to a drawing surface.
+        /// </summary>
+        /// <param name="rBuffer">
+        /// The pixel buffer of a view. You can get this by calling <see cref="WebView.Render" />,
+        /// when a view is dirty.
+        /// </param>
+        /// <param name="g">
+        /// A <see cref="Graphics" /> instance representing the drawing surface used to paint.
+        /// </param>
+        /// <param name="color">
+        /// <see cref="System.Drawing.Color" /> structure that represents the background color of the
+        //  drawing surface. The method clears the entire drawing surface and fills it with the specified background
+        //  color, before drawing the new bitmap.
+        /// </param>
+        /// <param name="b">
+        /// A reference to the <see cref="Bitmap"/> that is filled with the contents of the specified
+        /// pixel buffer. This can be a null reference in which case a new bitmap will be created.
+        /// Keep a reference to this bitmap for subsequent calls to this method. This prevents useless
+        /// overhead when the size of the pixel buffer has not changed and a creation of a new bitmap
+        /// is not required.
+        /// </param>
+        /// <remarks>
+        /// You do not need to check for changes to the size of the pixel buffer before calling this method.
+        /// <p/>
+        /// <note>
+        /// The specified <see cref="Graphics"/> is not being disposed. You do not need to dispose it
+        /// if you get from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
+        /// may need to dispose it after calling this method, if you get it from a different device context.
+        /// </note>
+        /// </remarks>
+        /// <seealso cref="WebView.IsDirty"/>
+        /// <seealso cref="WebView.Render"/>
+        public static void DrawBuffer( RenderBuffer rBuffer, Graphics g, Color color, ref Bitmap b )
+        {
+            DrawBuffer( rBuffer, ref b );
+            g.Clear( color );
+            g.DrawImageUnscaled( b, 0, 0 );
         }
         #endregion
     }

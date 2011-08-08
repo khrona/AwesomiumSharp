@@ -16,6 +16,14 @@ Class MainWindow
 #Region " Constructors "
     Public Sub New()
 
+        ' Initialize the WebCore before creating the control. Just make sure that you
+        ' specify False for the start parameter. This will ensure lazy initialization of
+        ' the core; if this is your main window, a synchronization context necessary
+        ' for WebCore's auto-update, may not be created yet. Specifying false will ensure
+        ' that the core will start when the first WebView or WebControl is created. By that
+        ' time, the dispatcher will definately be running.
+        WebCore.Initialize(New WebCoreConfig() With {.LogLevel = LogLevel.Verbose}, False)
+
         ' This call is required by the designer.
         InitializeComponent()
 

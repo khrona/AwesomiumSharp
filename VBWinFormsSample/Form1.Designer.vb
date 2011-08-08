@@ -23,19 +23,8 @@ Partial Class Form1
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         Me.components = New System.ComponentModel.Container()
-        Me.webViewBitmap = New System.Windows.Forms.PictureBox()
         Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
-        CType(Me.webViewBitmap, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
-        '
-        'webViewBitmap
-        '
-        Me.webViewBitmap.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.webViewBitmap.Location = New System.Drawing.Point(0, 0)
-        Me.webViewBitmap.Name = "webViewBitmap"
-        Me.webViewBitmap.Size = New System.Drawing.Size(532, 533)
-        Me.webViewBitmap.TabIndex = 0
-        Me.webViewBitmap.TabStop = False
         '
         'Timer1
         '
@@ -47,14 +36,12 @@ Partial Class Form1
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(532, 533)
-        Me.Controls.Add(Me.webViewBitmap)
+        Me.DoubleBuffered = True
         Me.Name = "Form1"
         Me.Text = "Form1"
-        CType(Me.webViewBitmap, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
-    Friend WithEvents webViewBitmap As System.Windows.Forms.PictureBox
     Friend WithEvents Timer1 As System.Windows.Forms.Timer
 
 End Class
