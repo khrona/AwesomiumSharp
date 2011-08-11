@@ -226,6 +226,9 @@ namespace AwesomiumSharp.Windows.Forms
         /// overhead when the size of the pixel buffer has not changed and a creation of a new bitmap
         /// is not required.
         /// </param>
+        /// <remarks>
+        /// You do not need to check for changes to the size of the pixel buffer before calling this method.
+        /// </remarks>
         /// <seealso cref="WebView.IsDirty"/>
         /// <seealso cref="WebView.Render"/>
         public static void DrawBuffer( RenderBuffer rBuffer, ref Bitmap b )
@@ -285,7 +288,7 @@ namespace AwesomiumSharp.Windows.Forms
         /// <p/>
         /// <note>
         /// The specified <see cref="Graphics"/> is not being disposed. You do not need to dispose it
-        /// if you get from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
+        /// if you get it from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
         /// may need to dispose it after calling this method, if you get it from a different device context.
         /// </note>
         /// </remarks>
@@ -310,8 +313,8 @@ namespace AwesomiumSharp.Windows.Forms
         /// </param>
         /// <param name="color">
         /// <see cref="System.Drawing.Color" /> structure that represents the background color of the
-        //  drawing surface. The method clears the entire drawing surface and fills it with the specified background
-        //  color, before drawing the new bitmap.
+        /// drawing surface. The method clears the entire drawing surface and fills it with the specified background
+        /// color, before drawing the new bitmap.
         /// </param>
         /// <param name="b">
         /// A reference to the <see cref="Bitmap"/> that is filled with the contents of the specified
@@ -325,7 +328,7 @@ namespace AwesomiumSharp.Windows.Forms
         /// <p/>
         /// <note>
         /// The specified <see cref="Graphics"/> is not being disposed. You do not need to dispose it
-        /// if you get from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
+        /// if you get it from within a managed event handler such as <see cref="Form.OnPaint"/>, but you
         /// may need to dispose it after calling this method, if you get it from a different device context.
         /// </note>
         /// </remarks>

@@ -139,7 +139,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Windows\Controls\WebControl.bmp" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>

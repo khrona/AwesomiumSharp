@@ -151,6 +151,15 @@ namespace AwesomiumSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Valid range is 0 to 100..
+        /// </summary>
+        internal static string ERR_InvalidJpegQuality {
+            get {
+                return ResourceManager.GetString("ERR_InvalidJpegQuality", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This WebView instance is invalid. It has either been destroyed or it was never properly instantiated..
         /// </summary>
         internal static string ERR_InvalidWebView {

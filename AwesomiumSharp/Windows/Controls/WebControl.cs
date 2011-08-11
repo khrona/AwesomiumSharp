@@ -735,54 +735,74 @@ namespace AwesomiumSharp.Windows.Controls
 
         /// @internal
         /// <inheritdoc />
-        protected override void OnPreviewMouseLeftButtonDown( MouseButtonEventArgs e )
+        protected override void OnPreviewMouseDown( MouseButtonEventArgs e )
         {
             if ( !IsLive )
                 return;
 
+            MouseButton button;
+
+            switch ( e.ChangedButton )
+            {
+                case System.Windows.Input.MouseButton.Left:
+                    // Clear internal selection info before injecting.
+                    selectionHelper.ClearSelection();
+                    button = MouseButton.Left;
+                    break;
+
+                case System.Windows.Input.MouseButton.Middle:
+                    button = MouseButton.Middle;
+                    break;
+
+                case System.Windows.Input.MouseButton.Right:
+                    button = MouseButton.Right;
+                    break;
+
+                default:
+                    base.OnPreviewMouseDown( e );
+                    return;
+            }
+
             this.Focus();
+            awe_webview_inject_mouse_down( Instance, button );
 
-            // Clear internal selection info before injecting.
-            selectionHelper.ClearSelection();
-
-            awe_webview_inject_mouse_down( Instance, MouseButton.Left );
-            base.OnPreviewMouseLeftButtonDown( e );
+            base.OnPreviewMouseDown( e );
         }
 
         /// @internal
         /// <inheritdoc />
-        protected override void OnPreviewMouseLeftButtonUp( MouseButtonEventArgs e )
+        protected override void OnPreviewMouseUp( MouseButtonEventArgs e )
         {
             if ( !IsLive )
                 return;
 
+            MouseButton button;
+
+            switch ( e.ChangedButton )
+            {
+                case System.Windows.Input.MouseButton.Left:
+                    // Clear internal selection info before injecting.
+                    selectionHelper.ClearSelection();
+                    button = MouseButton.Left;
+                    break;
+
+                case System.Windows.Input.MouseButton.Middle:
+                    button = MouseButton.Middle;
+                    break;
+
+                case System.Windows.Input.MouseButton.Right:
+                    button = MouseButton.Right;
+                    break;
+
+                default:
+                    base.OnPreviewMouseDown( e );
+                    return;
+            }
+
             this.Focus();
-            awe_webview_inject_mouse_up( Instance, MouseButton.Left );
-            base.OnPreviewMouseLeftButtonUp( e );
-        }
+            awe_webview_inject_mouse_up( Instance, button );
 
-        /// @internal
-        /// <inheritdoc />
-        protected override void OnPreviewMouseRightButtonDown( MouseButtonEventArgs e )
-        {
-            if ( !IsLive )
-                return;
-
-            this.Focus();
-            awe_webview_inject_mouse_down( Instance, MouseButton.Right );
-            base.OnPreviewMouseRightButtonDown( e );
-        }
-
-        /// @internal
-        /// <inheritdoc />
-        protected override void OnMouseRightButtonUp( MouseButtonEventArgs e )
-        {
-            if ( !IsLive )
-                return;
-
-            this.Focus();
-            awe_webview_inject_mouse_up( Instance, MouseButton.Right );
-            base.OnMouseRightButtonUp( e );
+            base.OnPreviewMouseUp( e );
         }
 
         /// @internal
@@ -983,10 +1003,19 @@ namespace AwesomiumSharp.Windows.Controls
 
             if ( IsLive )
             {
-                deviceTransform = PresentationSource.FromVisual( this ).CompositionTarget.TransformToDevice;
+                // User may be trying to force a Measure while not yet visible.
+                if ( PresentationSource.FromVisual( this ) != null )
+                {
+                    deviceTransform = PresentationSource.FromVisual( this ).CompositionTarget.TransformToDevice;
 
-                resizeWidth = (int)( availableSize.Width * deviceTransform.M11 );
-                resizeHeight = (int)( availableSize.Height * deviceTransform.M22 );
+                    resizeWidth = (int)( availableSize.Width * deviceTransform.M11 );
+                    resizeHeight = (int)( availableSize.Height * deviceTransform.M22 );
+                }
+                else
+                {
+                    resizeWidth = (int)availableSize.Width;
+                    resizeHeight = (int)availableSize.Height;
+                }
 
                 needsResize = true;
 
@@ -1421,7 +1450,12 @@ namespace AwesomiumSharp.Windows.Controls
         /// </returns>
         protected RenderBuffer Render()
         {
-            return new RenderBuffer( awe_webview_render( Instance ) );
+            IntPtr buffer = awe_webview_render( Instance );
+
+            if ( buffer != IntPtr.Zero )
+                return new RenderBuffer( awe_webview_render( Instance ) );
+
+            return null;
         }
         #endregion
 
@@ -2875,6 +2909,80 @@ namespace AwesomiumSharp.Windows.Controls
         {
             VerifyLive();
             awe_webview_cancel_ime_composition( Instance );
+        }
+        #endregion
+
+        #region SaveToPNG
+        /// <summary>
+        /// Save the current visual buffer to a PNG image.
+        /// </summary>
+        /// <param name="filePath">
+        /// The path to the file that will be written.
+        /// </param>
+        /// <param name="preserveTransparency">
+        /// True to preserve transparency (alpha) values. False otherwise.
+        /// </param>
+        /// <returns>
+        /// True if the file is successfully saved. False otherwise.
+        /// </returns>
+        /// <remarks>
+        /// This method may fail and return false if the width or the height of the control,
+        /// is less than, or equal to zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="UIElement.IsEnabled"/>).
+        /// </exception>
+        public bool SaveToPNG( String filePath, Boolean preserveTransparency = false )
+        {
+            VerifyLive();
+
+            RenderBuffer buffer = this.Render();
+
+            if ( buffer != null )
+                return buffer.SaveToPNG( filePath, preserveTransparency );
+
+            return false;
+        }
+        #endregion
+
+        #region SaveToJPEG
+        /// <summary>
+        /// Save the current visual buffer to a JPEG image.
+        /// </summary>
+        /// <param name="filePath">
+        /// The path to the file that will be written.
+        /// </param>
+        /// <param name="quality">
+        /// The compression quality to use, the valid range is 0 to 100, with 100 being the highest.
+        /// </param>
+        /// <returns>
+        /// True if the image was successfully saved. False otherwise.
+        /// </returns>
+        /// <remarks>
+        /// This method may fail and return false if the width or the height of the control,
+        /// is less than, or equal to zero.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        /// The member is called on an invalid <see cref="WebControl"/> instance
+        /// (see <see cref="UIElement.IsEnabled"/>).
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// An invalid compression quality value is specified.
+        /// </exception>
+        public bool SaveToJPEG( String filePath, Int32 quality = 90 )
+        {
+            VerifyLive();
+
+            if ( quality < 0 || quality > 100 )
+                throw new ArgumentOutOfRangeException( "quality", AwesomiumSharp.Resources.ERR_InvalidJpegQuality );
+
+            RenderBuffer buffer = this.Render();
+
+            if ( buffer != null )
+                return buffer.SaveToJPEG( filePath, quality );
+
+            return false;
         }
         #endregion
 

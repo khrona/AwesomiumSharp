@@ -191,4 +191,7 @@
   <data name="TITLE_Crashed" xml:space="preserve">
     <value>Crached!</value>
   </data>
+  <data name="ERR_InvalidJpegQuality" xml:space="preserve">
+    <value>Valid range is 0 to 100.</value>
+  </data>
 </root>
